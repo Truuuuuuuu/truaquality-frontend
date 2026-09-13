@@ -67,7 +67,7 @@ URLs.
 ## Known follow-ups (not yet built)
 
 - No routing library chosen/installed yet.
-- No API client or data-fetching setup for talking to `../backend` (which exposes `/auth/login`, `/health`,
+- No API client or data-fetching setup for talking to `../backend` (which exposes `/auth/login`, `/auth/refresh`, `/health`,
   `/health/db`, a protected `/me`, and admin-only `/admin/*` routes so far — see `../backend/CLAUDE.md`).
 - No accept-invite / set-password page (see "Project state" above) and no admin UI for inviting and
   enabling/disabling users.

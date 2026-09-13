@@ -61,6 +61,14 @@ export function login(email: string, password: string) {
   return request<LoginResponse>("/auth/login", { method: "POST", body: { email, password } })
 }
 
+export function refreshSession(refreshToken: string) {
+  return request<LoginResponse>("/auth/refresh", { method: "POST", body: { refreshToken } })
+}
+
+export function logoutSession(token: string) {
+  return request<void>("/auth/logout", { method: "POST", token })
+}
+
 export function getMe(token: string) {
   return request<{ profile: Profile }>("/me", { token })
 }

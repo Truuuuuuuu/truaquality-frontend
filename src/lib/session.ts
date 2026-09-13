@@ -4,7 +4,10 @@ export type Session = {
   expiresAt: number
 }
 
-const STORAGE_KEY = "truaquality.session"
+// Exported so other tabs' `storage` events (which only fire for changes made elsewhere) can be
+// filtered to just this key.
+export const SESSION_STORAGE_KEY = "truaquality.session"
+const STORAGE_KEY = SESSION_STORAGE_KEY
 
 export function loadSession(): Session | null {
   try {
