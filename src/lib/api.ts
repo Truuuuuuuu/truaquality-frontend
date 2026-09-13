@@ -44,13 +44,8 @@ export type Profile = {
   id: string
   email: string
   fullName: string
-  systemRole: "SUPER_ADMIN" | "USER"
+  systemRole: "ADMIN" | "USER"
   status: "INVITED" | "ACTIVE" | "DISABLED"
-  memberships: {
-    officeId: string
-    role: "MANAGER" | "MEMBER"
-    office: { id: string; name: string; code: string; region: string | null }
-  }[]
 }
 
 type LoginResponse = {

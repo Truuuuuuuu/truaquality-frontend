@@ -1,0 +1,246 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-13T00:00:00Z",
+  "title": "Design System: TruAquality Monitoring Board",
+  "extensions": {
+    "colorMeta": {
+      "telemetry-cyan": {
+        "role": "primary",
+        "displayName": "Telemetry Cyan",
+        "canonical": "oklch(0.78 0.12 199)",
+        "tonalRamp": [
+          "oklch(0.15 0.05 199)",
+          "oklch(0.28 0.08 199)",
+          "oklch(0.40 0.10 199)",
+          "oklch(0.52 0.115 199)",
+          "oklch(0.64 0.12 199)",
+          "oklch(0.78 0.12 199)",
+          "oklch(0.88 0.08 199)",
+          "oklch(0.95 0.04 199)"
+        ]
+      },
+      "alert-amber": {
+        "role": "secondary",
+        "displayName": "Alert Amber",
+        "canonical": "oklch(0.75 0.16 70)",
+        "tonalRamp": [
+          "oklch(0.15 0.04 70)",
+          "oklch(0.28 0.08 70)",
+          "oklch(0.40 0.11 70)",
+          "oklch(0.52 0.14 70)",
+          "oklch(0.64 0.16 70)",
+          "oklch(0.75 0.16 70)",
+          "oklch(0.85 0.12 70)",
+          "oklch(0.95 0.06 70)"
+        ]
+      },
+      "critical-red": {
+        "role": "secondary",
+        "displayName": "Critical Red",
+        "canonical": "oklch(0.63 0.21 25)",
+        "tonalRamp": [
+          "oklch(0.15 0.06 25)",
+          "oklch(0.25 0.10 25)",
+          "oklch(0.35 0.14 25)",
+          "oklch(0.45 0.17 25)",
+          "oklch(0.54 0.19 25)",
+          "oklch(0.63 0.21 25)",
+          "oklch(0.75 0.16 25)",
+          "oklch(0.88 0.08 25)"
+        ]
+      },
+      "rail-graphite": {
+        "role": "neutral",
+        "displayName": "Rail Graphite",
+        "canonical": "oklch(0.115 0.007 258)",
+        "tonalRamp": [
+          "oklch(0.10 0.006 258)",
+          "oklch(0.15 0.008 258)",
+          "oklch(0.195 0.01 258)",
+          "oklch(0.235 0.012 258)",
+          "oklch(0.35 0.01 258)",
+          "oklch(0.5 0.012 258)",
+          "oklch(0.7 0.008 258)",
+          "oklch(0.93 0.004 258)"
+        ]
+      },
+      "board-slate": {
+        "role": "neutral",
+        "displayName": "Board Slate",
+        "canonical": "oklch(0.15 0.008 258)",
+        "tonalRamp": [
+          "oklch(0.10 0.006 258)",
+          "oklch(0.15 0.008 258)",
+          "oklch(0.195 0.01 258)",
+          "oklch(0.235 0.012 258)",
+          "oklch(0.35 0.01 258)",
+          "oklch(0.5 0.012 258)",
+          "oklch(0.7 0.008 258)",
+          "oklch(0.93 0.004 258)"
+        ]
+      },
+      "panel-slate": {
+        "role": "neutral",
+        "displayName": "Panel Slate",
+        "canonical": "oklch(0.195 0.01 258)",
+        "tonalRamp": [
+          "oklch(0.10 0.006 258)",
+          "oklch(0.15 0.008 258)",
+          "oklch(0.195 0.01 258)",
+          "oklch(0.235 0.012 258)",
+          "oklch(0.35 0.01 258)",
+          "oklch(0.5 0.012 258)",
+          "oklch(0.7 0.008 258)",
+          "oklch(0.93 0.004 258)"
+        ]
+      },
+      "raised-slate": {
+        "role": "neutral",
+        "displayName": "Raised Slate",
+        "canonical": "oklch(0.235 0.012 258)",
+        "tonalRamp": [
+          "oklch(0.10 0.006 258)",
+          "oklch(0.15 0.008 258)",
+          "oklch(0.195 0.01 258)",
+          "oklch(0.235 0.012 258)",
+          "oklch(0.35 0.01 258)",
+          "oklch(0.5 0.012 258)",
+          "oklch(0.7 0.008 258)",
+          "oklch(0.93 0.004 258)"
+        ]
+      },
+      "instrument-white": {
+        "role": "neutral",
+        "displayName": "Instrument White",
+        "canonical": "oklch(0.93 0.004 258)",
+        "tonalRamp": [
+          "oklch(0.15 0.008 258)",
+          "oklch(0.3 0.006 258)",
+          "oklch(0.45 0.006 258)",
+          "oklch(0.6 0.006 258)",
+          "oklch(0.72 0.005 258)",
+          "oklch(0.82 0.004 258)",
+          "oklch(0.93 0.004 258)",
+          "oklch(0.98 0.002 258)"
+        ]
+      },
+      "muted-slate-text": {
+        "role": "neutral",
+        "displayName": "Muted Slate Text",
+        "canonical": "oklch(0.6 0.014 258)",
+        "tonalRamp": [
+          "oklch(0.2 0.012 258)",
+          "oklch(0.32 0.013 258)",
+          "oklch(0.44 0.014 258)",
+          "oklch(0.6 0.014 258)",
+          "oklch(0.7 0.012 258)",
+          "oklch(0.8 0.01 258)",
+          "oklch(0.9 0.006 258)",
+          "oklch(0.96 0.003 258)"
+        ]
+      },
+      "stale-gray": {
+        "role": "neutral",
+        "displayName": "Stale Gray",
+        "canonical": "oklch(0.6 0.01 258)",
+        "tonalRamp": [
+          "oklch(0.2 0.008 258)",
+          "oklch(0.32 0.009 258)",
+          "oklch(0.44 0.01 258)",
+          "oklch(0.6 0.01 258)",
+          "oklch(0.7 0.008 258)",
+          "oklch(0.8 0.006 258)",
+          "oklch(0.9 0.004 258)",
+          "oklch(0.96 0.002 258)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "The flagship (Temperature) reading only, one per page." },
+      "title": { "displayName": "Title", "purpose": "Standard parameter tile numerals." },
+      "headline": { "displayName": "Headline", "purpose": "Page title." },
+      "label": { "displayName": "Label", "purpose": "Uppercase tracked labels: parameter names, nav items, eyebrow-style captions." },
+      "mono": { "displayName": "Mono/Stamp", "purpose": "Timestamps and relative-time stamps on every reading." }
+    },
+    "shadows": [
+      { "name": "engraved-groove", "value": "inset 0 1px 0 0 var(--board-groove-hi), inset 0 -1px 0 0 var(--board-groove-lo) — Dark: hi oklch(1 0 0 / 6%), lo oklch(0 0 0 / 35%); Light: hi oklch(1 0 0 / 90%), lo oklch(0 0 0 / 10%)", "purpose": "Cut-groove divider between panel sections (sidebar header/footer), tuned per theme so it reads as an engraving in both lighting conditions rather than a fixed dark-only effect." },
+      { "name": "drawer-overlay", "value": "box-shadow: var(--tw-shadow-2xl, 0 25px 50px -12px rgb(0 0 0 / 0.25))", "purpose": "Mobile navigation drawer only, since it floats above the board." }
+    ],
+    "motion": [
+      { "name": "sparkline-pulse", "value": "radius 3.5→5.5→3.5, opacity 1→0.55→1 over 2.4s, infinite", "purpose": "Live sparkline latest-point marker; signals a reading is actively updating." },
+      { "name": "tile-state-transition", "value": "transition-colors duration-500", "purpose": "Tile background/border/text color change on status change (nominal/warning/critical/stale), so a flood reads as a deliberate event." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Parameter Tile — Nominal",
+      "kind": "custom",
+      "refersTo": "parameter-tile-nominal",
+      "description": "Standard-size tile in nominal (safe-range) state: cyan LED, cyan sparkline, stamped clock time.",
+      "html": "<div class=\"ds-tile ds-tile--nominal\"><div class=\"ds-tile__head\"><span class=\"ds-led\"></span><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M12 2v6M12 22v-6M4.9 4.9l4.2 4.2M14.9 14.9l4.2 4.2M2 12h6M16 12h6M4.9 19.1l4.2-4.2M14.9 9.1l4.2-4.2\"/></svg><span class=\"ds-label\">Dissolved Oxygen</span><span class=\"ds-stamp\">14:02:11</span></div><div class=\"ds-value\"><span class=\"ds-num\">6.42</span><span class=\"ds-unit\">mg/L</span></div><svg class=\"ds-spark\" viewBox=\"0 0 320 64\" preserveAspectRatio=\"none\"><path d=\"M0 40 L40 36 L80 30 L120 34 L160 26 L200 28 L240 20 L280 24 L320 18\" fill=\"none\" stroke=\"#7fd8e8\" stroke-width=\"2\"/><circle cx=\"320\" cy=\"18\" r=\"3.5\" fill=\"#7fd8e8\"/></svg></div>",
+      "css": ".ds-tile{display:flex;flex-direction:column;gap:16px;border-radius:14px;border:1px solid oklch(1 0 0 / 8%);background:oklch(0.195 0.01 258);color:oklch(0.93 0.004 258);padding:20px;box-shadow:inset 0 1px 0 0 oklch(1 0 0 / 6%),inset 0 -1px 0 0 oklch(0 0 0 / 35%);transition:background-color .5s,border-color .5s,color .5s;} .ds-tile__head{display:flex;align-items:center;justify-content:space-between;gap:8px;color:oklch(0.6 0.014 258);} .ds-led{width:6px;height:6px;border-radius:9999px;background:oklch(0.78 0.12 199);display:inline-block;} .ds-icon{width:16px;height:16px;} .ds-label{font-family:'Inter Variable',sans-serif;font-size:0.65rem;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;} .ds-stamp{margin-left:auto;font-family:'Geist Mono Variable',monospace;font-size:0.65rem;border:1px solid oklch(1 0 0 / 14%);border-radius:8px;padding:2px 6px;} .ds-value{display:flex;align-items:baseline;gap:8px;} .ds-num{font-family:'Geist Mono Variable',monospace;font-weight:500;font-size:2.25rem;letter-spacing:-0.01em;font-variant-numeric:tabular-nums;} .ds-unit{font-family:'Geist Mono Variable',monospace;font-size:0.875rem;color:oklch(0.6 0.014 258);} .ds-spark{width:100%;height:64px;}"
+    },
+    {
+      "name": "Parameter Tile — Critical (Whole-Tile Flood)",
+      "kind": "custom",
+      "refersTo": "parameter-tile-critical",
+      "description": "Out-of-range reading floods the entire tile red — background, border, value, LED, and stamp together, never a small badge.",
+      "html": "<div class=\"ds-tile ds-tile--critical\"><div class=\"ds-tile__head\"><span class=\"ds-led\"></span><span class=\"ds-label\">Salinity</span><span class=\"ds-stamp\">14:05:47</span></div><div class=\"ds-value\"><span class=\"ds-num\">38.6</span><span class=\"ds-unit\">ppt</span></div></div>",
+      "css": ".ds-tile--critical{background:oklch(0.63 0.21 25 / 12%);border-color:oklch(0.63 0.21 25 / 50%);color:oklch(0.63 0.21 25);} .ds-tile--critical .ds-tile__head{color:oklch(0.63 0.21 25);} .ds-tile--critical .ds-led{background:oklch(0.63 0.21 25);} .ds-tile--critical .ds-stamp{border-color:oklch(0.63 0.21 25 / 60%);color:oklch(0.63 0.21 25);} .ds-tile--critical .ds-num{color:oklch(0.63 0.21 25);}"
+    },
+    {
+      "name": "Sidebar Nav Item",
+      "kind": "nav",
+      "refersTo": "nav-item-active",
+      "description": "Rail nav row: active item tinted with the same cyan used for nominal telemetry; disabled/future routes shown with a muted 'Soon' pill rather than hidden.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav__item ds-nav__item--active\" href=\"#\" aria-current=\"page\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\"/><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\"/><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\"/></svg>Dashboard</a><div class=\"ds-nav__item ds-nav__item--disabled\" aria-disabled=\"true\"><span>Ponds</span><span class=\"ds-pill\">Soon</span></div></nav>",
+      "css": ".ds-nav{display:flex;flex-direction:column;gap:4px;padding:16px 12px;background:oklch(0.115 0.007 258);} .ds-nav__item{display:flex;align-items:center;gap:10px;border-radius:10px;padding:8px 12px;font-family:'Inter Variable',sans-serif;font-size:0.875rem;font-weight:500;text-decoration:none;color:oklch(0.6 0.014 258);} .ds-nav__item--active{background:oklch(0.78 0.12 199 / 12%);color:oklch(0.78 0.12 199);} .ds-nav__item:not(.ds-nav__item--disabled):hover,.ds-nav__item:not(.ds-nav__item--disabled):focus-visible{background:oklch(0.235 0.012 258);color:oklch(0.93 0.004 258);outline:none;} .ds-nav__item--disabled{justify-content:space-between;color:oklch(0.6 0.014 258 / 50%);cursor:not-allowed;} .ds-pill{font-family:'Geist Mono Variable',monospace;font-size:0.6rem;letter-spacing:0.05em;text-transform:uppercase;border:1px solid oklch(1 0 0 / 14%);border-radius:6px;padding:2px 6px;}"
+    },
+    {
+      "name": "Sample-Data Badge",
+      "kind": "chip",
+      "refersTo": "status-stamp",
+      "description": "Amber-stroked flask pill flagging mock readings; a defect-carrying placeholder, not a reusable chip pattern (remove once real device data lands).",
+      "html": "<span class=\"ds-badge\"><svg viewBox=\"0 0 24 24\" width=\"12\" height=\"12\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3\"/></svg>Sample data</span>",
+      "css": ".ds-badge{display:inline-flex;align-items:center;gap:4px;border:1px solid oklch(0.75 0.16 70 / 40%);border-radius:8px;padding:2px 6px;font-family:'Inter Variable',sans-serif;font-size:0.65rem;font-weight:500;letter-spacing:0.02em;text-transform:uppercase;color:oklch(0.75 0.16 70);}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The SCADA Schematic",
+    "overview": "TruAquality's dashboard is built to read as a control-room instrument panel, not a SaaS analytics grid. It refuses the generic dashboard default of a neutral card grid with unstyled line charts sitting under a marketing-style sidenav. Instead the board is an instrument-panel ground — dark control-room by default, with a daylit brushed-aluminum variant for the Light theme — with panel tiles that behave like physical gauges and a rail-styled sidebar that reads as an equipment list rather than product navigation. The board follows the app-wide Light/Dark/System theme toggle (an earlier iteration fixed it permanently dark; that constraint was later reversed so the instrument panel can be read in either lighting condition, the way a real control room's panel lighting can be dimmed or raised).\n\nDensity is calm at rest and urgent on alert: a single oversized flagship reading (Temperature) anchors the page with a numeral large enough to read at a glance, two structurally identical secondary tiles (Dissolved Oxygen, Salinity) sit below at a smaller scale, and every tile is built from the same repeatable pattern (numeral + sparkline + stamped timestamp) so future parameters slot in without a redesign. The system carries two inherited disciplines from earlier explorations in this world's build history: whole-region color flood on out-of-range state (never a small badge), and a stamped/validated feel on every value (nothing is presented bare, without a timestamp).",
+    "keyCharacteristics": [
+      "Instrument-panel ground that follows the app-wide theme toggle: dark graphite/slate control-room by default, daylit brushed-aluminum in Light",
+      "Cyan-teal for nominal telemetry; amber and red flood the entire tile on warning/critical, not a corner badge",
+      "Geist Mono for every number and timestamp; Inter for every label — the pairing itself signals \"instrument reading\" vs. \"caption\"",
+      "Engraved-groove hairlines (inset highlight + inset shadow) divide panel sections instead of flat border lines",
+      "One flagship numeral leads the page; every other parameter tile is the same shape at a smaller scale"
+    ],
+    "rules": [
+      { "name": "The Whole-Tile Flood Rule", "body": "An out-of-range reading recolors the entire tile — background fill, border, value text, LED dot, and status stamp together — never a small corner badge on an otherwise-neutral card. Alert state is a property of the region, not an icon on top of it.", "section": "colors" },
+      { "name": "The Stale-Is-Not-a-Severity Rule", "body": "Stale/offline uses its own neutral gray (stale-gray), not a dimmed version of amber or red. A device that has stopped reporting is a data-integrity fact, not a graded alarm level.", "section": "colors" },
+      { "name": "The Numeral-Leads Rule", "body": "The flagship parameter's value is the single largest piece of type on the page (60–72px). Every other tile's numeral is the same font and weight, just smaller (36px) — visual hierarchy is expressed through scale of the same treatment, not through a different treatment.", "section": "typography" },
+      { "name": "The Stamped-Value Rule", "body": "No reading appears without an adjacent timestamp or relative-time stamp in the mono/stamp style. A bare number with no provenance is not a valid tile state.", "section": "typography" },
+      { "name": "The Groove-Not-Border Rule", "body": "Structural dividers inside a panel use the engraved groove treatment, not a flat 1px border, to keep the board reading as machined material rather than drawn UI.", "section": "elevation" },
+      { "name": "The Lit-Not-Repainted Rule", "body": "Switching Light/Dark changes how the instrument panel is lit, never what it is: every role, layout position, and state behavior stays identical across both variants — only the sampled lightness/chroma per token changes. A component that needs a different layout or a different color role in Light than in Dark has stopped being this design system.", "section": "colors" }
+    ],
+    "dos": [
+      "Do set every numeric reading and timestamp in Geist Mono, tabular-nums where the value updates live.",
+      "Do flood the entire tile (background, border, value, LED, stamp) on warning/critical state; never isolate the alert signal to a small badge or icon.",
+      "Do give stale/offline its own neutral color (stale-gray) distinct from the amber/red severity scale.",
+      "Do keep new parameter tiles structurally identical to the existing standard tile (icon, label, numeral, sparkline, stamp) so the grid absorbs them without a redesign.",
+      "Do use the engraved-groove treatment for structural dividers inside a panel rather than a flat border line.",
+      "Do let the board's --board-* tokens vary between :root (Light) and .dark (Dark) like every other themeable token in this app — the board follows the same Light/Dark/System toggle as the rest of the app, it does not opt out of it."
+    ],
+    "donts": [
+      "Don't hardcode a --board-* token to one literal value outside the :root/.dark pair — that silently breaks the theme toggle for the board (this happened once already; see the Overview note).",
+      "Don't introduce a drop-shadow-based elevation system for tiles or panels; depth here comes from tonal layering and the groove, not lifted shadows.",
+      "Don't add a corner or badge-style alert indicator as an alternative to the whole-tile flood — the two have been weighed already and only the flood shipped.",
+      "Don't treat the \"Sample data\" flask badge as a reusable pattern; it exists only to flag mock data and should be removed, not restyled, once real device readings land."
+    ]
+  }
+}

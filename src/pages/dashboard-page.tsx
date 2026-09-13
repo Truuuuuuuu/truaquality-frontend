@@ -1,23 +1,51 @@
-import { Button } from "@/components/ui/button"
-import { useAuth } from "@/context/auth-context"
+import { Droplets, FlaskConical, Thermometer, Waves } from "lucide-react"
+import { ParameterTile } from "@/components/dashboard/parameter-tile"
+import { useNow } from "@/hooks/use-now"
+import { formatClock } from "@/lib/format-time"
+import { useLiveReadings } from "@/lib/mock-readings"
+
+const PARAMETER_ICONS = {
+  temperature: Thermometer,
+  dissolvedOxygen: Droplets,
+  salinity: Waves,
+}
 
 export function DashboardPage() {
-  const { profile, logout } = useAuth()
+  const readings = useLiveReadings()
+  const now = useNow()
 
   return (
-    <div className="flex min-h-svh flex-col gap-4 p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="font-medium">TruAquality</h1>
-        <Button variant="outline" size="sm" onClick={logout}>
-          Sign out
-        </Button>
-      </div>
-      <div className="text-sm leading-loose">
-        <p>Signed in as {profile?.email}</p>
-        <p className="text-muted-foreground">Role: {profile?.systemRole}</p>
-        <p className="text-muted-foreground">
-          Offices: {profile?.memberships.map((m) => m.office.name).join(", ") || "none"}
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <h1 className="font-sans text-lg font-semibold tracking-tight text-board-fg">
+            BFAR Sorsogon Overview
+          </h1>
+          <span className="inline-flex items-center gap-1 rounded-md border border-board-warn/40 px-1.5 py-0.5 font-sans text-[0.65rem] font-medium tracking-wide text-board-warn uppercase">
+            <FlaskConical className="size-3" />
+            Sample data
+          </span>
+        </div>
+        <p className="font-sans text-xs text-board-muted">
+          Board time <span className="font-heading">{formatClock(now)}</span> · simulated readings, no live
+          devices connected yet
         </p>
+      </div>
+
+      <ParameterTile
+        reading={readings.temperature}
+        now={now}
+        icon={PARAMETER_ICONS.temperature}
+        variant="flagship"
+      />
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <ParameterTile
+          reading={readings.dissolvedOxygen}
+          now={now}
+          icon={PARAMETER_ICONS.dissolvedOxygen}
+        />
+        <ParameterTile reading={readings.salinity} now={now} icon={PARAMETER_ICONS.salinity} />
       </div>
     </div>
   )

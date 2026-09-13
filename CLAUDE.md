@@ -9,8 +9,11 @@ Radix). Currently just the initial scaffold — `App.tsx`, a `theme-provider`, a
 component. No routing, data-fetching, or backend integration wired up yet (the backend lives in `../backend`
 and is a separate Express/Prisma/Supabase project — see its own `CLAUDE.md`).
 
-**There is no signup page to build.** This is a government system — accounts are invite-only, created by a
-super admin through the backend's `/admin/*` routes. The page this frontend does need is an
+**Scope: BFAR Sorsogon only.** The app serves a single organization, so there's no office/region picker or
+per-office labeling — the org name is shown as the fixed text "BFAR Sorsogon".
+
+**There is no signup page to build.** This is a government system — accounts are invite-only, created by an
+admin through the backend's `/admin/*` routes. The page this frontend does need is an
 **accept-invite / set-password** page: the user clicks the link Supabase emails them, lands here, and calls
 `supabase.auth.updateUser({ password })` to set their password (their session comes from the invite link
 itself). Its route must match `INVITE_REDIRECT_URL` in `backend/.env` and be in Supabase's allowed redirect
@@ -65,6 +68,6 @@ URLs.
 
 - No routing library chosen/installed yet.
 - No API client or data-fetching setup for talking to `../backend` (which exposes `/auth/login`, `/health`,
-  `/health/db`, a protected `/me`, and super-admin-only `/admin/*` routes so far — see `../backend/CLAUDE.md`).
-- No accept-invite / set-password page (see "Project state" above) and no admin UI for inviting
-  users/managing offices.
+  `/health/db`, a protected `/me`, and admin-only `/admin/*` routes so far — see `../backend/CLAUDE.md`).
+- No accept-invite / set-password page (see "Project state" above) and no admin UI for inviting and
+  enabling/disabling users.
