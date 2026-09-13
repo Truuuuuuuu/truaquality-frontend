@@ -9,12 +9,12 @@ Radix). Currently just the initial scaffold — `App.tsx`, a `theme-provider`, a
 component. No routing, data-fetching, or backend integration wired up yet (the backend lives in `../backend`
 and is a separate Express/Prisma/Supabase project — see its own `CLAUDE.md`).
 
-**Note:** this directory has its own nested `.git` (from the scaffolding tool initializing one), and the
-parent monorepo tracks it as a gitlink (`160000` mode) without a `.gitmodules` file. That means a fresh
-`git clone` of the parent repo will **not** pull in `frontend/`'s contents — it'll just be an empty
-directory. Worth fixing (either remove the nested `.git` and track frontend as normal files in the parent
-repo, or set it up as a proper git submodule with `.gitmodules`) before this matters for a second clone or
-collaborator.
+**There is no signup page to build.** This is a government system — accounts are invite-only, created by a
+super admin through the backend's `/admin/*` routes. The page this frontend does need is an
+**accept-invite / set-password** page: the user clicks the link Supabase emails them, lands here, and calls
+`supabase.auth.updateUser({ password })` to set their password (their session comes from the invite link
+itself). Its route must match `INVITE_REDIRECT_URL` in `backend/.env` and be in Supabase's allowed redirect
+URLs.
 
 ## Commands
 
@@ -64,6 +64,7 @@ collaborator.
 ## Known follow-ups (not yet built)
 
 - No routing library chosen/installed yet.
-- No API client or data-fetching setup for talking to `../backend` (which exposes `/auth/signup`,
-  `/auth/login`, `/health`, `/health/db` so far — see `../backend/CLAUDE.md`).
-- The nested-`.git`/gitlink issue described above under "Project state".
+- No API client or data-fetching setup for talking to `../backend` (which exposes `/auth/login`, `/health`,
+  `/health/db`, a protected `/me`, and super-admin-only `/admin/*` routes so far — see `../backend/CLAUDE.md`).
+- No accept-invite / set-password page (see "Project state" above) and no admin UI for inviting
+  users/managing offices.
