@@ -55,8 +55,8 @@
     --board-groove-lo: oklch(0 0 0 / 10%);
     --board-fg: oklch(0.2 0.006 258);
     --board-muted: oklch(0.46 0.012 258);
-    --board-accent: oklch(0.4 0.11 199);
-    --board-accent-dim: oklch(0.88 0.05 199);
+    --board-accent: oklch(0.4 0.13 145);
+    --board-accent-dim: oklch(0.88 0.06 145);
     --board-warn: oklch(0.42 0.15 65);
     --board-warn-dim: oklch(0.88 0.06 65);
     --board-critical: oklch(0.42 0.19 25);
@@ -108,8 +108,8 @@
     --board-groove-lo: oklch(0 0 0 / 35%);
     --board-fg: oklch(0.93 0.004 258);
     --board-muted: oklch(0.6 0.014 258);
-    --board-accent: oklch(0.78 0.12 199);
-    --board-accent-dim: oklch(0.48 0.075 199);
+    --board-accent: oklch(0.78 0.15 145);
+    --board-accent-dim: oklch(0.48 0.09 145);
     --board-warn: oklch(0.75 0.16 70);
     --board-warn-dim: oklch(0.45 0.1 65);
     --board-critical: oklch(0.63 0.21 25);

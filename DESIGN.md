@@ -12,8 +12,8 @@ colors:
   hairline-border-strong: "oklch(1 0 0 / 14%)"
   instrument-white: "oklch(0.93 0.004 258)"
   muted-slate-text: "oklch(0.6 0.014 258)"
-  telemetry-cyan: "oklch(0.78 0.12 199)"
-  telemetry-cyan-dim: "oklch(0.48 0.075 199)"
+  telemetry-green: "oklch(0.78 0.15 145)"
+  telemetry-green-dim: "oklch(0.48 0.09 145)"
   alert-amber: "oklch(0.75 0.16 70)"
   alert-amber-dim: "oklch(0.45 0.1 65)"
   critical-red: "oklch(0.63 0.21 25)"
@@ -28,8 +28,8 @@ colors:
   hairline-border-strong-light: "oklch(0 0 0 / 14%)"
   instrument-ink-light: "oklch(0.2 0.006 258)"
   muted-slate-text-light: "oklch(0.46 0.012 258)"
-  telemetry-cyan-light: "oklch(0.4 0.11 199)"
-  telemetry-cyan-dim-light: "oklch(0.88 0.05 199)"
+  telemetry-green-light: "oklch(0.4 0.13 145)"
+  telemetry-green-dim-light: "oklch(0.88 0.06 145)"
   alert-amber-light: "oklch(0.42 0.15 65)"
   alert-amber-dim-light: "oklch(0.88 0.06 65)"
   critical-red-light: "oklch(0.42 0.19 25)"
@@ -99,8 +99,8 @@ components:
     rounded: "{rounded.lg}"
     padding: "20px"
   nav-item-active:
-    backgroundColor: "{colors.telemetry-cyan-dim}"
-    textColor: "{colors.telemetry-cyan}"
+    backgroundColor: "{colors.instrument-white}"
+    textColor: "{colors.board-slate}"
     rounded: "{rounded.md}"
     padding: "8px 12px"
   nav-item-inactive:
@@ -128,7 +128,7 @@ Density is calm at rest and urgent on alert: a single oversized flagship reading
 
 **Key Characteristics:**
 - Instrument-panel ground that follows the app-wide theme toggle: dark graphite/slate control-room by default, daylit brushed-aluminum in Light
-- Cyan-teal for nominal telemetry; amber and red flood the entire tile on warning/critical, not a corner badge
+- Green for nominal telemetry; amber and red flood the entire tile on warning/critical, not a corner badge
 - Geist Mono for every number and timestamp; Inter for every label — the pairing itself signals "instrument reading" vs. "caption"
 - Engraved-groove hairlines (inset highlight + inset shadow) divide panel sections instead of flat border lines
 - One flagship numeral leads the page; every other parameter tile is the same shape at a smaller scale
@@ -138,7 +138,7 @@ Density is calm at rest and urgent on alert: a single oversized flagship reading
 The palette is a narrow, deliberately desaturated slate family for structure, with three saturated signal colors reserved strictly for reading state — never for decoration. Every token below has a Dark value (the control-room scene, default) and a Light value (a daylit instrument panel, same roles) — the app's Light/Dark/System toggle switches between them; System resolves from the OS preference. Both variants are held to the same WCAG 2.1 AA contrast floor independently, not by inheriting the other's margin.
 
 ### Primary
-- **Telemetry Cyan** — Dark `oklch(0.78 0.12 199)` / Light `oklch(0.4 0.11 199)`: the nominal-state signal. Used on the sparkline line/marker, the LED status dot, and the active nav item's background tint and text, whenever a reading is in its safe range. This is the "everything is fine" color and the only accent used outside an alert state. Light mode uses a deep teal rather than the bright cyan so it still reads at ≥4.5:1 on a near-white ground — same hue, inverted for contrast.
+- **Telemetry Green** — Dark `oklch(0.78 0.15 145)` / Light `oklch(0.4 0.13 145)`: the nominal-state signal. Used on the sparkline line/marker and the LED status dot whenever a reading is in its safe range. This is the "everything is fine" color and the only accent used outside an alert state — it is deliberately not reused for navigation (see Components → Navigation). Light mode uses a deeper, more saturated green than the dark scene's brighter one so it still reads at ≥4.5:1 on a near-white ground — same hue, inverted for contrast.
 
 ### Secondary
 - **Alert Amber** — Dark `oklch(0.75 0.16 70)` / Light `oklch(0.42 0.15 65)`: warning-state flood color. Applies to the tile background (10% fill), border, value text, LED dot, and status stamp simultaneously — the whole tile shifts, not a badge.
@@ -151,7 +151,7 @@ The palette is a narrow, deliberately desaturated slate family for structure, wi
 - **Raised Slate** — Dark `oklch(0.235 0.012 258)` / Light `oklch(0.89 0.008 258)`: hover/interactive plane for rail rows, icon buttons, and the scrollbar thumb. Lightens further in Dark (catches more light on hover); darkens slightly in Light (a conventional light-mode hover tint).
 - **Instrument White / Instrument Ink** — Dark `oklch(0.93 0.004 258)` / Light `oklch(0.2 0.006 258)`: primary reading/label text on the board — near-white ink on the dark scene, near-black ink on the light one.
 - **Muted Slate Text** — Dark `oklch(0.6 0.014 258)` / Light `oklch(0.46 0.012 258)`: secondary text — labels, captions, inactive nav items, the "Board time" caption.
-- **Stale Gray** — Dark `oklch(0.6 0.01 258)` / Light `oklch(0.42 0.01 258)`: dedicated desaturated color for a stale/offline reading — deliberately outside the cyan/amber/red trio so "we haven't heard from this device" never gets mistaken for a graded severity.
+- **Stale Gray** — Dark `oklch(0.6 0.01 258)` / Light `oklch(0.42 0.01 258)`: dedicated desaturated color for a stale/offline reading — deliberately outside the green/amber/red trio so "we haven't heard from this device" never gets mistaken for a graded severity.
 - **Hairline Border / Hairline Border, Strong** — Dark `oklch(1 0 0 / 8%)` / `oklch(1 0 0 / 14%)`, Light `oklch(0 0 0 / 8%)` / `oklch(0 0 0 / 14%)`: low-opacity borders for dividers, tile edges, and the "Soon" pill on disabled nav rows — white-based ink on the dark scene, black-based on the light one, same alpha steps.
 
 ### Named Rules
@@ -207,7 +207,7 @@ Corners are moderate and consistent, never sharp and never pill-shaped except fo
 
 ### Navigation (Sidebar Rail)
 - **Style:** a darker plane (`rail-graphite`) than the main board, with an engraved-groove header (station name + "Monitoring Station" label) and footer (signed-in user + fixed "BFAR Sorsogon" org line + sign-out). The system serves a single organization, so there is no office switcher or per-office label.
-- **Active item:** cyan tint background (`telemetry-cyan` at ~12% opacity) with cyan text — the same accent color used for nominal telemetry elsewhere, tying "you are here" to "this is normal."
+- **Active item:** an inverted solid block — background in `instrument-white`/`instrument-ink`, text in `board-slate` (the near-black ink on Light, near-white ink on Dark, each swapped onto a solid fill) — with no accent color at all. "You are here" is signaled by contrast and weight (bumped to semibold), not by borrowing the nominal-telemetry hue; that keeps navigation state and reading state visually distinct instead of implying an active tab is somehow "in range."
 - **Inactive/available item:** muted text, raised-slate background on hover.
 - **Disabled/future item** (Ponds, Devices): 50%-opacity muted text, not-allowed cursor, and a mono "Soon" pill in a stroked border — future routes are shown, not hidden, so the nav's shape is stable as capability grows.
 - **Mobile:** identical content inside a slide-in drawer, focus-trapped, closing on Escape/backdrop/route change.
@@ -237,3 +237,4 @@ An inline SVG sparkline (no charting library), rendered per tile: a status-color
 - **Don't** introduce a drop-shadow-based elevation system for tiles or panels; depth here comes from tonal layering and the groove, not lifted shadows.
 - **Don't** add a corner or badge-style alert indicator as an alternative to the whole-tile flood — the two have been weighed already and only the flood shipped.
 - **Don't** treat the "Sample data" flask badge as a reusable pattern; it exists only to flag mock data and should be removed, not restyled, once real device readings land.
+- **Don't** tint the active nav item with `telemetry-green` (or any accent color); active state is signaled by the inverted `instrument-white`/`board-slate` block only, kept deliberately separate from reading-state color.
