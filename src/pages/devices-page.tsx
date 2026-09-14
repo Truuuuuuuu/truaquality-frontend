@@ -67,7 +67,7 @@ export function DevicesPage() {
             : "No devices registered yet. An administrator needs to add them."}
         </BoardEmptyState>
       ) : (
-        <div className="board-groove rounded-xl border border-board-border bg-board-panel px-2 py-1">
+        <div className="board-groove overflow-hidden rounded-xl border border-board-border bg-board-panel">
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">

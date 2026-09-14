@@ -2,7 +2,6 @@ import * as React from "react"
 import {
   AlertTriangle,
   ArrowLeft,
-  Calendar,
   ChevronLeft,
   ChevronRight,
   Cpu,
@@ -14,19 +13,13 @@ import {
 } from "lucide-react"
 import { Link, useParams } from "react-router"
 import { cn } from "cn"
+import { Badge } from "@/components/ui/badge"
 import { BoardEmptyState } from "@/components/board-empty-state"
 import { ParameterTile } from "@/components/dashboard/parameter-tile"
 import { ExportReadingsDialog } from "@/components/ponds/export-readings-dialog"
+import { ReadingsFilterDialog } from "@/components/ponds/readings-filter-dialog"
 import { StatusBadge } from "@/components/status-badge"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import {
   Table,
   TableBody,
@@ -43,8 +36,13 @@ import {
 } from "@/hooks/use-ponds"
 import { useNow } from "@/hooks/use-now"
 import { ApiError } from "@/lib/api"
-import { formatClock, formatRelative } from "@/lib/format-time"
 import {
+  formatClock,
+  formatDateTimeShort,
+  formatRelative,
+} from "@/lib/format-time"
+import {
+  PARAMETER_FILTER_ITEMS,
   PARAMETER_ICONS,
   PARAMETERS,
   severityFor,
@@ -54,14 +52,6 @@ import {
 } from "@/lib/parameters"
 import { isDeviceOnline } from "@/lib/pond-status"
 import { STATUS_LABELS, STATUS_STYLES } from "@/lib/status-styles"
-
-const PARAMETER_FILTER_ITEMS = [
-  { value: "all", label: "All parameters" },
-  ...PARAMETERS.map((parameter) => ({
-    value: parameter.id,
-    label: parameter.label,
-  })),
-]
 
 type PivotRow = { recordedAt: string; values: Partial<Record<string, number>> }
 
@@ -93,8 +83,50 @@ export function PondDetailPage() {
   // actually sent to the API (see fromIso/toIso below).
   const [fromFilter, setFromFilter] = React.useState("")
   const [toFilter, setToFilter] = React.useState("")
-  const hasActiveFilter =
-    parameterFilter !== "all" || fromFilter !== "" || toFilter !== ""
+  const [filterDialogOpen, setFilterDialogOpen] = React.useState(false)
+
+  // One entry per active filter *group* (parameter, date range) — drives both the "Filter • N" count on the
+  // trigger button and the removable badge row, so the two never drift out of sync with each other.
+  const activeFilters: { key: string; label: string; onRemove: () => void }[] =
+    []
+  if (parameterFilter !== "all") {
+    const label = PARAMETER_FILTER_ITEMS.find(
+      (item) => item.value === parameterFilter
+    )?.label
+    activeFilters.push({
+      key: "parameter",
+      label: `Parameter: ${label}`,
+      onRemove: () => setParameterFilter("all"),
+    })
+  }
+  if (fromFilter && toFilter) {
+    activeFilters.push({
+      key: "date",
+      label: `Date: ${formatDateTimeShort(Date.parse(fromFilter))} – ${formatDateTimeShort(Date.parse(toFilter))}`,
+      onRemove: () => {
+        setFromFilter("")
+        setToFilter("")
+      },
+    })
+  } else if (fromFilter) {
+    activeFilters.push({
+      key: "from",
+      label: `From: ${formatDateTimeShort(Date.parse(fromFilter))}`,
+      onRemove: () => setFromFilter(""),
+    })
+  } else if (toFilter) {
+    activeFilters.push({
+      key: "to",
+      label: `To: ${formatDateTimeShort(Date.parse(toFilter))}`,
+      onRemove: () => setToFilter(""),
+    })
+  }
+  const hasActiveFilter = activeFilters.length > 0
+  const clearAllFilters = () => {
+    setParameterFilter("all")
+    setFromFilter("")
+    setToFilter("")
+  }
 
   // A fresh pond, or a changed filter, invalidates whatever page/cursor was scrolled to — a cursor encodes a
   // position within one (pond, parameter, range) scan and can't carry over to another.
@@ -260,78 +292,56 @@ export function PondDetailPage() {
           <h2 className="font-sans text-xs font-medium tracking-[0.08em] text-board-muted uppercase">
             Reading history
           </h2>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setExportOpen(true)}
-          >
-            <Download />
-            Export
-          </Button>
-        </div>
-
-        <div className="board-groove flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-board-border bg-board-panel px-3 py-2.5">
-          <div className="flex items-center gap-1.5">
-            <Filter className="size-3.5 shrink-0 text-board-muted" />
-            <Select
-              items={PARAMETER_FILTER_ITEMS}
-              value={parameterFilter}
-              onValueChange={(value) => setParameterFilter(value as string)}
-            >
-              <SelectTrigger
-                size="sm"
-                aria-label="Filter by parameter"
-                className="w-40"
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PARAMETER_FILTER_ITEMS.map((item) => (
-                  <SelectItem key={item.value} value={item.value}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            <Calendar className="size-3.5 shrink-0 text-board-muted" />
-            <Input
-              type="datetime-local"
-              aria-label="From date and time"
-              className="h-7 w-[168px] text-xs"
-              value={fromFilter}
-              max={toFilter || undefined}
-              onChange={(event) => setFromFilter(event.target.value)}
-            />
-            <span className="font-sans text-xs text-board-muted">to</span>
-            <Input
-              type="datetime-local"
-              aria-label="To date and time"
-              className="h-7 w-[168px] text-xs"
-              value={toFilter}
-              min={fromFilter || undefined}
-              onChange={(event) => setToFilter(event.target.value)}
-            />
-          </div>
-
-          {hasActiveFilter ? (
+          <div className="flex items-center gap-2">
             <Button
-              variant="ghost"
+              variant={hasActiveFilter ? "secondary" : "outline"}
               size="sm"
-              className="ml-auto"
-              onClick={() => {
-                setParameterFilter("all")
-                setFromFilter("")
-                setToFilter("")
-              }}
+              onClick={() => setFilterDialogOpen(true)}
+              aria-haspopup="dialog"
             >
-              <X />
-              Clear filters
+              <Filter />
+              Filter
+              {hasActiveFilter ? (
+                <span className="tabular-nums">• {activeFilters.length}</span>
+              ) : null}
             </Button>
-          ) : null}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setExportOpen(true)}
+            >
+              <Download />
+              Export
+            </Button>
+          </div>
         </div>
+
+        {hasActiveFilter ? (
+          <div className="flex flex-wrap items-center gap-1.5">
+            {activeFilters.map((filter) => (
+              <Badge
+                key={filter.key}
+                variant="outline"
+                className="gap-1 py-1 pr-1 pl-2"
+              >
+                {filter.label}
+                <button
+                  type="button"
+                  aria-label={`Remove filter: ${filter.label}`}
+                  className="rounded-full p-0.5 text-board-muted transition-colors hover:bg-board-panel-raised hover:text-board-fg"
+                  onClick={filter.onRemove}
+                >
+                  <X className="size-3" />
+                </button>
+              </Badge>
+            ))}
+            {activeFilters.length > 1 ? (
+              <Button variant="ghost" size="xs" onClick={clearAllFilters}>
+                Clear all
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
 
         {invalidRange ? (
           <p role="alert" className="font-sans text-xs text-destructive">
@@ -353,36 +363,34 @@ export function PondDetailPage() {
           </BoardEmptyState>
         ) : (
           <div className="board-groove overflow-hidden rounded-xl border border-board-border bg-board-panel">
-            <div className="px-2 py-1">
-              <Table>
-                <TableHeader>
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead>Time</TableHead>
-                    {visibleParameters.map((parameter) => {
-                      const Icon = PARAMETER_ICONS[parameter.id] ?? Gauge
-                      return (
-                        <TableHead key={parameter.id} className="text-right">
-                          <span className="inline-flex items-center justify-end gap-1.5">
-                            <Icon className="size-3 text-board-muted" />
-                            {parameter.label}
-                          </span>
-                        </TableHead>
-                      )
-                    })}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {pivotedRows.map((row) => (
-                    <PivotedRow
-                      key={row.recordedAt}
-                      row={row}
-                      now={now}
-                      parameters={visibleParameters}
-                    />
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead>Time</TableHead>
+                  {visibleParameters.map((parameter) => {
+                    const Icon = PARAMETER_ICONS[parameter.id] ?? Gauge
+                    return (
+                      <TableHead key={parameter.id} className="text-right">
+                        <span className="inline-flex items-center justify-end gap-1.5">
+                          <Icon className="size-3 text-board-muted" />
+                          {parameter.label}
+                        </span>
+                      </TableHead>
+                    )
+                  })}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pivotedRows.map((row) => (
+                  <PivotedRow
+                    key={row.recordedAt}
+                    row={row}
+                    now={now}
+                    parameters={visibleParameters}
+                  />
+                ))}
+              </TableBody>
+            </Table>
 
             <div className="board-groove flex items-center justify-between gap-2 px-3 py-2">
               <p className="font-heading text-xs text-board-muted tabular-nums">
@@ -417,6 +425,20 @@ export function PondDetailPage() {
         pondId={pondId}
         open={exportOpen}
         onOpenChange={setExportOpen}
+      />
+      <ReadingsFilterDialog
+        open={filterDialogOpen}
+        onOpenChange={setFilterDialogOpen}
+        filters={{
+          parameter: parameterFilter,
+          from: fromFilter,
+          to: toFilter,
+        }}
+        onApply={(next) => {
+          setParameterFilter(next.parameter)
+          setFromFilter(next.from)
+          setToFilter(next.to)
+        }}
       />
     </div>
   )

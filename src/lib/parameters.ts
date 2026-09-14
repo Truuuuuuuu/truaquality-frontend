@@ -76,6 +76,16 @@ export const PARAMETER_ICONS: Record<
 export const PARAMETER_BY_ID: Record<string, ParameterConfig> =
   Object.fromEntries(PARAMETERS.map((parameter) => [parameter.id, parameter]))
 
+// "All parameters" plus one entry per parameter, for filter controls (the reading-history table's Select
+// and its filter dialog) that need an unfiltered option alongside the real parameter list.
+export const PARAMETER_FILTER_ITEMS = [
+  { value: "all", label: "All parameters" },
+  ...PARAMETERS.map((parameter) => ({
+    value: parameter.id,
+    label: parameter.label,
+  })),
+]
+
 // Devices report about once a minute, so five minutes of silence means the value can't be trusted as current.
 export const STALE_AFTER_MS = 5 * 60_000
 
