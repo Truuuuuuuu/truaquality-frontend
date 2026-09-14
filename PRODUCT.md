@@ -29,10 +29,11 @@ environmental-monitoring dashboard.
 
 - A real pond deployment site managed by BFAR Sorsogon exists for this system; exact site details are
   not yet recorded (TBD).
-- Specific sensor hardware for the ESP32 has already been selected; exact modules/part numbers are not
-  yet recorded (TBD).
-- Firmware (`../firmware`) is currently unbuilt scaffold; the backend (`../backend`) is Express/Prisma/
-  Supabase with auth in place but no pond/sensor data models yet.
+- Temperature sensor hardware is confirmed: a DS18B20 waterproof probe, verified end-to-end on a real
+  ESP32 unit (real readings landing in the database and dashboard). Dissolved oxygen and salinity sensor
+  hardware is not yet selected/recorded (TBD).
+- Firmware (`../firmware`) publishes real signed MQTT readings (see `../firmware/CLAUDE.md`); the backend
+  (`../backend`) has full pond/device/reading data models and an MQTT subscriber (see `../backend/CLAUDE.md`).
 
 ## Capabilities and Constraints
 
@@ -49,9 +50,11 @@ environmental-monitoring dashboard.
 
 ## Evidence on Hand
 
-No real sensor data, historical readings, screenshots, or hardware documentation are available yet. Do
-not fabricate sample readings, site names, or device specs presented as real; use clearly-marked
-placeholder/sample data where a build needs example values.
+Real temperature readings from a DS18B20 probe on one ESP32 unit have been verified flowing end-to-end
+(device → MQTT → backend → database → dashboard). No real dissolved oxygen or salinity data, historical
+readings at scale, screenshots, or a deployment site exist yet. Do not fabricate sample readings, site
+names, or device specs presented as real; use clearly-marked placeholder/sample data where a build needs
+example values beyond that one verified reading.
 
 ## Product Principles
 

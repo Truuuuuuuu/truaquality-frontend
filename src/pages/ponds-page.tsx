@@ -18,7 +18,11 @@ import { usePonds } from "@/hooks/use-ponds"
 import { useNow } from "@/hooks/use-now"
 import type { Pond } from "@/lib/api"
 import { formatRelative } from "@/lib/format-time"
-import { lastReadingAt, pondStatus } from "@/lib/pond-status"
+import {
+  lastReadingAt,
+  pondConnectionLabel,
+  pondStatus,
+} from "@/lib/pond-status"
 
 export function PondsPage() {
   const { profile } = useAuth()
@@ -124,7 +128,9 @@ export function PondsPage() {
                       {archived ? (
                         <StatusBadge status="stale">Archived</StatusBadge>
                       ) : (
-                        <StatusBadge status={pondStatus(pond, now)} />
+                        <StatusBadge status={pondStatus(pond, now)}>
+                          {pondConnectionLabel(pond, now)}
+                        </StatusBadge>
                       )}
                     </TableCell>
                     {isAdmin ? (

@@ -41,3 +41,12 @@ export function lastReadingAt(pond: Pond): number | null {
 export function isDeviceOnline(lastSeenAt: string | null, now: number) {
   return lastSeenAt !== null && now - Date.parse(lastSeenAt) <= STALE_AFTER_MS
 }
+
+// Overrides the generic "stale" label ("No recent data") with the more specific reason, when the pond's
+// status is "stale" because of the device itself rather than, say, a freshly-assigned device with no data yet.
+// Returns null when the device is online — the default per-status label already covers that case.
+export function pondConnectionLabel(pond: Pond, now: number): string | null {
+  if (!pond.device) return "No device"
+  if (!isDeviceOnline(pond.device.lastSeenAt, now)) return "Offline"
+  return null
+}

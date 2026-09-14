@@ -8,6 +8,7 @@ import { PARAMETER_ICONS } from "@/lib/parameters"
 import {
   lastReadingAt,
   latestPondReadings,
+  pondConnectionLabel,
   pondStatus,
 } from "@/lib/pond-status"
 import { STATUS_STYLES } from "@/lib/status-styles"
@@ -19,6 +20,7 @@ type PondCardProps = {
 
 export function PondCard({ pond, now }: PondCardProps) {
   const status = pondStatus(pond, now)
+  const connectionLabel = pondConnectionLabel(pond, now)
   const readings = latestPondReadings(pond, now)
   const lastAt = lastReadingAt(pond)
 
@@ -34,7 +36,7 @@ export function PondCard({ pond, now }: PondCardProps) {
         <span className="min-w-0 truncate font-sans text-sm font-semibold text-board-fg">
           {pond.name}
         </span>
-        <StatusBadge status={status} />
+        <StatusBadge status={status}>{connectionLabel}</StatusBadge>
       </div>
 
       <dl className="grid grid-cols-3 gap-3">
