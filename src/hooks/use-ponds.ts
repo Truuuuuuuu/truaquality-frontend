@@ -62,20 +62,43 @@ export function usePondSeries(id: string) {
   })
 }
 
-const READINGS_PAGE_SIZE = 20
+export const READINGS_PAGE_SIZE = 20
 
-// One page of the reading-history table, newest-first. Pass the `nextCursor` from the current page to view
-// the next-older page; omit it to view the newest page. Only the newest page (no cursor) polls — an older
-// page a user paged back to is a fixed snapshot, not something new readings should shift under them.
-export function usePondReadingsPage(id: string, before?: string) {
+// One page of the reading-history table, newest-first, optionally narrowed to one parameter and/or a
+// date/time range. Pass the `nextCursor` from the current page as `before` to view the next-older page;
+// omit it to view the newest page. Only the newest, unfiltered-by-range page polls — a page a user paged
+// back to, or a fixed `to` in the past, is a snapshot that shouldn't shift under them.
+export function usePondReadingsPage(
+  id: string,
+  {
+    before,
+    parameter,
+    from,
+    to,
+  }: { before?: string; parameter?: string; from?: string; to?: string } = {}
+) {
   const { authorizedRequest } = useAuth()
   return useQuery({
-    queryKey: ["ponds", id, "readings", before ?? "latest"],
+    queryKey: [
+      "ponds",
+      id,
+      "readings",
+      parameter ?? "all",
+      from ?? "-",
+      to ?? "-",
+      before ?? "latest",
+    ],
     queryFn: () =>
       authorizedRequest((token) =>
-        getPondReadingsPage(token, id, { before, limit: READINGS_PAGE_SIZE })
+        getPondReadingsPage(token, id, {
+          parameter,
+          before,
+          from,
+          to,
+          limit: READINGS_PAGE_SIZE,
+        })
       ),
-    refetchInterval: before ? false : POLL_MS,
+    refetchInterval: before || to ? false : POLL_MS,
     placeholderData: keepPreviousData,
   })
 }

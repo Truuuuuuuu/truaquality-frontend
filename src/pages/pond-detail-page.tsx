@@ -2,12 +2,15 @@ import * as React from "react"
 import {
   AlertTriangle,
   ArrowLeft,
+  Calendar,
   ChevronLeft,
   ChevronRight,
   Cpu,
   Download,
+  Filter,
   Gauge,
   WifiOff,
+  X,
 } from "lucide-react"
 import { Link, useParams } from "react-router"
 import { cn } from "cn"
@@ -16,6 +19,14 @@ import { ParameterTile } from "@/components/dashboard/parameter-tile"
 import { ExportReadingsDialog } from "@/components/ponds/export-readings-dialog"
 import { StatusBadge } from "@/components/status-badge"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   Table,
   TableBody,
@@ -24,12 +35,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { usePond, usePondReadingsPage, usePondSeries } from "@/hooks/use-ponds"
+import {
+  READINGS_PAGE_SIZE,
+  usePond,
+  usePondReadingsPage,
+  usePondSeries,
+} from "@/hooks/use-ponds"
 import { useNow } from "@/hooks/use-now"
-import { ApiError, type ApiReading } from "@/lib/api"
+import { ApiError } from "@/lib/api"
 import { formatClock, formatRelative } from "@/lib/format-time"
 import {
-  PARAMETER_BY_ID,
   PARAMETER_ICONS,
   PARAMETERS,
   severityFor,
@@ -39,6 +54,16 @@ import {
 } from "@/lib/parameters"
 import { isDeviceOnline } from "@/lib/pond-status"
 import { STATUS_LABELS, STATUS_STYLES } from "@/lib/status-styles"
+
+const PARAMETER_FILTER_ITEMS = [
+  { value: "all", label: "All parameters" },
+  ...PARAMETERS.map((parameter) => ({
+    value: parameter.id,
+    label: parameter.label,
+  })),
+]
+
+type PivotRow = { recordedAt: string; values: Partial<Record<string, number>> }
 
 export function PondDetailPage() {
   const { pondId = "" } = useParams()
@@ -63,19 +88,65 @@ export function PondDetailPage() {
     (string | undefined)[]
   >([undefined])
   const [pageIndex, setPageIndex] = React.useState(0)
-  // A fresh pond's history has nothing to do with whatever page was scrolled to on the last one.
-  const [pageResetFor, setPageResetFor] = React.useState(pondId)
-  if (pondId !== pageResetFor) {
-    setPageResetFor(pondId)
+  const [parameterFilter, setParameterFilter] = React.useState("all")
+  // datetime-local values ("" when unset), in the browser's own timezone — converted to UTC ISO only when
+  // actually sent to the API (see fromIso/toIso below).
+  const [fromFilter, setFromFilter] = React.useState("")
+  const [toFilter, setToFilter] = React.useState("")
+  const hasActiveFilter =
+    parameterFilter !== "all" || fromFilter !== "" || toFilter !== ""
+
+  // A fresh pond, or a changed filter, invalidates whatever page/cursor was scrolled to — a cursor encodes a
+  // position within one (pond, parameter, range) scan and can't carry over to another.
+  const pageResetKey = `${pondId}:${parameterFilter}:${fromFilter}:${toFilter}`
+  const [pageResetFor, setPageResetFor] = React.useState(pageResetKey)
+  if (pageResetKey !== pageResetFor) {
+    setPageResetFor(pageResetKey)
     setCursorHistory([undefined])
     setPageIndex(0)
   }
 
-  const { data: readingsPage } = usePondReadingsPage(
+  const fromIso = fromFilter ? new Date(fromFilter).toISOString() : undefined
+  const toIso = toFilter ? new Date(toFilter).toISOString() : undefined
+  const invalidRange = Boolean(fromFilter && toFilter && fromFilter > toFilter)
+
+  const { data: readingsPage, error: readingsError } = usePondReadingsPage(
     pondId,
-    cursorHistory[pageIndex]
+    {
+      before: cursorHistory[pageIndex],
+      parameter: parameterFilter === "all" ? undefined : parameterFilter,
+      from: invalidRange ? undefined : fromIso,
+      to: invalidRange ? undefined : toIso,
+    }
   )
-  const pageReadings = readingsPage?.readings ?? []
+  const pageReadings = React.useMemo(
+    () => readingsPage?.readings ?? [],
+    [readingsPage]
+  )
+  const rangeStart = pageIndex * READINGS_PAGE_SIZE + 1
+  const rangeEnd = rangeStart + pageReadings.length - 1
+
+  // One row per timestamp instead of one row per (timestamp, parameter): a device reports every parameter
+  // in the same tick, so readings sharing a `recordedAt` belong on one line — parameter names read as table
+  // columns instead of a repeated "Parameter" cell down every row.
+  const pivotedRows = React.useMemo(() => {
+    const rows: PivotRow[] = []
+    const byTime = new Map<string, PivotRow>()
+    for (const reading of pageReadings) {
+      let row = byTime.get(reading.recordedAt)
+      if (!row) {
+        row = { recordedAt: reading.recordedAt, values: {} }
+        byTime.set(reading.recordedAt, row)
+        rows.push(row)
+      }
+      row.values[reading.parameter] = reading.value
+    }
+    return rows
+  }, [pageReadings])
+  const visibleParameters =
+    parameterFilter === "all"
+      ? PARAMETERS
+      : PARAMETERS.filter((parameter) => parameter.id === parameterFilter)
 
   const [exportOpen, setExportOpen] = React.useState(false)
 
@@ -184,7 +255,7 @@ export function PondDetailPage() {
         })}
       </div>
 
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-sans text-xs font-medium tracking-[0.08em] text-board-muted uppercase">
             Reading history
@@ -199,57 +270,146 @@ export function PondDetailPage() {
           </Button>
         </div>
 
-        {!readingsPage ? (
+        <div className="board-groove flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-board-border bg-board-panel px-3 py-2.5">
+          <div className="flex items-center gap-1.5">
+            <Filter className="size-3.5 shrink-0 text-board-muted" />
+            <Select
+              items={PARAMETER_FILTER_ITEMS}
+              value={parameterFilter}
+              onValueChange={(value) => setParameterFilter(value as string)}
+            >
+              <SelectTrigger
+                size="sm"
+                aria-label="Filter by parameter"
+                className="w-40"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PARAMETER_FILTER_ITEMS.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <Calendar className="size-3.5 shrink-0 text-board-muted" />
+            <Input
+              type="datetime-local"
+              aria-label="From date and time"
+              className="h-7 w-[168px] text-xs"
+              value={fromFilter}
+              max={toFilter || undefined}
+              onChange={(event) => setFromFilter(event.target.value)}
+            />
+            <span className="font-sans text-xs text-board-muted">to</span>
+            <Input
+              type="datetime-local"
+              aria-label="To date and time"
+              className="h-7 w-[168px] text-xs"
+              value={toFilter}
+              min={fromFilter || undefined}
+              onChange={(event) => setToFilter(event.target.value)}
+            />
+          </div>
+
+          {hasActiveFilter ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="ml-auto"
+              onClick={() => {
+                setParameterFilter("all")
+                setFromFilter("")
+                setToFilter("")
+              }}
+            >
+              <X />
+              Clear filters
+            </Button>
+          ) : null}
+        </div>
+
+        {invalidRange ? (
+          <p role="alert" className="font-sans text-xs text-destructive">
+            The "from" date must be before the "to" date.
+          </p>
+        ) : readingsError ? (
+          <BoardEmptyState icon={AlertTriangle} tone="error">
+            {`Couldn't load readings: ${readingsError.message}`}
+          </BoardEmptyState>
+        ) : !readingsPage ? (
           <p className="font-sans text-sm text-board-muted">
             Loading readings…
           </p>
         ) : pageReadings.length === 0 && pageIndex === 0 ? (
-          <BoardEmptyState icon={Gauge}>No readings yet.</BoardEmptyState>
+          <BoardEmptyState icon={Gauge}>
+            {hasActiveFilter
+              ? "No readings match the current filters."
+              : "No readings yet."}
+          </BoardEmptyState>
         ) : (
-          <>
-            <div className="board-groove rounded-xl border border-board-border bg-board-panel px-2 py-1">
+          <div className="board-groove overflow-hidden rounded-xl border border-board-border bg-board-panel">
+            <div className="px-2 py-1">
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
                     <TableHead>Time</TableHead>
-                    <TableHead>Parameter</TableHead>
-                    <TableHead>Value</TableHead>
+                    {visibleParameters.map((parameter) => {
+                      const Icon = PARAMETER_ICONS[parameter.id] ?? Gauge
+                      return (
+                        <TableHead key={parameter.id} className="text-right">
+                          <span className="inline-flex items-center justify-end gap-1.5">
+                            <Icon className="size-3 text-board-muted" />
+                            {parameter.label}
+                          </span>
+                        </TableHead>
+                      )
+                    })}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {pageReadings.map((reading, index) => (
-                    <ReadingRow
-                      // recordedAt isn't guaranteed unique across parameters reported in the same tick.
-                      key={`${reading.parameter}-${reading.recordedAt}-${index}`}
-                      reading={reading}
+                  {pivotedRows.map((row) => (
+                    <PivotedRow
+                      key={row.recordedAt}
+                      row={row}
                       now={now}
+                      parameters={visibleParameters}
                     />
                   ))}
                 </TableBody>
               </Table>
             </div>
 
-            <div className="flex items-center justify-end gap-2">
-              <Button
-                variant="outline"
-                size="icon-sm"
-                aria-label="Newer readings"
-                disabled={pageIndex === 0}
-                onClick={goNewer}
-              >
-                <ChevronLeft />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon-sm"
-                aria-label="Older readings"
-                disabled={!readingsPage.nextCursor}
-                onClick={goOlder}
-              >
-                <ChevronRight />
-              </Button>
+            <div className="board-groove flex items-center justify-between gap-2 px-3 py-2">
+              <p className="font-heading text-xs text-board-muted tabular-nums">
+                Showing {rangeStart}–{rangeEnd}
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="icon-sm"
+                  aria-label="Newer readings"
+                  disabled={pageIndex === 0}
+                  onClick={goNewer}
+                >
+                  <ChevronLeft />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon-sm"
+                  aria-label="Older readings"
+                  disabled={!readingsPage.nextCursor}
+                  onClick={goOlder}
+                >
+                  <ChevronRight />
+                </Button>
+              </div>
             </div>
-          </>
+          </div>
         )}
       </div>
 
@@ -262,13 +422,16 @@ export function PondDetailPage() {
   )
 }
 
-function ReadingRow({ reading, now }: { reading: ApiReading; now: number }) {
-  const parameter = PARAMETER_BY_ID[reading.parameter]
-  const t = Date.parse(reading.recordedAt)
-  if (!parameter) return null
-
-  const Icon = PARAMETER_ICONS[parameter.id] ?? Gauge
-  const severity = severityFor(parameter, reading.value)
+function PivotedRow({
+  row,
+  now,
+  parameters,
+}: {
+  row: PivotRow
+  now: number
+  parameters: ParameterConfig[]
+}) {
+  const t = Date.parse(row.recordedAt)
 
   return (
     <TableRow>
@@ -278,21 +441,32 @@ function ReadingRow({ reading, now }: { reading: ApiReading; now: number }) {
           {formatRelative(t, now)}
         </p>
       </TableCell>
-      <TableCell>
-        <span className="inline-flex items-center gap-1.5 font-sans text-xs text-board-fg">
-          <Icon className="size-3 text-board-muted" />
-          {parameter.label}
-        </span>
-      </TableCell>
-      <TableCell
-        className={cn(
-          "font-heading text-xs tabular-nums",
-          STATUS_STYLES[severity].value
-        )}
-      >
-        {reading.value.toFixed(parameter.precision)} {parameter.unit}
-        <span className="sr-only"> — {STATUS_LABELS[severity]}</span>
-      </TableCell>
+      {parameters.map((parameter) => {
+        const value = row.values[parameter.id]
+        if (value === undefined) {
+          return (
+            <TableCell
+              key={parameter.id}
+              className="text-right font-heading text-xs text-board-muted/50 tabular-nums"
+            >
+              —
+            </TableCell>
+          )
+        }
+        const severity = severityFor(parameter, value)
+        return (
+          <TableCell
+            key={parameter.id}
+            className={cn(
+              "text-right font-heading text-xs tabular-nums",
+              STATUS_STYLES[severity].value
+            )}
+          >
+            {value.toFixed(parameter.precision)} {parameter.unit}
+            <span className="sr-only"> — {STATUS_LABELS[severity]}</span>
+          </TableCell>
+        )
+      })}
     </TableRow>
   )
 }

@@ -155,11 +155,18 @@ export function getPond(token: string, id: string) {
 }
 
 // Newest-first page of raw readings. Pass a previous response's `nextCursor` as `before` for the next page;
-// `nextCursor` is null once there's nothing older left in the retention window.
+// `nextCursor` is null once there's nothing older left in the retention window. `from`/`to` narrow the scan
+// to a date/time range.
 export function getPondReadingsPage(
   token: string,
   id: string,
-  params: { parameter?: string; before?: string; limit?: number } = {}
+  params: {
+    parameter?: string
+    before?: string
+    from?: string
+    to?: string
+    limit?: number
+  } = {}
 ) {
   const query = new URLSearchParams(
     Object.entries(params)
