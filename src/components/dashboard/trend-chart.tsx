@@ -1,6 +1,6 @@
 import * as React from "react"
 import { cn } from "cn"
-import type { ReadingPoint, ReadingStatus } from "@/lib/mock-readings"
+import type { ReadingPoint, ReadingStatus } from "@/lib/parameters"
 
 const STATUS_COLOR: Record<ReadingStatus, string> = {
   nominal: "var(--board-accent)",
@@ -30,6 +30,22 @@ export function TrendChart({
   height = 72,
   className,
 }: TrendChartProps) {
+  const gradientId = React.useId()
+
+  // A line needs two points; a freshly assigned device or a long gap can leave fewer in the window.
+  if (points.length < 2) {
+    return (
+      <div
+        className={cn(
+          "flex h-full w-full items-center justify-center rounded-md border border-dashed border-board-border font-sans text-[0.65rem] text-board-muted",
+          className
+        )}
+      >
+        Not enough recent history to chart
+      </div>
+    )
+  }
+
   const values = points.map((p) => p.v)
   const dataMin = Math.min(...values, safeMin)
   const dataMax = Math.max(...values, safeMax)
@@ -49,7 +65,6 @@ export function TrendChart({
 
   const last = points[points.length - 1]
   const color = STATUS_COLOR[status]
-  const gradientId = React.useId()
   // The SVG stretches non-uniformly (preserveAspectRatio="none") to fill the tile's box, which
   // would turn a plain SVG <circle> marker into an ellipse. Rendering the marker as a normal HTML
   // dot positioned by percentage keeps it a true circle regardless of that stretch.

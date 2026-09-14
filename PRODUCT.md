@@ -43,7 +43,9 @@ environmental-monitoring dashboard.
   stale/offline when it stops reporting, rather than silently displaying an old value as current.
 - Deployment site and sensor hardware are confirmed to exist but their specifics are undecided/unrecorded
   — do not invent site names, coordinates, or hardware part numbers.
-- No sensor/pond data models, ingestion endpoints, or real-time data flow exist in the backend yet.
+- The system covers multiple ponds, each with at most one ESP32 device. Devices publish signed
+  readings over MQTT to HiveMQ Cloud, and the backend subscribes and stores them. The dashboard polls the
+  backend every 15 s; the browser never connects to the broker.
 
 ## Evidence on Hand
 

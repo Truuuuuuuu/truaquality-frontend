@@ -2,39 +2,9 @@ import type { ComponentType } from "react"
 import { AlertTriangle, WifiOff } from "lucide-react"
 import { cn } from "cn"
 import { formatClock, formatRelative } from "@/lib/format-time"
-import type { ReadingState } from "@/lib/mock-readings"
+import type { ReadingState } from "@/lib/parameters"
+import { STATUS_STYLES } from "@/lib/status-styles"
 import { TrendChart } from "./trend-chart"
-
-const STATUS_STYLES = {
-  nominal: {
-    tile: "border-board-border bg-board-panel",
-    value: "text-board-fg",
-    label: "text-board-muted",
-    led: "bg-board-accent",
-    stamp: "border-board-border-strong text-board-muted",
-  },
-  warning: {
-    tile: "border-board-warn/40 bg-board-warn/10",
-    value: "text-board-warn",
-    label: "text-board-warn",
-    led: "bg-board-warn",
-    stamp: "border-board-warn/50 text-board-warn",
-  },
-  critical: {
-    tile: "border-board-critical/50 bg-board-critical/12",
-    value: "text-board-critical",
-    label: "text-board-critical",
-    led: "bg-board-critical",
-    stamp: "border-board-critical/60 text-board-critical",
-  },
-  stale: {
-    tile: "border-dashed border-board-border-strong bg-board-panel/60",
-    value: "text-board-stale",
-    label: "text-board-stale",
-    led: "bg-board-stale/50",
-    stamp: "border-board-border-strong text-board-stale",
-  },
-} as const
 
 type ParameterTileProps = {
   reading: ReadingState

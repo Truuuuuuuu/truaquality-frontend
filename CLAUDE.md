@@ -4,10 +4,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
-React 19 + TypeScript SPA scaffolded with Vite, Tailwind CSS v4, and shadcn/ui (Base UI-backed variant, not
-Radix). Currently just the initial scaffold — `App.tsx`, a `theme-provider`, and one shadcn `button`
-component. No routing, data-fetching, or backend integration wired up yet (the backend lives in `../backend`
-and is a separate Express/Prisma/Supabase project — see its own `CLAUDE.md`).
+React 19 + TypeScript SPA built with Vite, Tailwind CSS v4, and shadcn/ui (Base UI-backed variant, not
+Radix). It talks to `../backend` (a separate Express/Prisma/Supabase project — see its own `CLAUDE.md`).
+
+The system monitors **multiple fishponds**. Each pond has at most one ESP32 sensor device, and each device
+reports its own readings. Routes (`src/App.tsx`, all behind `ProtectedRoute` → `AppShell` except `/login`):
+- `/` — operations board: one `PondCard` per active pond, worst condition first.
+- `/ponds` — pond registry table; admins add, rename, and archive ponds.
+- `/ponds/:pondId` — one pond's device info plus a `ParameterTile` (value + 2 h trend) per parameter.
+- `/devices` — device registry; admins register units, assign them to ponds, disable them, and rotate their
+  secrets. Registering or rotating shows a `unit_config.h` snippet (`DEVICE_ID`, `DEVICE_SECRET`) once. Units
+  publish over MQTT to the broker, never to this app or its API.
 
 **Scope: BFAR Sorsogon only.** The app serves a single organization, so there's no office/region picker or
 per-office labeling — the org name is shown as the fixed text "BFAR Sorsogon".
@@ -55,6 +62,23 @@ URLs.
 - Fonts are self-hosted via `@fontsource-variable/*` packages (Inter, Geist Mono), not a Google Fonts CDN
   link.
 
+### Data
+
+- `src/lib/api.ts` — typed `fetch` wrapper and one function per backend endpoint, each taking the access
+  token first. Call them through `useAuth().authorizedRequest` (`src/context/auth-context.tsx`), which
+  refreshes and retries once on a 401.
+- **TanStack Query** (`QueryClientProvider` in `src/main.tsx`) — `src/hooks/use-ponds.ts` holds every pond,
+  reading, and device query and mutation. Queries poll every 15 s (there's no push channel); mutations
+  invalidate both `["ponds"]` and `["devices"]` because each list embeds the other. The cache is cleared on
+  sign-out (`ClearQueryCacheOnSignOut` in `App.tsx`).
+- `src/lib/parameters.ts` — `PARAMETERS` (display labels, units, safe/critical ranges), `statusFor`, and
+  `STALE_AFTER_MS` (5 min). Parameter ids must match the backend's `PARAMETER_BOUNDS`; add a new parameter in
+  both places. Status is computed client-side: stale beats range checks.
+- `src/lib/pond-status.ts` — derives a pond's per-parameter readings and overall (worst) status from the
+  `latest` map the API returns. `src/lib/status-styles.ts` — shared status colors/labels for tiles, cards, and
+  `StatusBadge`.
+- Admin-only UI is hidden when `profile.systemRole !== "ADMIN"`; the backend enforces it regardless.
+
 ### Conventions to follow when adding code
 
 - New pages/features: colocate under `src/`, follow the existing alias imports (`@/...`) rather than deep
@@ -66,8 +90,6 @@ URLs.
 
 ## Known follow-ups (not yet built)
 
-- No routing library chosen/installed yet.
-- No API client or data-fetching setup for talking to `../backend` (which exposes `/auth/login`, `/auth/refresh`, `/health`,
-  `/health/db`, a protected `/me`, and admin-only `/admin/*` routes so far — see `../backend/CLAUDE.md`).
+- No history range picker on the pond detail page (fixed 2 h window).
 - No accept-invite / set-password page (see "Project state" above) and no admin UI for inviting and
   enabling/disabling users.
