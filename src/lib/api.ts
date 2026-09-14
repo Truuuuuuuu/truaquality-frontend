@@ -13,7 +13,9 @@ export class ApiError extends Error {
 }
 
 export function errorMessage(err: unknown) {
-  return err instanceof ApiError ? err.message : "Something went wrong. Please try again."
+  return err instanceof ApiError
+    ? err.message
+    : "Something went wrong. Please try again."
 }
 
 type RequestOptions = {
@@ -22,7 +24,10 @@ type RequestOptions = {
   token?: string
 }
 
-async function request<T>(path: string, { method = "GET", body, token }: RequestOptions = {}): Promise<T> {
+async function request<T>(
+  path: string,
+  { method = "GET", body, token }: RequestOptions = {}
+): Promise<T> {
   const headers: Record<string, string> = {}
   if (body !== undefined) headers["Content-Type"] = "application/json"
   if (token) headers["Authorization"] = `Bearer ${token}`
@@ -37,8 +42,13 @@ async function request<T>(path: string, { method = "GET", body, token }: Request
   const data = isJson ? await res.json() : undefined
 
   if (!res.ok) {
-    const message = (data as { error?: string } | undefined)?.error ?? res.statusText
-    throw new ApiError(message, res.status, (data as { details?: unknown } | undefined)?.details)
+    const message =
+      (data as { error?: string } | undefined)?.error ?? res.statusText
+    throw new ApiError(
+      message,
+      res.status,
+      (data as { details?: unknown } | undefined)?.details
+    )
   }
 
   return data as T
@@ -62,11 +72,17 @@ type LoginResponse = {
 }
 
 export function login(email: string, password: string) {
-  return request<LoginResponse>("/auth/login", { method: "POST", body: { email, password } })
+  return request<LoginResponse>("/auth/login", {
+    method: "POST",
+    body: { email, password },
+  })
 }
 
 export function refreshSession(refreshToken: string) {
-  return request<LoginResponse>("/auth/refresh", { method: "POST", body: { refreshToken } })
+  return request<LoginResponse>("/auth/refresh", {
+    method: "POST",
+    body: { refreshToken },
+  })
 }
 
 export function logoutSession(token: string) {
@@ -98,7 +114,9 @@ export type DeviceSummary = {
   updatedAt: string
 }
 
-export type Device = DeviceSummary & { pond: { id: string; name: string } | null }
+export type Device = DeviceSummary & {
+  pond: { id: string; name: string } | null
+}
 
 export type Pond = {
   id: string
@@ -112,7 +130,21 @@ export type Pond = {
   latest: Record<string, LatestReading>
 }
 
-export type ApiReading = { parameter: string; value: number; recordedAt: string }
+export type ApiReading = {
+  parameter: string
+  value: number
+  recordedAt: string
+}
+
+// avg === min === max at "raw" resolution (one reading per point); "hour"/"day" are true aggregates.
+export type SeriesResolution = "raw" | "hour" | "day"
+export type SeriesPoint = {
+  parameter: string
+  t: string
+  avg: number
+  min: number
+  max: number
+}
 
 export function listPonds(token: string) {
   return request<{ ponds: Pond[] }>("/ponds", { token })
@@ -122,9 +154,78 @@ export function getPond(token: string, id: string) {
   return request<{ pond: Pond }>(`/ponds/${id}`, { token })
 }
 
-export function getPondReadings(token: string, id: string, params: { from?: string; to?: string; parameter?: string } = {}) {
-  const query = new URLSearchParams(Object.entries(params).filter((entry): entry is [string, string] => entry[1] !== undefined))
-  return request<{ from: string; to: string; readings: ApiReading[] }>(`/ponds/${id}/readings?${query}`, { token })
+// Newest-first page of raw readings. Pass a previous response's `nextCursor` as `before` for the next page;
+// `nextCursor` is null once there's nothing older left in the retention window.
+export function getPondReadingsPage(
+  token: string,
+  id: string,
+  params: { parameter?: string; before?: string; limit?: number } = {}
+) {
+  const query = new URLSearchParams(
+    Object.entries(params)
+      .filter(
+        (entry): entry is [string, string | number] => entry[1] !== undefined
+      )
+      .map(([key, value]) => [key, String(value)])
+  )
+  return request<{ readings: ApiReading[]; nextCursor: string | null }>(
+    `/ponds/${id}/readings?${query}`,
+    { token }
+  )
+}
+
+// A chart-ready series over an arbitrary range; the server picks raw/hourly/daily resolution based on how
+// wide `from`..`to` is.
+export function getPondSeries(
+  token: string,
+  id: string,
+  params: { from: string; to?: string; parameter?: string }
+) {
+  const query = new URLSearchParams(
+    Object.entries(params).filter(
+      (entry): entry is [string, string] => entry[1] !== undefined
+    )
+  )
+  return request<{ resolution: SeriesResolution; points: SeriesPoint[] }>(
+    `/ponds/${id}/series?${query}`,
+    { token }
+  )
+}
+
+// Downloads an .xlsx workbook of a pond's readings for the given range. Returns the blob and the filename
+// the server suggested, so the caller can save it — unlike a plain link, this needs the Authorization
+// header attached.
+export async function exportPondReadings(
+  token: string,
+  id: string,
+  params: {
+    from: string
+    to?: string
+    parameter?: string
+    resolution?: "raw" | "hour"
+  }
+) {
+  const query = new URLSearchParams(
+    Object.entries(params).filter(
+      (entry): entry is [string, string] => entry[1] !== undefined
+    )
+  )
+  const res = await fetch(`${API_URL}/ponds/${id}/readings/export?${query}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (!res.ok) {
+    const data = res.headers.get("content-type")?.includes("application/json")
+      ? await res.json()
+      : undefined
+    throw new ApiError(
+      (data as { error?: string } | undefined)?.error ?? res.statusText,
+      res.status
+    )
+  }
+  const disposition = res.headers.get("content-disposition") ?? ""
+  const filename =
+    /filename="([^"]+)"/.exec(disposition)?.[1] ?? `pond-${id}-readings.xlsx`
+  return { blob: await res.blob(), filename }
 }
 
 export function listDevices(token: string) {
@@ -132,17 +233,33 @@ export function listDevices(token: string) {
 }
 
 export type CreatePondInput = { name: string; notes?: string }
-export type UpdatePondInput = { name?: string; notes?: string | null; status?: PondStatus }
+export type UpdatePondInput = {
+  name?: string
+  notes?: string | null
+  status?: PondStatus
+}
 
 export function createPond(token: string, body: CreatePondInput) {
-  return request<{ pond: Omit<Pond, "device" | "latest"> }>("/admin/ponds", { method: "POST", body, token })
+  return request<{ pond: Omit<Pond, "device" | "latest"> }>("/admin/ponds", {
+    method: "POST",
+    body,
+    token,
+  })
 }
 
 export function updatePond(token: string, id: string, body: UpdatePondInput) {
-  return request<{ pond: Omit<Pond, "device" | "latest"> }>(`/admin/ponds/${id}`, { method: "PATCH", body, token })
+  return request<{ pond: Omit<Pond, "device" | "latest"> }>(
+    `/admin/ponds/${id}`,
+    { method: "PATCH", body, token }
+  )
 }
 
-export type CreateDeviceInput = { serial: string; hardwareModel?: string; label?: string; pondId?: string }
+export type CreateDeviceInput = {
+  serial: string
+  hardwareModel?: string
+  label?: string
+  pondId?: string
+}
 export type UpdateDeviceInput = {
   hardwareModel?: string | null
   label?: string | null
@@ -151,19 +268,37 @@ export type UpdateDeviceInput = {
 }
 
 // What gets flashed into a unit's unit_config.h. The backend only returns it here and from rotateDeviceSecret.
-export type DeviceCredentials = { deviceId: string; deviceSecret: string; topic: string }
-
-export function createDevice(token: string, body: CreateDeviceInput) {
-  return request<{ device: Device; credentials: DeviceCredentials }>("/admin/devices", { method: "POST", body, token })
+export type DeviceCredentials = {
+  deviceId: string
+  deviceSecret: string
+  topic: string
 }
 
-export function updateDevice(token: string, id: string, body: UpdateDeviceInput) {
-  return request<{ device: Device }>(`/admin/devices/${id}`, { method: "PATCH", body, token })
+export function createDevice(token: string, body: CreateDeviceInput) {
+  return request<{ device: Device; credentials: DeviceCredentials }>(
+    "/admin/devices",
+    { method: "POST", body, token }
+  )
+}
+
+export function updateDevice(
+  token: string,
+  id: string,
+  body: UpdateDeviceInput
+) {
+  return request<{ device: Device }>(`/admin/devices/${id}`, {
+    method: "PATCH",
+    body,
+    token,
+  })
 }
 
 export function rotateDeviceSecret(token: string, id: string) {
-  return request<{ device: Device; credentials: DeviceCredentials }>(`/admin/devices/${id}/rotate-secret`, {
-    method: "POST",
-    token,
-  })
+  return request<{ device: Device; credentials: DeviceCredentials }>(
+    `/admin/devices/${id}/rotate-secret`,
+    {
+      method: "POST",
+      token,
+    }
+  )
 }

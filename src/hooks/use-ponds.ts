@@ -1,10 +1,16 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query"
 import { useAuth } from "@/context/auth-context"
 import {
   createDevice,
   createPond,
   getPond,
-  getPondReadings,
+  getPondReadingsPage,
+  getPondSeries,
   listDevices,
   listPonds,
   rotateDeviceSecret,
@@ -41,17 +47,36 @@ export function usePond(id: string) {
   })
 }
 
-export function usePondReadings(id: string) {
+// Tiles' 2 h trend. Goes through /series (not /readings) so it keeps working once raw rows for that window
+// have aged past retention — the server falls back to hourly points itself; a 2 h window never actually
+// needs to, but this is the same call a future "24 h" / "7 d" trend picker would make with a wider range.
+export function usePondSeries(id: string) {
   const { authorizedRequest } = useAuth()
   return useQuery({
-    queryKey: ["ponds", id, "readings"],
+    queryKey: ["ponds", id, "series", HISTORY_WINDOW_MS],
     queryFn: () => {
       const from = new Date(Date.now() - HISTORY_WINDOW_MS).toISOString()
-      return authorizedRequest((token) =>
-        getPondReadings(token, id, { from })
-      ).then((data) => data.readings)
+      return authorizedRequest((token) => getPondSeries(token, id, { from }))
     },
     refetchInterval: POLL_MS,
+  })
+}
+
+const READINGS_PAGE_SIZE = 20
+
+// One page of the reading-history table, newest-first. Pass the `nextCursor` from the current page to view
+// the next-older page; omit it to view the newest page. Only the newest page (no cursor) polls — an older
+// page a user paged back to is a fixed snapshot, not something new readings should shift under them.
+export function usePondReadingsPage(id: string, before?: string) {
+  const { authorizedRequest } = useAuth()
+  return useQuery({
+    queryKey: ["ponds", id, "readings", before ?? "latest"],
+    queryFn: () =>
+      authorizedRequest((token) =>
+        getPondReadingsPage(token, id, { before, limit: READINGS_PAGE_SIZE })
+      ),
+    refetchInterval: before ? false : POLL_MS,
+    placeholderData: keepPreviousData,
   })
 }
 

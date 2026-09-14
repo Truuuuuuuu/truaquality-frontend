@@ -5,6 +5,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Cpu,
+  Download,
   Gauge,
   WifiOff,
 } from "lucide-react"
@@ -12,6 +13,7 @@ import { Link, useParams } from "react-router"
 import { cn } from "cn"
 import { BoardEmptyState } from "@/components/board-empty-state"
 import { ParameterTile } from "@/components/dashboard/parameter-tile"
+import { ExportReadingsDialog } from "@/components/ponds/export-readings-dialog"
 import { StatusBadge } from "@/components/status-badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -22,7 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { usePond, usePondReadings } from "@/hooks/use-ponds"
+import { usePond, usePondReadingsPage, usePondSeries } from "@/hooks/use-ponds"
 import { useNow } from "@/hooks/use-now"
 import { ApiError, type ApiReading } from "@/lib/api"
 import { formatClock, formatRelative } from "@/lib/format-time"
@@ -38,48 +40,55 @@ import {
 import { isDeviceOnline } from "@/lib/pond-status"
 import { STATUS_LABELS, STATUS_STYLES } from "@/lib/status-styles"
 
-const PAGE_SIZE = 20
-
 export function PondDetailPage() {
   const { pondId = "" } = useParams()
   const { data: pond, error } = usePond(pondId)
-  const { data: readings } = usePondReadings(pondId)
+  const { data: series } = usePondSeries(pondId)
   const now = useNow()
 
   const historyByParameter = React.useMemo(() => {
     const byParameter = new Map<string, ReadingPoint[]>()
-    for (const reading of readings ?? []) {
-      const history = byParameter.get(reading.parameter) ?? []
-      history.push({ t: Date.parse(reading.recordedAt), v: reading.value })
-      byParameter.set(reading.parameter, history)
+    for (const point of series?.points ?? []) {
+      const history = byParameter.get(point.parameter) ?? []
+      history.push({ t: Date.parse(point.t), v: point.avg })
+      byParameter.set(point.parameter, history)
     }
     return byParameter
-  }, [readings])
+  }, [series])
 
-  // Newest first: this table reads as a log of what the device reported and when, not a per-parameter
-  // summary — the tiles above already cover "current value", so this covers "history, in order".
-  const sortedReadings = React.useMemo(
-    () =>
-      [...(readings ?? [])].sort(
-        (a, b) => Date.parse(b.recordedAt) - Date.parse(a.recordedAt)
-      ),
-    [readings]
-  )
-
-  const [page, setPage] = React.useState(1)
+  // Newest-first, keyset-paginated pages from the server (see usePondReadingsPage): `cursorHistory[0]` is
+  // always the newest page, and each Older click appends the cursor that page handed back so Newer can pop
+  // to the page before it without re-deriving anything.
+  const [cursorHistory, setCursorHistory] = React.useState<
+    (string | undefined)[]
+  >([undefined])
+  const [pageIndex, setPageIndex] = React.useState(0)
   // A fresh pond's history has nothing to do with whatever page was scrolled to on the last one.
   const [pageResetFor, setPageResetFor] = React.useState(pondId)
   if (pondId !== pageResetFor) {
     setPageResetFor(pondId)
-    setPage(1)
+    setCursorHistory([undefined])
+    setPageIndex(0)
   }
 
-  const pageCount = Math.max(1, Math.ceil(sortedReadings.length / PAGE_SIZE))
-  // The 2 h window rolls forward as time passes, so a page an older fetch had can quietly disappear —
-  // clamp rather than let "page" point past the end.
-  const currentPage = Math.min(page, pageCount)
-  const pageStart = (currentPage - 1) * PAGE_SIZE
-  const pageReadings = sortedReadings.slice(pageStart, pageStart + PAGE_SIZE)
+  const { data: readingsPage } = usePondReadingsPage(
+    pondId,
+    cursorHistory[pageIndex]
+  )
+  const pageReadings = readingsPage?.readings ?? []
+
+  const [exportOpen, setExportOpen] = React.useState(false)
+
+  const goOlder = () => {
+    const nextCursor = readingsPage?.nextCursor
+    if (!nextCursor) return
+    setCursorHistory((history) => [
+      ...history.slice(0, pageIndex + 1),
+      nextCursor,
+    ])
+    setPageIndex((index) => index + 1)
+  }
+  const goNewer = () => setPageIndex((index) => Math.max(0, index - 1))
 
   const backLink = (
     <Link
@@ -176,23 +185,26 @@ export function PondDetailPage() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-sans text-xs font-medium tracking-[0.08em] text-board-muted uppercase">
             Reading history
           </h2>
-          <p className="font-sans text-[0.7rem] text-board-muted">
-            Last 2 hours
-          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setExportOpen(true)}
+          >
+            <Download />
+            Export
+          </Button>
         </div>
 
-        {!readings ? (
+        {!readingsPage ? (
           <p className="font-sans text-sm text-board-muted">
             Loading readings…
           </p>
-        ) : sortedReadings.length === 0 ? (
-          <BoardEmptyState icon={Gauge}>
-            No readings in the last 2 hours.
-          </BoardEmptyState>
+        ) : pageReadings.length === 0 && pageIndex === 0 ? (
+          <BoardEmptyState icon={Gauge}>No readings yet.</BoardEmptyState>
         ) : (
           <>
             <div className="board-groove rounded-xl border border-board-border bg-board-panel px-2 py-1">
@@ -217,39 +229,35 @@ export function PondDetailPage() {
               </Table>
             </div>
 
-            <div className="flex items-center justify-between gap-2">
-              <p className="font-sans text-[0.7rem] text-board-muted">
-                Showing {pageStart + 1}–
-                {Math.min(pageStart + PAGE_SIZE, sortedReadings.length)} of{" "}
-                {sortedReadings.length}
-              </p>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="icon-sm"
-                  aria-label="Previous page"
-                  disabled={currentPage <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                >
-                  <ChevronLeft />
-                </Button>
-                <span className="font-heading text-xs text-board-muted tabular-nums">
-                  {currentPage} / {pageCount}
-                </span>
-                <Button
-                  variant="outline"
-                  size="icon-sm"
-                  aria-label="Next page"
-                  disabled={currentPage >= pageCount}
-                  onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
-                >
-                  <ChevronRight />
-                </Button>
-              </div>
+            <div className="flex items-center justify-end gap-2">
+              <Button
+                variant="outline"
+                size="icon-sm"
+                aria-label="Newer readings"
+                disabled={pageIndex === 0}
+                onClick={goNewer}
+              >
+                <ChevronLeft />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon-sm"
+                aria-label="Older readings"
+                disabled={!readingsPage.nextCursor}
+                onClick={goOlder}
+              >
+                <ChevronRight />
+              </Button>
             </div>
           </>
         )}
       </div>
+
+      <ExportReadingsDialog
+        pondId={pondId}
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+      />
     </div>
   )
 }
