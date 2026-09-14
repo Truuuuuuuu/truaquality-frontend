@@ -83,11 +83,6 @@ components:
     textColor: "{colors.instrument-white}"
     rounded: "{rounded.lg}"
     padding: "20px"
-  parameter-tile-flagship:
-    backgroundColor: "{colors.panel-slate}"
-    textColor: "{colors.instrument-white}"
-    rounded: "{rounded.lg}"
-    padding: "24px"
   parameter-tile-warning:
     backgroundColor: "{colors.alert-amber-dim}"
     textColor: "{colors.alert-amber}"
@@ -124,14 +119,14 @@ components:
 
 TruAquality's dashboard is built to read as a control-room instrument panel, not a SaaS analytics grid. It refuses the generic dashboard default of a neutral card grid with unstyled line charts sitting under a marketing-style sidenav. Instead the board is an instrument-panel ground — dark control-room by default, with a daylit brushed-aluminum variant for the Light theme — with panel tiles that behave like physical gauges and a rail-styled sidebar that reads as an equipment list rather than product navigation. The board now follows the app-wide Light/Dark/System theme toggle (an earlier iteration fixed it permanently dark; that constraint was later reversed so the instrument panel can be read in either lighting condition, the way a real control room's panel lighting can be dimmed or raised).
 
-Density is calm at rest and urgent on alert: a single oversized flagship reading (Temperature) anchors the page with a numeral large enough to read at a glance, two structurally identical secondary tiles (Dissolved Oxygen, Salinity) sit below at a smaller scale, and every tile is built from the same repeatable pattern (numeral + sparkline + stamped timestamp) so future parameters slot in without a redesign. The system carries two inherited disciplines from earlier explorations in this world's build history: whole-region color flood on out-of-range state (never a small badge), and a stamped/validated feel on every value (nothing is presented bare, without a timestamp).
+Density is calm at rest and urgent on alert: every reading (Temperature, Dissolved Oxygen, Salinity) sits in a structurally identical, equally sized tile in one uniform grid — no single parameter is promoted to a larger "hero" size — and every tile is built from the same repeatable pattern (numeral + sparkline + stamped timestamp) so future parameters slot in without a redesign. The system carries two inherited disciplines from earlier explorations in this world's build history: whole-region color flood on out-of-range state (never a small badge), and a stamped/validated feel on every value (nothing is presented bare, without a timestamp).
 
 **Key Characteristics:**
 - Instrument-panel ground that follows the app-wide theme toggle: dark graphite/slate control-room by default, daylit brushed-aluminum in Light
 - Green for nominal telemetry; amber and red flood the entire tile on warning/critical, not a corner badge
 - Geist Mono for every number and timestamp; Inter for every label — the pairing itself signals "instrument reading" vs. "caption"
 - Engraved-groove hairlines (inset highlight + inset shadow) divide panel sections instead of flat border lines
-- One flagship numeral leads the page; every other parameter tile is the same shape at a smaller scale
+- Every parameter tile is the same shape and size — hierarchy comes from state color, not from scale
 
 ## Colors
 
@@ -152,7 +147,7 @@ The palette is a narrow, deliberately desaturated slate family for structure, wi
 - **Instrument White / Instrument Ink** — Dark `oklch(0.93 0.004 258)` / Light `oklch(0.2 0.006 258)`: primary reading/label text on the board — near-white ink on the dark scene, near-black ink on the light one.
 - **Muted Slate Text** — Dark `oklch(0.6 0.014 258)` / Light `oklch(0.46 0.012 258)`: secondary text — labels, captions, inactive nav items, the "Board time" caption.
 - **Stale Gray** — Dark `oklch(0.6 0.01 258)` / Light `oklch(0.42 0.01 258)`: dedicated desaturated color for a stale/offline reading — deliberately outside the green/amber/red trio so "we haven't heard from this device" never gets mistaken for a graded severity.
-- **Hairline Border / Hairline Border, Strong** — Dark `oklch(1 0 0 / 8%)` / `oklch(1 0 0 / 14%)`, Light `oklch(0 0 0 / 8%)` / `oklch(0 0 0 / 14%)`: low-opacity borders for dividers, tile edges, and the "Soon" pill on disabled nav rows — white-based ink on the dark scene, black-based on the light one, same alpha steps.
+- **Hairline Border / Hairline Border, Strong** — Dark `oklch(1 0 0 / 8%)` / `oklch(1 0 0 / 14%)`, Light `oklch(0 0 0 / 8%)` / `oklch(0 0 0 / 14%)`: low-opacity borders for dividers, tile edges, and the dashed panel on empty-state pages — white-based ink on the dark scene, black-based on the light one, same alpha steps.
 
 ### Named Rules
 **The Whole-Tile Flood Rule.** An out-of-range reading recolors the entire tile — background fill, border, value text, LED dot, and status stamp together — never a small corner badge on an otherwise-neutral card. Alert state is a property of the region, not an icon on top of it.
@@ -169,14 +164,13 @@ The palette is a narrow, deliberately desaturated slate family for structure, wi
 **Character:** Every number and timestamp is set in a technical monospace so readings feel measured and instrument-sourced; every label, heading, and caption is set in a plain grotesk so structural text stays out of the way. The pairing itself is the primary legibility device — an operator can tell a value from a label without reading it.
 
 ### Hierarchy
-- **Display** (500 weight, `clamp(3.75rem, 8vw, 4.5rem)` / 60–72px, line-height 1, tabular-nums): the flagship Temperature reading, the single largest element on the page.
-- **Title** (500 weight, 36px, line-height 1.1, tabular-nums): the numeral on standard (non-flagship) parameter tiles — same treatment as Display at smaller scale.
-- **Headline** (600 weight, 18px, tracking tight): the page title ("BFAR Sorsogon Overview").
-- **Label** (500 weight, 10.4px/0.65rem–11.2px/0.7rem, tracking 0.08em–0.14em, uppercase): parameter names, nav item labels, the sidebar's "Monitoring Station" eyebrow-style subtitle, and the "Soon" pill on unbuilt nav routes.
+- **Title** (500 weight, 36px, line-height 1.1, tabular-nums): the numeral on every parameter tile — the single largest recurring element on the dashboard, identical across all tiles.
+- **Headline** (600 weight, 18px, tracking tight): the page title ("BFAR Sorsogon Overview", "Ponds", "Devices").
+- **Label** (500 weight, 10.4px/0.65rem–11.2px/0.7rem, tracking 0.08em–0.14em, uppercase): parameter names and nav item labels.
 - **Mono/Stamp** (400 weight, 0.65rem, tracking 0.02em): every timestamp and relative-time stamp ("Board time", per-tile last-updated stamps).
 
 ### Named Rules
-**The Numeral-Leads Rule.** The flagship parameter's value is the single largest piece of type on the page (60–72px). Every other tile's numeral is the same font and weight, just smaller (36px) — visual hierarchy is expressed through scale of the same treatment, not through a different treatment.
+**The Equal-Tiles Rule.** No parameter tile is scaled up into a "hero" reading — every tile shares the same numeral size (36px), padding, and sparkline height. Visual hierarchy across tiles is expressed only through state color (nominal/warning/critical/stale), never through a size difference between parameters. (An earlier iteration promoted Temperature to a larger "flagship" tile; that pattern was retired so a third or fourth parameter has no special case to imitate or break.)
 
 **The Stamped-Value Rule.** No reading appears without an adjacent timestamp or relative-time stamp in the mono/stamp style. A bare number with no provenance is not a valid tile state.
 
@@ -186,7 +180,7 @@ The board is a two-region shell: a fixed-width rail sidebar (`w-60`/240px) docke
 
 The main canvas is a plain flat surface (`--board-bg`) — an earlier blueprint-grid texture was tried and removed as decorative rather than functional. Page padding steps up with viewport: 16px (mobile) → 24px (`sm`) → 32px (`lg`).
 
-Tile rhythm: the flagship tile is full-width and stands alone; the two standard tiles (Dissolved Oxygen, Salinity) sit in a `1` → `2`-column grid at the `sm` breakpoint (640px), each structurally identical so a third or fourth parameter can be added to the grid without a new pattern. Internal gaps are 16px (`gap-4`) between tiles, 24px (`gap-6`) between page sections.
+Tile rhythm: every parameter tile is the same structural shape and size, laid out in a responsive grid — `1` column by default, `2` columns at the `sm` breakpoint (640px), `3` columns at `lg` (1024px) — so a third or fourth parameter drops into the same grid without a new pattern or a layout decision. Internal gaps are 16px (`gap-4`) between tiles, 24px (`gap-6`) between page sections.
 
 ## Elevation & Depth
 
@@ -209,11 +203,11 @@ Corners are moderate and consistent, never sharp and never pill-shaped except fo
 - **Style:** a darker plane (`rail-graphite`) than the main board, with an engraved-groove header (station name + "Monitoring Station" label) and footer (signed-in user + fixed "BFAR Sorsogon" org line + sign-out). The system serves a single organization, so there is no office switcher or per-office label.
 - **Active item:** an inverted solid block — background in `instrument-white`/`instrument-ink`, text in `board-slate` (the near-black ink on Light, near-white ink on Dark, each swapped onto a solid fill) — with no accent color at all. "You are here" is signaled by contrast and weight (bumped to semibold), not by borrowing the nominal-telemetry hue; that keeps navigation state and reading state visually distinct instead of implying an active tab is somehow "in range."
 - **Inactive/available item:** muted text, raised-slate background on hover.
-- **Disabled/future item** (Ponds, Devices): 50%-opacity muted text, not-allowed cursor, and a mono "Soon" pill in a stroked border — future routes are shown, not hidden, so the nav's shape is stable as capability grows.
+- **Ponds and Devices:** real routes, styled identically to Dashboard's nav item and highlighted the same way when active. Both pages are currently empty states (see Empty State component below) — the "Soon" disabled-pill treatment from an earlier iteration was retired once the routes existed to navigate to, even though their content isn't built yet.
 - **Mobile:** identical content inside a slide-in drawer, focus-trapped, closing on Escape/backdrop/route change.
 
 ### Parameter Tile (Signature Component)
-The board's core repeating unit: icon + uppercase label + LED dot on top, a numeral-plus-unit reading in the middle, a sparkline trend at the bottom, and a stamped timestamp badge in the top-right corner. Two sizes only — `flagship` (one per page, larger numeral/sparkline/padding) and `standard` (everything else) — sharing one component so new parameters inherit the pattern automatically. State (`nominal` / `warning` / `critical` / `stale`) drives tile background, border, value color, LED color, and stamp color together (the Whole-Tile Flood Rule), with a 500ms color transition so a state change reads as a deliberate event rather than a flicker. `stale` additionally switches the tile border to dashed and swaps the timestamp for a relative "time since last report" with a wifi-off glyph.
+The board's core repeating unit: icon + uppercase label + LED dot on top, a numeral-plus-unit reading in the middle, a sparkline trend at the bottom, and a stamped timestamp badge in the top-right corner. One size only — every parameter tile shares the same numeral scale, padding, and sparkline height, sitting in a shared responsive grid (see Layout) so new parameters inherit the pattern automatically with no "hero" special case. State (`nominal` / `warning` / `critical` / `stale`) drives tile background, border, value color, LED color, and stamp color together (the Whole-Tile Flood Rule), with a 500ms color transition so a state change reads as a deliberate event rather than a flicker. `stale` additionally switches the tile border to dashed and swaps the timestamp for a relative "time since last report" with a wifi-off glyph.
 
 ### Trend Chart (Signature Component)
 An inline SVG sparkline (no charting library), rendered per tile: a status-colored line with a soft gradient fill beneath it, a faint band showing the parameter's safe range, and a marker at the most recent point. On a live (non-stale) reading, that marker pulses continuously (radius and opacity animate on a 2.4s loop) — the board's signature "this is a live instrument, not a static chart" cue. A stale reading freezes the marker at full opacity with no pulse and dims the whole line to 50% opacity.
@@ -221,6 +215,9 @@ An inline SVG sparkline (no charting library), rendered per tile: a status-color
 ### Badges / Stamps
 - **Status stamp:** small stroked-border pill in mono type, holding either a formatted clock time (nominal/warning/critical) or a relative time with a wifi-off icon (stale). Border and text color match the tile's state color.
 - **Sample-data badge:** an amber-stroked uppercase pill with a flask icon, used once at the page header while the system runs on mock readings — not a component to reuse once live device data lands.
+
+### Empty State (Ponds, Devices)
+The pattern for a route that exists in navigation before its feature is built: the same page header as Dashboard (headline + muted one-line caption), followed by a single dashed-border panel (`border-dashed border-board-border-strong`, `bg-board-panel/60` — the same treatment as a stale parameter tile, reused deliberately so "not live yet" reads consistently across the app) centered with a muted icon and one or two sentences describing what will land there. It is a placeholder to be replaced with real content, not a permanent design, so it carries no additional chrome beyond the header and the one panel.
 
 ## Do's and Don'ts
 

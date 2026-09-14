@@ -27,25 +27,27 @@ export function DashboardPage() {
           </span>
         </div>
         <p className="font-sans text-xs text-board-muted">
-          Board time <span className="font-heading">{formatClock(now)}</span> · simulated readings, no live
-          devices connected yet
+          Board time <span className="font-heading">{formatClock(now)}</span> ·
+          simulated readings, no live devices connected yet
         </p>
       </div>
 
-      <ParameterTile
-        reading={readings.temperature}
-        now={now}
-        icon={PARAMETER_ICONS.temperature}
-        variant="flagship"
-      />
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ParameterTile
+          reading={readings.temperature}
+          now={now}
+          icon={PARAMETER_ICONS.temperature}
+        />
         <ParameterTile
           reading={readings.dissolvedOxygen}
           now={now}
           icon={PARAMETER_ICONS.dissolvedOxygen}
         />
-        <ParameterTile reading={readings.salinity} now={now} icon={PARAMETER_ICONS.salinity} />
+        <ParameterTile
+          reading={readings.salinity}
+          now={now}
+          icon={PARAMETER_ICONS.salinity}
+        />
       </div>
     </div>
   )

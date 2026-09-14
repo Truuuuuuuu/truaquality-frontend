@@ -40,54 +40,57 @@ type ParameterTileProps = {
   reading: ReadingState
   now: number
   icon: ComponentType<{ className?: string }>
-  variant?: "flagship" | "standard"
 }
 
-export function ParameterTile({ reading, now, icon: Icon, variant = "standard" }: ParameterTileProps) {
+export function ParameterTile({
+  reading,
+  now,
+  icon: Icon,
+}: ParameterTileProps) {
   const { parameter, current, history, status, updatedAt } = reading
   const styles = STATUS_STYLES[status]
-  const isFlagship = variant === "flagship"
 
   return (
     <div
       className={cn(
         "board-groove flex flex-col gap-4 rounded-xl border p-5 transition-colors duration-500",
-        styles.tile,
-        isFlagship && "gap-5 p-6"
+        styles.tile
       )}
     >
       <div className="flex items-start justify-between gap-3">
         <div className={cn("flex items-center gap-2", styles.label)}>
-          <span className={cn("size-1.5 shrink-0 rounded-full", styles.led)} aria-hidden="true" />
-          <Icon className={cn("size-4", isFlagship && "size-5")} />
           <span
-            className={cn(
-              "font-sans text-xs font-medium tracking-[0.08em] uppercase",
-              isFlagship && "text-sm"
-            )}
-          >
+            className={cn("size-1.5 shrink-0 rounded-full", styles.led)}
+            aria-hidden="true"
+          />
+          <Icon className="size-4" />
+          <span className="font-sans text-xs font-medium tracking-[0.08em] uppercase">
             {parameter.label}
           </span>
         </div>
-        <StatusStamp status={status} updatedAt={updatedAt} now={now} className={styles.stamp} />
+        <StatusStamp
+          status={status}
+          updatedAt={updatedAt}
+          now={now}
+          className={styles.stamp}
+        />
       </div>
 
       <div className="flex items-baseline gap-2">
         <span
           className={cn(
-            "font-heading font-medium tabular-nums tracking-tight",
-            styles.value,
-            isFlagship ? "text-6xl sm:text-7xl" : "text-4xl"
+            "font-heading text-4xl font-medium tracking-tight tabular-nums",
+            styles.value
           )}
         >
           {current.toFixed(parameter.precision)}
         </span>
-        <span className={cn("font-heading text-board-muted", isFlagship ? "text-xl" : "text-sm")}>
+        <span className="font-heading text-sm text-board-muted">
           {parameter.unit}
         </span>
       </div>
 
-      <div className={cn(isFlagship ? "h-28" : "h-16")}>
+      <div className="h-16">
         <TrendChart
           points={history}
           status={status}

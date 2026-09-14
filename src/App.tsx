@@ -3,7 +3,9 @@ import { AppShell } from "@/components/app-shell"
 import { ProtectedRoute } from "@/components/protected-route"
 import { AuthProvider } from "@/context/auth-context"
 import { DashboardPage } from "@/pages/dashboard-page"
+import { DevicesPage } from "@/pages/devices-page"
 import { LoginPage } from "@/pages/login-page"
+import { PondsPage } from "@/pages/ponds-page"
 
 export function App() {
   return (
@@ -14,6 +16,8 @@ export function App() {
           <Route element={<ProtectedRoute />}>
             <Route element={<AppShell />}>
               <Route path="/" element={<DashboardPage />} />
+              <Route path="/ponds" element={<PondsPage />} />
+              <Route path="/devices" element={<DevicesPage />} />
             </Route>
           </Route>
         </Routes>
