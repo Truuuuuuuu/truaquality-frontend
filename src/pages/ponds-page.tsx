@@ -1,6 +1,7 @@
 import * as React from "react"
-import { AlertTriangle, Plus, Waves } from "lucide-react"
+import { AlertTriangle, Cpu, Plus, Waves } from "lucide-react"
 import { Link } from "react-router"
+import { cn } from "cn"
 import { BoardEmptyState } from "@/components/board-empty-state"
 import { PondFormDialog } from "@/components/ponds/pond-form-dialog"
 import { StatusBadge } from "@/components/status-badge"
@@ -23,6 +24,7 @@ import {
   pondConnectionLabel,
   pondStatus,
 } from "@/lib/pond-status"
+import { STATUS_STYLES } from "@/lib/status-styles"
 
 export function PondsPage() {
   const { profile } = useAuth()
@@ -79,52 +81,124 @@ export function PondsPage() {
             : "No ponds registered yet. An administrator needs to add them."}
         </BoardEmptyState>
       ) : (
-        <div className="board-groove overflow-hidden rounded-xl border border-board-border bg-board-panel">
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead>Pond</TableHead>
-                <TableHead>Device</TableHead>
-                <TableHead>Last reading</TableHead>
-                <TableHead>Status</TableHead>
-                {isAdmin ? (
-                  <TableHead>
-                    <span className="sr-only">Actions</span>
-                  </TableHead>
-                ) : null}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((pond) => {
-                const lastAt = lastReadingAt(pond)
-                const archived = pond.status === "ARCHIVED"
-                return (
-                  <TableRow
-                    key={pond.id}
-                    className={archived ? "text-board-muted" : undefined}
-                  >
-                    <TableCell className="max-w-64">
+        <>
+          {/* Registry table: sm and up, where a fixed-width grid of columns fits without cramping. */}
+          <div className="board-groove hidden overflow-hidden rounded-xl border border-board-border bg-board-panel sm:block">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead>Pond</TableHead>
+                  <TableHead>Device</TableHead>
+                  <TableHead>Last reading</TableHead>
+                  <TableHead>Status</TableHead>
+                  {isAdmin ? (
+                    <TableHead>
+                      <span className="sr-only">Actions</span>
+                    </TableHead>
+                  ) : null}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((pond) => {
+                  const lastAt = lastReadingAt(pond)
+                  const archived = pond.status === "ARCHIVED"
+                  return (
+                    <TableRow
+                      key={pond.id}
+                      className={archived ? "text-board-muted" : undefined}
+                    >
+                      <TableCell className="max-w-64">
+                        <Link
+                          to={`/ponds/${pond.id}`}
+                          className="font-medium text-board-fg underline-offset-4 hover:underline"
+                        >
+                          {pond.name}
+                        </Link>
+                        {pond.notes ? (
+                          <p className="truncate text-xs text-board-muted">
+                            {pond.notes}
+                          </p>
+                        ) : null}
+                      </TableCell>
+                      <TableCell className="font-heading text-xs">
+                        {pond.device?.serial ?? (
+                          <span className="text-board-muted">Unassigned</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="font-heading text-xs text-board-muted">
+                        {lastAt === null
+                          ? "Never"
+                          : formatRelative(lastAt, now)}
+                      </TableCell>
+                      <TableCell>
+                        {archived ? (
+                          <StatusBadge status="stale">Archived</StatusBadge>
+                        ) : (
+                          <StatusBadge status={pondStatus(pond, now)}>
+                            {pondConnectionLabel(pond, now)}
+                          </StatusBadge>
+                        )}
+                      </TableCell>
+                      {isAdmin ? (
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openDialog(pond)}
+                          >
+                            Edit
+                          </Button>
+                        </TableCell>
+                      ) : null}
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Registry cards: below sm, where the table's fixed columns force cramped, truncated cells. */}
+          <div className="flex flex-col gap-3 sm:hidden">
+            {rows.map((pond) => {
+              const lastAt = lastReadingAt(pond)
+              const archived = pond.status === "ARCHIVED"
+              const cardStatus = archived ? "stale" : pondStatus(pond, now)
+              return (
+                <div
+                  key={pond.id}
+                  className={cn(
+                    "board-groove overflow-hidden rounded-xl border transition-colors duration-500",
+                    STATUS_STYLES[cardStatus].tile
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-3 px-4 pt-4 pb-3">
+                    <div className="flex min-w-0 flex-col gap-1">
                       <Link
                         to={`/ponds/${pond.id}`}
-                        className="font-medium text-board-fg underline-offset-4 hover:underline"
+                        className="truncate font-sans text-sm font-semibold text-board-fg underline-offset-4 hover:underline"
                       >
                         {pond.name}
                       </Link>
                       {pond.notes ? (
-                        <p className="truncate text-xs text-board-muted">
+                        <p className="line-clamp-2 font-sans text-xs text-board-muted">
                           {pond.notes}
                         </p>
                       ) : null}
-                    </TableCell>
-                    <TableCell className="font-heading text-xs">
-                      {pond.device?.serial ?? (
-                        <span className="text-board-muted">Unassigned</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="font-heading text-xs text-board-muted">
-                      {lastAt === null ? "Never" : formatRelative(lastAt, now)}
-                    </TableCell>
-                    <TableCell>
+                    </div>
+                    {isAdmin ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="-mt-1 -mr-2 shrink-0"
+                        onClick={() => openDialog(pond)}
+                      >
+                        Edit
+                      </Button>
+                    ) : null}
+                  </div>
+
+                  <div className="board-groove flex items-center justify-between gap-3 px-4 py-3">
+                    <div className="shrink-0">
                       {archived ? (
                         <StatusBadge status="stale">Archived</StatusBadge>
                       ) : (
@@ -132,24 +206,26 @@ export function PondsPage() {
                           {pondConnectionLabel(pond, now)}
                         </StatusBadge>
                       )}
-                    </TableCell>
-                    {isAdmin ? (
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openDialog(pond)}
-                        >
-                          Edit
-                        </Button>
-                      </TableCell>
-                    ) : null}
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
-        </div>
+                    </div>
+                    <div className="flex min-w-0 flex-1 flex-col items-end gap-1 text-right">
+                      <span className="inline-flex max-w-full min-w-0 items-center gap-1.5 font-heading text-xs text-board-muted">
+                        <Cpu className="size-3 shrink-0" />
+                        <span className="truncate">
+                          {pond.device?.serial ?? "Unassigned"}
+                        </span>
+                      </span>
+                      <span className="shrink-0 font-heading text-[0.7rem] text-board-muted">
+                        {lastAt === null
+                          ? "Never"
+                          : formatRelative(lastAt, now)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </>
       )}
 
       {isAdmin ? (

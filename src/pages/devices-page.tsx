@@ -21,6 +21,7 @@ import { useNow } from "@/hooks/use-now"
 import type { Device } from "@/lib/api"
 import { formatRelative } from "@/lib/format-time"
 import { isDeviceOnline } from "@/lib/pond-status"
+import { STATUS_STYLES } from "@/lib/status-styles"
 
 export function DevicesPage() {
   const { profile } = useAuth()
@@ -67,59 +68,177 @@ export function DevicesPage() {
             : "No devices registered yet. An administrator needs to add them."}
         </BoardEmptyState>
       ) : (
-        <div className="board-groove overflow-hidden rounded-xl border border-board-border bg-board-panel">
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead>Device</TableHead>
-                <TableHead>Pond</TableHead>
-                <TableHead>Last seen</TableHead>
-                <TableHead>Firmware</TableHead>
-                <TableHead>Status</TableHead>
-                {isAdmin ? (
-                  <TableHead>
-                    <span className="sr-only">Actions</span>
-                  </TableHead>
-                ) : null}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {devices.map((device) => {
-                const online = isDeviceOnline(device.lastSeenAt, now)
-                return (
-                  <TableRow key={device.id}>
-                    <TableCell>
-                      <p className="font-heading text-xs text-board-fg">
+        <>
+          {/* Registry table: sm and up, where a fixed-width grid of columns fits without cramping. */}
+          <div className="board-groove hidden overflow-hidden rounded-xl border border-board-border bg-board-panel sm:block">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead>Device</TableHead>
+                  <TableHead>Pond</TableHead>
+                  <TableHead>Last seen</TableHead>
+                  <TableHead>Firmware</TableHead>
+                  <TableHead>Status</TableHead>
+                  {isAdmin ? (
+                    <TableHead>
+                      <span className="sr-only">Actions</span>
+                    </TableHead>
+                  ) : null}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {devices.map((device) => {
+                  const online = isDeviceOnline(device.lastSeenAt, now)
+                  return (
+                    <TableRow key={device.id}>
+                      <TableCell>
+                        <p className="font-heading text-xs text-board-fg">
+                          {device.serial}
+                        </p>
+                        <p className="text-xs text-board-muted">
+                          {[device.label, device.hardwareModel]
+                            .filter(Boolean)
+                            .join(" · ") || "—"}
+                        </p>
+                      </TableCell>
+                      <TableCell>
+                        {device.pond ? (
+                          <Link
+                            to={`/ponds/${device.pond.id}`}
+                            className="text-board-fg underline-offset-4 hover:underline"
+                          >
+                            {device.pond.name}
+                          </Link>
+                        ) : (
+                          <span className="text-board-muted">Unassigned</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1.5 font-heading text-xs",
+                            online ? "text-board-fg" : "text-board-stale"
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              "size-1.5 rounded-full",
+                              online ? "bg-board-accent" : "bg-board-stale/50"
+                            )}
+                            aria-hidden="true"
+                          />
+                          {device.lastSeenAt
+                            ? formatRelative(Date.parse(device.lastSeenAt), now)
+                            : "Never"}
+                          <span className="sr-only">
+                            {online ? "(online)" : "(offline)"}
+                          </span>
+                        </span>
+                      </TableCell>
+                      <TableCell className="font-heading text-xs text-board-muted">
+                        {device.firmwareVersion ?? "—"}
+                      </TableCell>
+                      <TableCell>
+                        {device.status === "DISABLED" ? (
+                          <StatusBadge status="critical">Disabled</StatusBadge>
+                        ) : (
+                          <StatusBadge status={online ? "nominal" : "stale"}>
+                            {online ? "Online" : "Offline"}
+                          </StatusBadge>
+                        )}
+                      </TableCell>
+                      {isAdmin ? (
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setManagedDevice(device)
+                              setManageOpen(true)
+                            }}
+                          >
+                            Manage
+                          </Button>
+                        </TableCell>
+                      ) : null}
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Registry cards: below sm, where the table's fixed columns force cramped, truncated cells. */}
+          <div className="flex flex-col gap-3 sm:hidden">
+            {devices.map((device) => {
+              const online = isDeviceOnline(device.lastSeenAt, now)
+              const cardStatus =
+                device.status === "DISABLED"
+                  ? "critical"
+                  : online
+                    ? "nominal"
+                    : "stale"
+              return (
+                <div
+                  key={device.id}
+                  className={cn(
+                    "board-groove overflow-hidden rounded-xl border transition-colors duration-500",
+                    STATUS_STYLES[cardStatus].tile
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-3 px-4 pt-4 pb-3">
+                    <div className="flex min-w-0 flex-col gap-1">
+                      <span className="truncate font-heading text-sm font-semibold text-board-fg">
                         {device.serial}
-                      </p>
-                      <p className="text-xs text-board-muted">
+                      </span>
+                      <span className="truncate font-sans text-xs text-board-muted">
                         {[device.label, device.hardwareModel]
                           .filter(Boolean)
                           .join(" · ") || "—"}
-                      </p>
-                    </TableCell>
-                    <TableCell>
-                      {device.pond ? (
-                        <Link
-                          to={`/ponds/${device.pond.id}`}
-                          className="text-board-fg underline-offset-4 hover:underline"
-                        >
-                          {device.pond.name}
-                        </Link>
-                      ) : (
-                        <span className="text-board-muted">Unassigned</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <span
-                        className={cn(
-                          "inline-flex items-center gap-1.5 font-heading text-xs",
-                          online ? "text-board-fg" : "text-board-stale"
-                        )}
+                      </span>
+                    </div>
+                    {isAdmin ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="-mt-1 -mr-2 shrink-0"
+                        onClick={() => {
+                          setManagedDevice(device)
+                          setManageOpen(true)
+                        }}
                       >
+                        Manage
+                      </Button>
+                    ) : null}
+                  </div>
+
+                  <div className="board-groove flex items-center justify-between gap-3 px-4 py-3">
+                    <div className="shrink-0">
+                      {device.status === "DISABLED" ? (
+                        <StatusBadge status="critical">Disabled</StatusBadge>
+                      ) : (
+                        <StatusBadge status={online ? "nominal" : "stale"}>
+                          {online ? "Online" : "Offline"}
+                        </StatusBadge>
+                      )}
+                    </div>
+                    <div className="flex min-w-0 flex-1 flex-col items-end gap-1 text-right">
+                      <span className="max-w-full truncate font-heading text-xs text-board-fg">
+                        {device.pond ? (
+                          <Link
+                            to={`/ponds/${device.pond.id}`}
+                            className="underline-offset-4 hover:underline"
+                          >
+                            {device.pond.name}
+                          </Link>
+                        ) : (
+                          <span className="text-board-muted">Unassigned</span>
+                        )}
+                      </span>
+                      <span className="inline-flex items-center gap-1.5 font-heading text-[0.7rem] text-board-muted">
                         <span
                           className={cn(
-                            "size-1.5 rounded-full",
+                            "size-1.5 shrink-0 rounded-full",
                             online ? "bg-board-accent" : "bg-board-stale/50"
                           )}
                           aria-hidden="true"
@@ -131,39 +250,22 @@ export function DevicesPage() {
                           {online ? "(online)" : "(offline)"}
                         </span>
                       </span>
-                    </TableCell>
-                    <TableCell className="font-heading text-xs text-board-muted">
+                    </div>
+                  </div>
+
+                  <div className="board-groove flex items-center justify-between gap-3 px-4 py-2.5">
+                    <span className="font-sans text-[0.65rem] tracking-[0.08em] text-board-muted uppercase">
+                      Firmware
+                    </span>
+                    <span className="font-heading text-xs text-board-muted">
                       {device.firmwareVersion ?? "—"}
-                    </TableCell>
-                    <TableCell>
-                      {device.status === "DISABLED" ? (
-                        <StatusBadge status="critical">Disabled</StatusBadge>
-                      ) : (
-                        <StatusBadge status={online ? "nominal" : "stale"}>
-                          {online ? "Online" : "Offline"}
-                        </StatusBadge>
-                      )}
-                    </TableCell>
-                    {isAdmin ? (
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setManagedDevice(device)
-                            setManageOpen(true)
-                          }}
-                        >
-                          Manage
-                        </Button>
-                      </TableCell>
-                    ) : null}
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
-        </div>
+                    </span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </>
       )}
 
       {isAdmin ? (
