@@ -65,7 +65,7 @@ function RegisterDeviceForm({ onDone }: { onDone: () => void }) {
         <DialogHeader>
           <DialogTitle>Device registered</DialogTitle>
           <DialogDescription>
-            {serial.trim()} can publish readings once it's flashed with these
+            {serial.trim()} can publish readings once it's set up with these
             credentials.
           </DialogDescription>
         </DialogHeader>

@@ -14,8 +14,9 @@ reports its own readings. Routes (`src/App.tsx`, all behind `ProtectedRoute` →
 - `/ponds/:pondId` — one pond's device info, a `ParameterTile` (value + 2 h trend) per parameter, and a
   read-only table of raw readings for the same 2 h window.
 - `/devices` — device registry; admins register units, assign them to ponds, disable them, and rotate their
-  secrets. Registering or rotating shows a `unit_config.h` snippet (`DEVICE_ID`, `DEVICE_SECRET`) once. Units
-  publish over MQTT to the broker, never to this app or its API.
+  secrets. Registering or rotating shows the unit's `DEVICE_ID`/`DEVICE_SECRET` once, for a technician to
+  enter on the unit's field setup portal (see `firmware/CLAUDE.md`'s "Field provisioning" — there's no
+  reflash). Units publish over MQTT to the broker, never to this app or its API.
 
 **Scope: BFAR Sorsogon only.** The app serves a single organization, so there's no office/region picker or
 per-office labeling — the org name is shown as the fixed text "BFAR Sorsogon".

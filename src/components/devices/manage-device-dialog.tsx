@@ -110,7 +110,7 @@ function ManageDeviceForm({
           <DialogTitle>New secret for {device.serial}</DialogTitle>
           <DialogDescription>
             The old secret has stopped working. The unit won't be heard from
-            until it's reflashed with this one.
+            until this one is entered on its setup page.
           </DialogDescription>
         </DialogHeader>
         <DeviceCredentialsNotice credentials={credentials} />
@@ -169,7 +169,7 @@ function ManageDeviceForm({
           <>
             <p className="text-sm">
               Rotating invalidates the current secret immediately. The unit
-              stays offline until it's reflashed with the new one.
+              stays offline until the new one is entered on its setup page.
             </p>
             <div className="flex gap-2">
               <Button
