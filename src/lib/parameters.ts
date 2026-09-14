@@ -73,6 +73,9 @@ export const PARAMETER_ICONS: Record<
   salinity: Waves,
 }
 
+export const PARAMETER_BY_ID: Record<string, ParameterConfig> =
+  Object.fromEntries(PARAMETERS.map((parameter) => [parameter.id, parameter]))
+
 // Devices report about once a minute, so five minutes of silence means the value can't be trusted as current.
 export const STALE_AFTER_MS = 5 * 60_000
 
@@ -83,6 +86,18 @@ const STATUS_SEVERITY: Record<ReadingStatus, number> = {
   critical: 3,
 }
 
+// The in-range/warning/critical read on a value alone, with no notion of staleness — useful for a
+// historical row (e.g. a table of past readings) where "now - updatedAt" doesn't mean anything.
+export function severityFor(
+  parameter: ParameterConfig,
+  value: number
+): Exclude<ReadingStatus, "stale"> {
+  if (value < parameter.criticalMin || value > parameter.criticalMax)
+    return "critical"
+  if (value < parameter.safeMin || value > parameter.safeMax) return "warning"
+  return "nominal"
+}
+
 export function statusFor(
   parameter: ParameterConfig,
   value: number,
@@ -90,10 +105,7 @@ export function statusFor(
   now: number
 ): ReadingStatus {
   if (now - updatedAt > STALE_AFTER_MS) return "stale"
-  if (value < parameter.criticalMin || value > parameter.criticalMax)
-    return "critical"
-  if (value < parameter.safeMin || value > parameter.safeMax) return "warning"
-  return "nominal"
+  return severityFor(parameter, value)
 }
 
 export function worstStatus(statuses: ReadingStatus[]): ReadingStatus {

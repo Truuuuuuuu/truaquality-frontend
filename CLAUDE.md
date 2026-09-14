@@ -11,7 +11,8 @@ The system monitors **multiple fishponds**. Each pond has at most one ESP32 sens
 reports its own readings. Routes (`src/App.tsx`, all behind `ProtectedRoute` → `AppShell` except `/login`):
 - `/` — operations board: one `PondCard` per active pond, worst condition first.
 - `/ponds` — pond registry table; admins add, rename, and archive ponds.
-- `/ponds/:pondId` — one pond's device info plus a `ParameterTile` (value + 2 h trend) per parameter.
+- `/ponds/:pondId` — one pond's device info, a `ParameterTile` (value + 2 h trend) per parameter, and a
+  read-only table of raw readings for the same 2 h window.
 - `/devices` — device registry; admins register units, assign them to ponds, disable them, and rotate their
   secrets. Registering or rotating shows a `unit_config.h` snippet (`DEVICE_ID`, `DEVICE_SECRET`) once. Units
   publish over MQTT to the broker, never to this app or its API.

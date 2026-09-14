@@ -78,7 +78,7 @@ export function DashboardPage() {
           it to see its readings here.
         </BoardEmptyState>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="flex flex-col gap-4">
           {board.map(({ pond }) => (
             <PondCard key={pond.id} pond={pond} now={now} />
           ))}

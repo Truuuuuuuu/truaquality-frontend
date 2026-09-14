@@ -28,18 +28,18 @@ export function PondCard({ pond, now }: PondCardProps) {
     <Link
       to={`/ponds/${pond.id}`}
       className={cn(
-        "board-groove flex flex-col gap-4 rounded-xl border p-5 transition-colors duration-500 outline-none hover:border-board-border-strong focus-visible:ring-3 focus-visible:ring-ring/50",
+        "board-groove flex flex-col gap-4 rounded-xl border p-5 transition-colors duration-500 outline-none hover:border-board-border-strong focus-visible:ring-3 focus-visible:ring-ring/50 lg:flex-row lg:items-center lg:gap-6 lg:py-4",
         STATUS_STYLES[status].tile
       )}
     >
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-col items-start gap-1.5 lg:w-64 lg:shrink-0">
+        <StatusBadge status={status}>{connectionLabel}</StatusBadge>
         <span className="min-w-0 truncate font-sans text-sm font-semibold text-board-fg">
           {pond.name}
         </span>
-        <StatusBadge status={status}>{connectionLabel}</StatusBadge>
       </div>
 
-      <dl className="grid grid-cols-3 gap-3">
+      <dl className="grid flex-1 grid-cols-3 gap-3 lg:gap-6">
         {readings.map(({ parameter, reading }) => {
           const Icon = PARAMETER_ICONS[parameter.id]
           const styles = STATUS_STYLES[reading?.status ?? "stale"]
@@ -59,7 +59,7 @@ export function PondCard({ pond, now }: PondCardProps) {
               <dd className="flex items-baseline gap-1">
                 <span
                   className={cn(
-                    "font-heading text-xl font-medium tracking-tight tabular-nums",
+                    "font-heading text-xl font-medium tracking-tight tabular-nums lg:text-2xl",
                     styles.value
                   )}
                 >
@@ -74,7 +74,7 @@ export function PondCard({ pond, now }: PondCardProps) {
         })}
       </dl>
 
-      <div className="flex items-center justify-between gap-2 font-sans text-[0.7rem] text-board-muted">
+      <div className="flex items-center justify-between gap-2 font-sans text-[0.7rem] text-board-muted lg:w-44 lg:shrink-0 lg:flex-col lg:items-end lg:gap-1.5">
         <span className="inline-flex min-w-0 items-center gap-1">
           <Cpu className="size-3 shrink-0" />
           <span className="truncate">

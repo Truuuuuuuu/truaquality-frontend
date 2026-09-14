@@ -17,7 +17,7 @@ import {
 } from "@/lib/api"
 
 // Devices report about once a minute; polling a few times per report keeps tiles current without a push channel.
-const POLL_MS = 15_000
+const POLL_MS = 30_000
 const HISTORY_WINDOW_MS = 2 * 60 * 60 * 1000
 
 export function usePonds() {
