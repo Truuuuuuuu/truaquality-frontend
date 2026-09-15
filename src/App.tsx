@@ -10,6 +10,7 @@ import { DevicesPage } from "@/pages/devices-page"
 import { LoginPage } from "@/pages/login-page"
 import { PondDetailPage } from "@/pages/pond-detail-page"
 import { PondsPage } from "@/pages/ponds-page"
+import { ProfilePage } from "@/pages/profile-page"
 import { UsersPage } from "@/pages/users-page"
 
 // Drops cached pond/device data on sign-out so the next person to sign in on this browser never
@@ -40,6 +41,7 @@ export function App() {
               <Route path="/ponds/:pondId" element={<PondDetailPage />} />
               <Route path="/devices" element={<DevicesPage />} />
               <Route path="/users" element={<UsersPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
             </Route>
           </Route>
         </Routes>

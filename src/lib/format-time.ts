@@ -1,3 +1,11 @@
+export function formatDate(timestamp: number): string {
+  return new Date(timestamp).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  })
+}
+
 export function formatClock(timestamp: number): string {
   return new Date(timestamp).toLocaleTimeString(undefined, {
     hour12: false,

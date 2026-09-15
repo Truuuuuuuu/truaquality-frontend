@@ -1,8 +1,6 @@
-import { Cpu, Gauge, LogOut, Users, Waves } from "lucide-react"
+import { ChevronRight, Cpu, Gauge, Users, Waves } from "lucide-react"
 import { NavLink } from "react-router"
 import { cn } from "cn"
-import { Button } from "@/components/ui/button"
-import { ModeToggle } from "@/components/mode-toggle"
 import { useAuth } from "@/context/auth-context"
 
 const NAV_ITEMS = [
@@ -17,7 +15,7 @@ const ADMIN_NAV_ITEMS = [
 ] as const
 
 export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
-  const { profile, logout } = useAuth()
+  const { profile } = useAuth()
   const navItems =
     profile?.systemRole === "ADMIN"
       ? [...NAV_ITEMS, ...ADMIN_NAV_ITEMS]
@@ -62,27 +60,27 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         })}
       </nav>
 
-      <div className="board-groove flex flex-col gap-3 border-t border-board-border px-5 py-4">
-        <div className="flex flex-col gap-0.5">
-          <span className="truncate text-sm font-medium text-board-fg">
-            {profile?.fullName ?? profile?.email}
+      <div className="board-groove border-t border-board-border px-5 py-4">
+        <NavLink
+          to="/profile"
+          onClick={onNavigate}
+          className={({ isActive }) =>
+            cn(
+              "-mx-2 flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 transition-colors",
+              isActive ? "bg-board-panel-raised" : "hover:bg-board-panel-raised"
+            )
+          }
+        >
+          <span className="flex min-w-0 flex-col gap-0.5">
+            <span className="truncate text-sm font-medium text-board-fg">
+              {profile?.fullName ?? profile?.email}
+            </span>
+            <span className="truncate text-xs text-board-muted">
+              BFAR Sorsogon
+            </span>
           </span>
-          <span className="truncate text-xs text-board-muted">
-            BFAR Sorsogon
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={logout}
-            className="flex-1 justify-start border-board-border-strong bg-transparent text-board-muted hover:bg-board-panel-raised hover:text-board-fg focus-visible:border-board-accent focus-visible:ring-board-accent/50"
-          >
-            <LogOut className="size-3.5" />
-            Sign out
-          </Button>
-          <ModeToggle className="size-8 border-board-border-strong bg-transparent text-board-muted hover:bg-board-panel-raised hover:text-board-fg focus-visible:border-board-accent focus-visible:ring-board-accent/50" />
-        </div>
+          <ChevronRight className="size-3.5 shrink-0 text-board-muted" />
+        </NavLink>
       </div>
     </div>
   )

@@ -79,8 +79,9 @@ export function UsersPage() {
         </BoardEmptyState>
       ) : (
         <>
-          {/* Registry table: sm and up, where a fixed-width grid of columns fits without cramping. */}
-          <div className="board-groove hidden overflow-hidden rounded-xl border border-board-border bg-board-panel sm:block">
+          {/* Registry table: sm and up, where a fixed-width grid of columns fits without cramping.
+              Flat, not a card — row hairlines (from TableRow/TableHeader) carry the structure. */}
+          <div className="hidden sm:block">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
