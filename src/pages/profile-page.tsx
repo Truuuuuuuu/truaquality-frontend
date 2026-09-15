@@ -1,6 +1,7 @@
 import * as React from "react"
 import {
   IdCard,
+  Lock,
   LogOut,
   Mail,
   Monitor,
@@ -8,9 +9,11 @@ import {
   Palette,
   ShieldCheck,
   Sun,
+  Trash2,
 } from "lucide-react"
 import { cn } from "cn"
 import { ChangePasswordDialog } from "@/components/profile/change-password-dialog"
+import { DeleteAccountDialog } from "@/components/profile/delete-account-dialog"
 import { RoleBadge, UserStatusBadge } from "@/components/users/user-badges"
 import { Button } from "@/components/ui/button"
 import { useTheme } from "@/components/theme-provider"
@@ -28,6 +31,7 @@ export function ProfilePage() {
   const { profile, logout } = useAuth()
   const { theme, setTheme } = useTheme()
   const [changePasswordOpen, setChangePasswordOpen] = React.useState(false)
+  const [deleteAccountOpen, setDeleteAccountOpen] = React.useState(false)
 
   if (!profile) {
     return (
@@ -119,6 +123,27 @@ export function ProfilePage() {
                 Sign out
               </Button>
             </SecurityRow>
+            <SecurityRow
+              label="Delete account"
+              description="Permanently remove your sign-in and personal details from TruAquality."
+            >
+              {profile.systemRole === "ADMIN" ? (
+                <span className="flex items-center gap-1.5 font-sans text-xs text-board-muted">
+                  <Lock className="size-3.5 shrink-0" />
+                  Admin accounts can't be deleted
+                </span>
+              ) : (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setDeleteAccountOpen(true)}
+                >
+                  <Trash2 />
+                  Delete account…
+                </Button>
+              )}
+            </SecurityRow>
           </div>
         </section>
 
@@ -169,6 +194,10 @@ export function ProfilePage() {
       <ChangePasswordDialog
         open={changePasswordOpen}
         onOpenChange={setChangePasswordOpen}
+      />
+      <DeleteAccountDialog
+        open={deleteAccountOpen}
+        onOpenChange={setDeleteAccountOpen}
       />
     </div>
   )

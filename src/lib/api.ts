@@ -94,6 +94,14 @@ export function getMe(token: string) {
   return request<{ profile: Profile }>("/me", { token })
 }
 
+export function deleteAccount(token: string, password: string) {
+  return request<void>("/me", {
+    method: "DELETE",
+    body: { password },
+    token,
+  })
+}
+
 export type PondStatus = "ACTIVE" | "ARCHIVED"
 export type DeviceStatus = "ACTIVE" | "DISABLED"
 
@@ -319,7 +327,7 @@ export function listUsers(token: string) {
 export type InviteUserInput = {
   email: string
   fullName: string
-  systemRole?: "ADMIN" | "USER"
+  systemRole: "ADMIN" | "USER"
 }
 
 export function inviteUser(token: string, body: InviteUserInput) {

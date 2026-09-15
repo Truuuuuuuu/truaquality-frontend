@@ -192,6 +192,7 @@ export function UsersPage() {
         onOpenChange={setManageOpen}
         user={manageUser}
         isSelf={manageUser?.id === profile?.id}
+        isTargetAdmin={manageUser?.systemRole === "ADMIN"}
       />
     </div>
   )

@@ -19,6 +19,9 @@ reports its own readings. Routes (`src/App.tsx`, all behind `ProtectedRoute` →
   reflash). Units publish over MQTT to the broker, never to this app or its API.
 - `/notifications` — the signed-in user's alert notifications (all / unread, "load more"). The same feed also
   drives the bell (sidebar header on desktop, top bar on mobile) and toasts.
+- `/profile` — the signed-in user's details, theme, change password, and **delete account**
+  (`DeleteAccountDialog`): staff re-enter their password, the backend verifies it and anonymizes the account
+  (`DELETE /me`), then the app signs out. Admin accounts can't be deleted, so admins see a lock note instead.
 
 **Scope: BFAR Sorsogon only.** The app serves a single organization, so there's no office/region picker or
 per-office labeling — the org name is shown as the fixed text "BFAR Sorsogon".

@@ -8,7 +8,13 @@ import {
   refreshSession as apiRefreshSession,
   type Profile,
 } from "@/lib/api"
-import { clearSession, loadSession, saveSession, SESSION_STORAGE_KEY, type Session } from "@/lib/session"
+import {
+  clearSession,
+  loadSession,
+  saveSession,
+  SESSION_STORAGE_KEY,
+  type Session,
+} from "@/lib/session"
 
 type AuthState = {
   session: Session | null
@@ -39,7 +45,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refreshTimerRef = React.useRef<number>()
   // scheduleRefresh and performRefresh call each other; a ref breaks the cycle so neither
   // useCallback needs the other in its dependency array.
-  const performRefreshRef = React.useRef<(refreshToken: string) => Promise<void>>()
+  const performRefreshRef =
+    React.useRef<(refreshToken: string) => Promise<void>>()
 
   const clearRefreshTimer = React.useCallback(() => {
     if (refreshTimerRef.current !== undefined) {
@@ -67,10 +74,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         () => {
           void performRefreshRef.current?.(current.refreshToken)
         },
-        Math.max(0, msUntilRefresh(current)),
+        Math.max(0, msUntilRefresh(current))
       )
     },
-    [clearRefreshTimer],
+    [clearRefreshTimer]
   )
 
   // Shared by the proactive refresh timer and authorizedRequest's reactive retry, so both paths
@@ -97,7 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw err
       }
     },
-    [logout, scheduleRefresh],
+    [logout, scheduleRefresh]
   )
 
   const performRefresh = React.useCallback(
@@ -108,7 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // refreshAndGetToken already signed the user out; nothing else to do here.
       }
     },
-    [refreshAndGetToken],
+    [refreshAndGetToken]
   )
 
   React.useEffect(() => {
@@ -151,7 +158,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [clearRefreshTimer, scheduleRefresh, performRefresh])
 
   const authorizedRequest = React.useCallback(
-    async function authorizedRequest<T>(fn: (token: string) => Promise<T>): Promise<T> {
+    async function authorizedRequest<T>(
+      fn: (token: string) => Promise<T>
+    ): Promise<T> {
       if (!session) throw new Error("not authenticated")
       try {
         return await fn(session.accessToken)
@@ -163,7 +172,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw err
       }
     },
-    [session, refreshAndGetToken],
+    [session, refreshAndGetToken]
   )
 
   React.useEffect(() => {
@@ -181,7 +190,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               setProfile(profile)
               scheduleRefresh(stored)
             })
-            .catch(() => performRefresh(stored.refreshToken)),
+            .catch(() => performRefresh(stored.refreshToken))
     )
 
     restored.finally(() => setIsLoading(false))
@@ -206,12 +215,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setProfile(nextProfile)
       scheduleRefresh(nextSession)
     },
-    [scheduleRefresh],
+    [scheduleRefresh]
   )
 
   const value = React.useMemo(
     () => ({ session, profile, isLoading, login, logout, authorizedRequest }),
-    [session, profile, isLoading, login, logout, authorizedRequest],
+    [session, profile, isLoading, login, logout, authorizedRequest]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

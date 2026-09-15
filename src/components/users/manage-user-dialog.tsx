@@ -26,6 +26,8 @@ type ManageUserDialogProps = {
   user: Profile | null
   // The signed-in admin can't disable their own account (the backend rejects it too).
   isSelf: boolean
+  // Admin accounts can't be disabled at all, by anyone (the backend rejects it too).
+  isTargetAdmin: boolean
 }
 
 export function ManageUserDialog({
@@ -33,6 +35,7 @@ export function ManageUserDialog({
   onOpenChange,
   user,
   isSelf,
+  isTargetAdmin,
 }: ManageUserDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -42,6 +45,7 @@ export function ManageUserDialog({
             key={user.id}
             user={user}
             isSelf={isSelf}
+            isTargetAdmin={isTargetAdmin}
             onDone={() => onOpenChange(false)}
           />
         ) : null}
@@ -53,10 +57,12 @@ export function ManageUserDialog({
 function ManageUserForm({
   user,
   isSelf,
+  isTargetAdmin,
   onDone,
 }: {
   user: Profile
   isSelf: boolean
+  isTargetAdmin: boolean
   onDone: () => void
 }) {
   const [error, setError] = React.useState<string | null>(null)
@@ -145,6 +151,11 @@ function ManageUserForm({
           <p className="flex gap-2 text-sm text-muted-foreground">
             <Lock className="mt-0.5 size-4 shrink-0" />
             <span>You can't disable your own account.</span>
+          </p>
+        ) : isTargetAdmin ? (
+          <p className="flex gap-2 text-sm text-muted-foreground">
+            <Lock className="mt-0.5 size-4 shrink-0" />
+            <span>Admin accounts can't be disabled.</span>
           </p>
         ) : user.status === "DISABLED" ? (
           <div className="flex flex-wrap gap-2">
