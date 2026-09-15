@@ -51,7 +51,7 @@ export function SidebarContent({
       </div>
 
       <nav
-        className="flex flex-1 flex-col gap-1 px-3 py-4"
+        className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-3 py-4"
         aria-label="Primary"
       >
         {navItems.map((item) => {
@@ -110,7 +110,7 @@ export function SidebarContent({
 
 export function AppSidebar() {
   return (
-    <aside className="hidden w-60 shrink-0 border-r border-board-border bg-board-rail md:block">
+    <aside className="sticky top-0 hidden h-svh w-60 shrink-0 border-r border-board-border bg-board-rail md:block">
       <SidebarContent showNotificationBell />
     </aside>
   )

@@ -57,7 +57,7 @@ export function AppShell() {
       <Toaster position="top-right" />
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center gap-3 border-b border-board-border px-4 py-3 md:hidden">
+        <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-board-border bg-board-bg px-4 py-3 md:hidden">
           <button
             ref={menuButtonRef}
             type="button"
