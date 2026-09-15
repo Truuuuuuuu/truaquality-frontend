@@ -8,6 +8,7 @@ import { AcceptInvitePage } from "@/pages/accept-invite-page"
 import { DashboardPage } from "@/pages/dashboard-page"
 import { DevicesPage } from "@/pages/devices-page"
 import { LoginPage } from "@/pages/login-page"
+import { NotificationsPage } from "@/pages/notifications-page"
 import { PondDetailPage } from "@/pages/pond-detail-page"
 import { PondsPage } from "@/pages/ponds-page"
 import { ProfilePage } from "@/pages/profile-page"
@@ -41,6 +42,7 @@ export function App() {
               <Route path="/ponds/:pondId" element={<PondDetailPage />} />
               <Route path="/devices" element={<DevicesPage />} />
               <Route path="/users" element={<UsersPage />} />
+              <Route path="/notifications" element={<NotificationsPage />} />
               <Route path="/profile" element={<ProfilePage />} />
             </Route>
           </Route>

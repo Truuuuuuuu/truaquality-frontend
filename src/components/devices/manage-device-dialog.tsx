@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
+import { FloatingLabelInput } from "@/components/ui/floating-input"
 import { Label } from "@/components/ui/label"
 import { useRotateDeviceSecret, useUpdateDevice } from "@/hooks/use-ponds"
 import { errorMessage, type Device, type DeviceCredentials } from "@/lib/api"
@@ -144,24 +144,20 @@ function ManageDeviceForm({
         </p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="manage-device-model">Hardware model</Label>
-          <Input
-            id="manage-device-model"
-            maxLength={80}
-            value={hardwareModel}
-            onChange={(event) => setHardwareModel(event.target.value)}
-          />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="manage-device-label">Label</Label>
-          <Input
-            id="manage-device-label"
-            maxLength={80}
-            value={label}
-            onChange={(event) => setLabel(event.target.value)}
-          />
-        </div>
+        <FloatingLabelInput
+          id="manage-device-model"
+          label="Hardware model"
+          maxLength={80}
+          value={hardwareModel}
+          onChange={(event) => setHardwareModel(event.target.value)}
+        />
+        <FloatingLabelInput
+          id="manage-device-label"
+          label="Label"
+          maxLength={80}
+          value={label}
+          onChange={(event) => setLabel(event.target.value)}
+        />
       </div>
 
       <div className="flex flex-col gap-2 rounded-lg border p-3">

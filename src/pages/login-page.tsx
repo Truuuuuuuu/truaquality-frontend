@@ -1,9 +1,14 @@
 import * as React from "react"
 import { Navigate, useLocation, useNavigate } from "react-router"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import { FloatingLabelInput } from "@/components/ui/floating-input"
 import { ModeToggle } from "@/components/mode-toggle"
 import { useAuth } from "@/context/auth-context"
 import { ApiError } from "@/lib/api"
@@ -31,7 +36,11 @@ export function LoginPage() {
       await login(email, password)
       navigate("/", { replace: true })
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.")
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "Something went wrong. Please try again."
+      )
     } finally {
       setIsSubmitting(false)
     }
@@ -43,32 +52,30 @@ export function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>Sign in</CardTitle>
-          <CardDescription>TruAquality water quality monitoring</CardDescription>
+          <CardDescription>
+            TruAquality water quality monitoring
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-              />
-            </div>
+            <FloatingLabelInput
+              id="email"
+              label="Email"
+              type="email"
+              autoComplete="email"
+              required
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+            />
+            <FloatingLabelInput
+              id="password"
+              label="Password"
+              type="password"
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+            />
             {error ? (
               <p role="alert" className="text-sm text-destructive">
                 {error}

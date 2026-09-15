@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
+import { FloatingLabelInput } from "@/components/ui/floating-input"
 import { Label } from "@/components/ui/label"
 import { useCreateDevice } from "@/hooks/use-ponds"
 import { errorMessage, type DeviceCredentials } from "@/lib/api"
@@ -88,36 +88,40 @@ function RegisterDeviceForm({ onDone }: { onDone: () => void }) {
       </DialogHeader>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="device-serial">Serial</Label>
-        <Input
+        <FloatingLabelInput
           id="device-serial"
+          label="Serial"
           required
           maxLength={64}
-          placeholder="MAC address or the ID printed on the unit"
           value={serial}
           onChange={(event) => setSerial(event.target.value)}
         />
+        <p className="px-0.5 text-xs text-muted-foreground">
+          MAC address or the ID printed on the unit
+        </p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="device-model">Hardware model</Label>
-          <Input
+          <FloatingLabelInput
             id="device-model"
+            label="Hardware model"
             maxLength={80}
-            placeholder="ESP32 NodeMCU-32S"
             value={hardwareModel}
             onChange={(event) => setHardwareModel(event.target.value)}
           />
+          <p className="px-0.5 text-xs text-muted-foreground">
+            e.g. ESP32 NodeMCU-32S
+          </p>
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="device-label">Label</Label>
-          <Input
+          <FloatingLabelInput
             id="device-label"
+            label="Label"
             maxLength={80}
-            placeholder="Optional"
             value={label}
             onChange={(event) => setLabel(event.target.value)}
           />
+          <p className="px-0.5 text-xs text-muted-foreground">Optional</p>
         </div>
       </div>
       <div className="flex flex-col gap-1.5">

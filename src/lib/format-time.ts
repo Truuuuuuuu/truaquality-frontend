@@ -24,7 +24,8 @@ export function formatRelative(
   if (minutes < 1) return "just now"
   if (minutes < 60) return `${minutes}m ago`
   const hours = Math.floor(minutes / 60)
-  return `${hours}h ago`
+  if (hours < 24) return `${hours}h ago`
+  return `${Math.floor(hours / 24)}d ago`
 }
 
 // Compact "Sep 1" / "Sep 1, 8:30 AM" stamp for a filter chip — the time only appears when the underlying

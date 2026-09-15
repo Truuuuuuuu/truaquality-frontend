@@ -9,8 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { FloatingLabelInput } from "@/components/ui/floating-input"
 import { useAuth } from "@/context/auth-context"
 import { createAuthActionClient } from "@/lib/supabase"
 
@@ -112,30 +111,26 @@ function ChangePasswordForm({ onDone }: { onDone: () => void }) {
         </DialogDescription>
       </DialogHeader>
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="new-password">New password</Label>
-        <Input
-          id="new-password"
-          type="password"
-          autoComplete="new-password"
-          required
-          minLength={8}
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-        />
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="confirm-new-password">Confirm password</Label>
-        <Input
-          id="confirm-new-password"
-          type="password"
-          autoComplete="new-password"
-          required
-          minLength={8}
-          value={confirmPassword}
-          onChange={(event) => setConfirmPassword(event.target.value)}
-        />
-      </div>
+      <FloatingLabelInput
+        id="new-password"
+        label="New password"
+        type="password"
+        autoComplete="new-password"
+        required
+        minLength={8}
+        value={password}
+        onChange={(event) => setPassword(event.target.value)}
+      />
+      <FloatingLabelInput
+        id="confirm-new-password"
+        label="Confirm password"
+        type="password"
+        autoComplete="new-password"
+        required
+        minLength={8}
+        value={confirmPassword}
+        onChange={(event) => setConfirmPassword(event.target.value)}
+      />
 
       {error ? (
         <p role="alert" className="text-sm text-destructive">

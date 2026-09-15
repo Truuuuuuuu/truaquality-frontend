@@ -9,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
+import { FloatingLabelInput } from "@/components/ui/floating-input"
 import { Label } from "@/components/ui/label"
 import {
   Select,
@@ -101,26 +101,22 @@ function InviteUserForm({ onDone }: { onDone: () => void }) {
         </DialogDescription>
       </DialogHeader>
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="invite-full-name">Full name</Label>
-        <Input
-          id="invite-full-name"
-          required
-          maxLength={120}
-          value={fullName}
-          onChange={(event) => setFullName(event.target.value)}
-        />
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="invite-email">Email</Label>
-        <Input
-          id="invite-email"
-          type="email"
-          required
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-        />
-      </div>
+      <FloatingLabelInput
+        id="invite-full-name"
+        label="Full name"
+        required
+        maxLength={120}
+        value={fullName}
+        onChange={(event) => setFullName(event.target.value)}
+      />
+      <FloatingLabelInput
+        id="invite-email"
+        label="Email"
+        type="email"
+        required
+        value={email}
+        onChange={(event) => setEmail(event.target.value)}
+      />
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="invite-role">Role</Label>
         <Select

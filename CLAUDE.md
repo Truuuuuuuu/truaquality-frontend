@@ -17,6 +17,8 @@ reports its own readings. Routes (`src/App.tsx`, all behind `ProtectedRoute` →
   secrets. Registering or rotating shows the unit's `DEVICE_ID`/`DEVICE_SECRET` once, for a technician to
   enter on the unit's field setup portal (see `firmware/CLAUDE.md`'s "Field provisioning" — there's no
   reflash). Units publish over MQTT to the broker, never to this app or its API.
+- `/notifications` — the signed-in user's alert notifications (all / unread, "load more"). The same feed also
+  drives the bell (sidebar header on desktop, top bar on mobile) and toasts.
 
 **Scope: BFAR Sorsogon only.** The app serves a single organization, so there's no office/region picker or
 per-office labeling — the org name is shown as the fixed text "BFAR Sorsogon".
@@ -70,15 +72,24 @@ URLs.
   token first. Call them through `useAuth().authorizedRequest` (`src/context/auth-context.tsx`), which
   refreshes and retries once on a 401.
 - **TanStack Query** (`QueryClientProvider` in `src/main.tsx`) — `src/hooks/use-ponds.ts` holds every pond,
-  reading, and device query and mutation. Queries poll every 15 s (there's no push channel); mutations
+  reading, and device query and mutation. Queries poll every 30 s (there's no push channel); mutations
   invalidate both `["ponds"]` and `["devices"]` because each list embeds the other. The cache is cleared on
-  sign-out (`ClearQueryCacheOnSignOut` in `App.tsx`).
+  sign-out (`ClearQueryCacheOnSignOut` in `App.tsx`). `src/hooks/use-notifications.ts` polls faster, every
+  15 s, since that's how a new alert reaches someone (see "Notifications" below).
 - `src/lib/parameters.ts` — `PARAMETERS` (display labels, units, safe/critical ranges), `statusFor`, and
-  `STALE_AFTER_MS` (5 min). Parameter ids must match the backend's `PARAMETER_BOUNDS`; add a new parameter in
-  both places. Status is computed client-side: stale beats range checks.
+  `STALE_AFTER_MS` (5 min). Parameter ids must match the backend's `PARAMETER_BOUNDS`, and the safe/critical
+  ranges must match its `PARAMETER_THRESHOLDS` (which raise alerts); add a new parameter in both places.
+  Status is computed client-side: stale beats range checks.
 - `src/lib/pond-status.ts` — derives a pond's per-parameter readings and overall (worst) status from the
   `latest` map the API returns. `src/lib/status-styles.ts` — shared status colors/labels for tiles, cards, and
   `StatusBadge`.
+- **Notifications** are raised by the backend when readings go out of range (see `backend/CLAUDE.md`, "Alerts
+  and notifications") — the frontend never decides what's abnormal for them. `src/hooks/use-notifications.ts`
+  polls every 15 s: `useNotificationFeed` (newest 20 + `unreadCount`) is shared by `NotificationBell` and
+  `NotificationToaster` (in `AppShell`), which toasts only notifications that appear *after* the first load, so
+  sign-in shows backlog in the bell rather than a burst of toasts. `src/lib/notifications.ts` turns one into a
+  title/reading/status. Toasts use sonner (`src/components/ui/sonner.tsx`, adapted to read this app's
+  `ThemeProvider` instead of `next-themes`).
 - Admin-only UI is hidden when `profile.systemRole !== "ADMIN"`; the backend enforces it regardless.
 
 ### Conventions to follow when adding code

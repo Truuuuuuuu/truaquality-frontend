@@ -10,8 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { FloatingLabelInput } from "@/components/ui/floating-input"
 import { supabase } from "@/lib/supabase"
 
 type LinkState = "checking" | "valid" | "invalid"
@@ -130,28 +129,24 @@ function SetPasswordForm() {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="password">New password</Label>
-        <Input
-          id="password"
-          type="password"
-          autoComplete="new-password"
-          required
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-        />
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="confirm-password">Confirm password</Label>
-        <Input
-          id="confirm-password"
-          type="password"
-          autoComplete="new-password"
-          required
-          value={confirmPassword}
-          onChange={(event) => setConfirmPassword(event.target.value)}
-        />
-      </div>
+      <FloatingLabelInput
+        id="password"
+        label="New password"
+        type="password"
+        autoComplete="new-password"
+        required
+        value={password}
+        onChange={(event) => setPassword(event.target.value)}
+      />
+      <FloatingLabelInput
+        id="confirm-password"
+        label="Confirm password"
+        type="password"
+        autoComplete="new-password"
+        required
+        value={confirmPassword}
+        onChange={(event) => setConfirmPassword(event.target.value)}
+      />
       {error ? (
         <p role="alert" className="text-sm text-destructive">
           {error}

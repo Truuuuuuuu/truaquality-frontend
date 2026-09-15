@@ -8,8 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { FloatingLabelInput } from "@/components/ui/floating-input"
 import { useCreatePond, useUpdatePond } from "@/hooks/use-ponds"
 import { errorMessage, type Pond } from "@/lib/api"
 
@@ -83,25 +82,25 @@ function PondForm({ pond, onDone }: { pond: Pond | null; onDone: () => void }) {
         </DialogDescription>
       </DialogHeader>
 
+      <FloatingLabelInput
+        id="pond-name"
+        label="Name"
+        required
+        maxLength={80}
+        value={name}
+        onChange={(event) => setName(event.target.value)}
+      />
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="pond-name">Name</Label>
-        <Input
-          id="pond-name"
-          required
-          maxLength={80}
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-        />
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="pond-notes">Notes</Label>
-        <Input
+        <FloatingLabelInput
           id="pond-notes"
+          label="Notes"
           maxLength={500}
-          placeholder="Optional — location, species, size"
           value={notes}
           onChange={(event) => setNotes(event.target.value)}
         />
+        <p className="px-0.5 text-xs text-muted-foreground">
+          Optional — location, species, size
+        </p>
       </div>
 
       {error ? (

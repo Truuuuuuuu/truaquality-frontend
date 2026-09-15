@@ -2,6 +2,9 @@ import * as React from "react"
 import { Menu, X } from "lucide-react"
 import { Outlet } from "react-router"
 import { AppSidebar, SidebarContent } from "@/components/app-sidebar"
+import { NotificationBell } from "@/components/notifications/notification-bell"
+import { NotificationToaster } from "@/components/notifications/notification-toaster"
+import { Toaster } from "@/components/ui/sonner"
 
 export function AppShell() {
   const [isDrawerOpen, setIsDrawerOpen] = React.useState(false)
@@ -50,6 +53,8 @@ export function AppShell() {
   return (
     <div className="tq-board-scope flex min-h-svh bg-board-bg text-board-fg">
       <AppSidebar />
+      <NotificationToaster />
+      <Toaster position="top-right" />
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center gap-3 border-b border-board-border px-4 py-3 md:hidden">
@@ -63,7 +68,14 @@ export function AppShell() {
           >
             <Menu className="size-5" />
           </button>
-          <span className="font-sans text-sm font-semibold tracking-tight">TruAquality</span>
+          <span className="font-sans text-sm font-semibold tracking-tight">
+            TruAquality
+          </span>
+          <NotificationBell
+            className="-mr-1.5 ml-auto"
+            side="bottom"
+            align="end"
+          />
         </header>
 
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">

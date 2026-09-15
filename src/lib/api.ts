@@ -348,3 +348,63 @@ export function resendInvite(token: string, id: string) {
     token,
   })
 }
+
+export type AlertSeverity = "WARNING" | "CRITICAL"
+export type NotificationKind =
+  "ALERT_OPENED" | "ALERT_ESCALATED" | "ALERT_RESOLVED"
+
+// One event (opened / escalated / resolved) of an out-of-range episode for a pond's parameter. value and
+// recordedAt are the reading that caused this event; the alert itself may have moved on since.
+export type AppNotification = {
+  id: string
+  kind: NotificationKind
+  severity: AlertSeverity
+  value: number
+  recordedAt: string
+  readAt: string | null
+  createdAt: string
+  alert: {
+    id: string
+    parameter: string
+    resolvedAt: string | null
+    pond: { id: string; name: string }
+  }
+}
+
+export type NotificationsPage = {
+  notifications: AppNotification[]
+  // The caller's unread total across all notifications, not just this page.
+  unreadCount: number
+  nextCursor: string | null
+}
+
+// Newest-first page of the signed-in user's notifications. Pass a previous response's `nextCursor` as
+// `before` for the next page.
+export function listNotifications(
+  token: string,
+  params: { before?: string; limit?: number; unread?: boolean } = {}
+) {
+  const query = new URLSearchParams(
+    Object.entries(params)
+      .filter(
+        (entry): entry is [string, string | number | boolean] =>
+          entry[1] !== undefined
+      )
+      .map(([key, value]) => [key, String(value)])
+  )
+  return request<NotificationsPage>(`/notifications?${query}`, { token })
+}
+
+export function markNotificationRead(token: string, id: string) {
+  return request<{ ok: true }>(`/notifications/${id}/read`, {
+    method: "POST",
+    token,
+  })
+}
+
+export function markAllNotificationsRead(token: string) {
+  return request<{ updated: number }>("/notifications/read-all", {
+    method: "POST",
+    token,
+  })
+}

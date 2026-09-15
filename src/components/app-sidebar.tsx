@@ -1,6 +1,7 @@
 import { ChevronRight, Cpu, Gauge, Users, Waves } from "lucide-react"
 import { NavLink } from "react-router"
 import { cn } from "cn"
+import { NotificationBell } from "@/components/notifications/notification-bell"
 import { useAuth } from "@/context/auth-context"
 
 const NAV_ITEMS = [
@@ -14,7 +15,14 @@ const ADMIN_NAV_ITEMS = [
   { label: "Users", icon: Users, href: "/users" },
 ] as const
 
-export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+export function SidebarContent({
+  onNavigate,
+  showNotificationBell = false,
+}: {
+  onNavigate?: () => void
+  // The mobile drawer leaves it out: the mobile header already has a bell.
+  showNotificationBell?: boolean
+}) {
   const { profile } = useAuth()
   const navItems =
     profile?.systemRole === "ADMIN"
@@ -23,13 +31,22 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="board-groove flex flex-col gap-0.5 border-b border-board-border px-5 py-5">
-        <span className="font-sans text-sm font-semibold tracking-tight text-board-fg">
-          TruAquality
-        </span>
-        <span className="font-sans text-[0.7rem] font-medium tracking-[0.14em] text-board-muted uppercase">
-          Monitoring Station
-        </span>
+      <div className="board-groove flex items-start justify-between gap-2 border-b border-board-border px-5 py-5">
+        <div className="flex flex-col gap-0.5">
+          <span className="font-sans text-sm font-semibold tracking-tight text-board-fg">
+            TruAquality
+          </span>
+          <span className="font-sans text-[0.7rem] font-medium tracking-[0.14em] text-board-muted uppercase">
+            Monitoring Station
+          </span>
+        </div>
+        {showNotificationBell ? (
+          <NotificationBell
+            className="-mt-1 -mr-2"
+            side="right"
+            align="start"
+          />
+        ) : null}
       </div>
 
       <nav
@@ -89,7 +106,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 export function AppSidebar() {
   return (
     <aside className="hidden w-60 shrink-0 border-r border-board-border bg-board-rail md:block">
-      <SidebarContent />
+      <SidebarContent showNotificationBell />
     </aside>
   )
 }
