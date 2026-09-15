@@ -1,13 +1,21 @@
+import * as React from "react"
 import { AlertTriangle, Waves } from "lucide-react"
 import { Link } from "react-router"
 import { BoardEmptyState } from "@/components/board-empty-state"
-import { PondCard } from "@/components/ponds/pond-card"
+import { CombinedTrendChart } from "@/components/ponds/combined-trend-chart"
+import {
+  PondConnectionStatus,
+  PondDeviceIdentity,
+} from "@/components/ponds/pond-device-meta"
+import { ParameterSummary } from "@/components/ponds/parameter-summary"
+import { PondSwitcher } from "@/components/ponds/pond-switcher"
+import { StatusBadge } from "@/components/status-badge"
 import { Button } from "@/components/ui/button"
 import { usePonds } from "@/hooks/use-ponds"
 import { useNow } from "@/hooks/use-now"
 import { formatClock } from "@/lib/format-time"
 import { compareStatus, type ReadingStatus } from "@/lib/parameters"
-import { pondStatus } from "@/lib/pond-status"
+import { pondConnectionLabel, pondStatus } from "@/lib/pond-status"
 import { STATUS_LABELS } from "@/lib/status-styles"
 
 const SUMMARY_ORDER: ReadingStatus[] = ["critical", "warning", "stale"]
@@ -16,7 +24,8 @@ export function DashboardPage() {
   const { data: ponds, error, isRefetchError } = usePonds()
   const now = useNow()
 
-  // Worst condition first, so a pond that needs attention is never below the fold.
+  // Worst condition first: the default focus is whichever pond needs attention, not just the first
+  // one alphabetically.
   const board = (ponds ?? [])
     .filter((pond) => pond.status === "ACTIVE")
     .map((pond) => ({ pond, status: pondStatus(pond, now) }))
@@ -25,6 +34,12 @@ export function DashboardPage() {
         compareStatus(a.status, b.status) ||
         a.pond.name.localeCompare(b.pond.name)
     )
+
+  // Sticky once chosen: an operator who picks a healthy pond to check on shouldn't get yanked back
+  // to the worst one the next time a poll reshuffles `board`.
+  const [selectedId, setSelectedId] = React.useState<string | null>(null)
+  const selectedEntry =
+    board.find((entry) => entry.pond.id === selectedId) ?? board[0]
 
   const summary = [
     `${board.length} ${board.length === 1 ? "pond" : "ponds"}`,
@@ -77,13 +92,42 @@ export function DashboardPage() {
           No active ponds yet. Register a pond and assign a monitoring device to
           it to see its readings here.
         </BoardEmptyState>
-      ) : (
-        <div className="flex flex-col gap-4">
-          {board.map(({ pond }) => (
-            <PondCard key={pond.id} pond={pond} now={now} />
-          ))}
+      ) : selectedEntry ? (
+        <div className="flex flex-col gap-6">
+          <PondSwitcher
+            entries={board}
+            selectedId={selectedEntry.pond.id}
+            onSelect={setSelectedId}
+          />
+
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex min-w-0 flex-col gap-1">
+              <Link
+                to={`/ponds/${selectedEntry.pond.id}`}
+                className="truncate font-sans text-sm font-semibold text-board-fg underline-offset-4 hover:underline"
+              >
+                {selectedEntry.pond.name}
+              </Link>
+              <p className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 font-sans text-xs text-board-muted">
+                <PondDeviceIdentity pond={selectedEntry.pond} />
+              </p>
+            </div>
+            <div className="flex shrink-0 flex-col items-end gap-1">
+              <StatusBadge status={selectedEntry.status}>
+                {pondConnectionLabel(selectedEntry.pond, now)}
+              </StatusBadge>
+              {selectedEntry.pond.device ? (
+                <p className="font-sans text-xs text-board-muted">
+                  <PondConnectionStatus pond={selectedEntry.pond} now={now} />
+                </p>
+              ) : null}
+            </div>
+          </div>
+
+          <ParameterSummary pond={selectedEntry.pond} now={now} />
+          <CombinedTrendChart pond={selectedEntry.pond} now={now} />
         </div>
-      )}
+      ) : null}
     </div>
   )
 }

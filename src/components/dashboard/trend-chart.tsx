@@ -1,13 +1,7 @@
 import * as React from "react"
 import { cn } from "cn"
 import type { ReadingPoint, ReadingStatus } from "@/lib/parameters"
-
-const STATUS_COLOR: Record<ReadingStatus, string> = {
-  nominal: "var(--board-accent)",
-  warning: "var(--board-warn)",
-  critical: "var(--board-critical)",
-  stale: "var(--board-stale)",
-}
+import { STATUS_COLOR } from "@/lib/status-styles"
 
 type TrendChartProps = {
   points: ReadingPoint[]
@@ -57,7 +51,12 @@ export function TrendChart({
   const toX = (i: number) => (i / (points.length - 1)) * VIEW_WIDTH
   const toY = (v: number) => height - ((v - min) / span) * height
 
-  const linePath = points.map((p, i) => `${i === 0 ? "M" : "L"} ${toX(i).toFixed(1)} ${toY(p.v).toFixed(1)}`).join(" ")
+  const linePath = points
+    .map(
+      (p, i) =>
+        `${i === 0 ? "M" : "L"} ${toX(i).toFixed(1)} ${toY(p.v).toFixed(1)}`
+    )
+    .join(" ")
   const areaPath = `${linePath} L ${VIEW_WIDTH} ${height} L 0 ${height} Z`
 
   const safeTopY = toY(Math.min(safeMax, max))
@@ -122,7 +121,10 @@ export function TrendChart({
         ) : null}
         <span
           className="relative inline-flex size-2 rounded-full"
-          style={{ backgroundColor: color, opacity: status === "stale" ? 0.6 : 1 }}
+          style={{
+            backgroundColor: color,
+            opacity: status === "stale" ? 0.6 : 1,
+          }}
           aria-hidden="true"
         />
       </span>

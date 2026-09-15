@@ -1,3 +1,4 @@
+import * as React from "react"
 import {
   keepPreviousData,
   useMutation,
@@ -21,10 +22,11 @@ import {
   type UpdateDeviceInput,
   type UpdatePondInput,
 } from "@/lib/api"
+import type { ReadingPoint } from "@/lib/parameters"
 
 // Devices report about once a minute; polling a few times per report keeps tiles current without a push channel.
 const POLL_MS = 30_000
-const HISTORY_WINDOW_MS = 2 * 60 * 60 * 1000
+export const HISTORY_WINDOW_MS = 2 * 60 * 60 * 1000
 
 export function usePonds() {
   const { authorizedRequest } = useAuth()
@@ -60,6 +62,21 @@ export function usePondSeries(id: string) {
     },
     refetchInterval: POLL_MS,
   })
+}
+
+// A pond's 2 h history, keyed by parameter id — the shared shape both the per-parameter tile grid
+// and the dashboard's combined trend chart plot from, so the two never build it two different ways.
+export function usePondHistory(id: string) {
+  const { data: series } = usePondSeries(id)
+  return React.useMemo(() => {
+    const byParameter = new Map<string, ReadingPoint[]>()
+    for (const point of series?.points ?? []) {
+      const history = byParameter.get(point.parameter) ?? []
+      history.push({ t: Date.parse(point.t), v: point.avg })
+      byParameter.set(point.parameter, history)
+    }
+    return byParameter
+  }, [series])
 }
 
 export const READINGS_PAGE_SIZE = 20

@@ -16,22 +16,13 @@ import { Button } from "@/components/ui/button"
 import { useTheme } from "@/components/theme-provider"
 import { useAuth } from "@/context/auth-context"
 import { formatDate } from "@/lib/format-time"
+import { initialsFor } from "@/lib/utils"
 
 const THEME_OPTIONS = [
   { value: "light", label: "Light", icon: Sun },
   { value: "dark", label: "Dark", icon: Moon },
   { value: "system", label: "System", icon: Monitor },
 ] as const
-
-// First initial + last initial ("Juan Dela Cruz" -> "JD"); falls back to just the first initial for
-// a single-word name so this never renders an empty avatar.
-function initialsFor(fullName: string): string {
-  const parts = fullName.trim().split(/\s+/).filter(Boolean)
-  if (parts.length === 0) return "?"
-  const first = parts[0][0]
-  const last = parts.length > 1 ? parts[parts.length - 1][0] : ""
-  return (first + last).toUpperCase()
-}
 
 export function ProfilePage() {
   const { profile, logout } = useAuth()

@@ -1,8 +1,9 @@
-import { ChevronRight, Cpu, Gauge, Users, Waves } from "lucide-react"
+import { Cpu, Gauge, Users, Waves } from "lucide-react"
 import { NavLink } from "react-router"
 import { cn } from "cn"
 import { NotificationBell } from "@/components/notifications/notification-bell"
 import { useAuth } from "@/context/auth-context"
+import { initialsFor } from "@/lib/utils"
 
 const NAV_ITEMS = [
   { label: "Dashboard", icon: Gauge, href: "/" },
@@ -63,42 +64,46 @@ export function SidebarContent({
               onClick={onNavigate}
               className={({ isActive }) =>
                 cn(
-                  "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                  "flex items-center gap-2.5 rounded-lg px-3 py-2.5 font-sans text-xs font-medium tracking-[0.08em] uppercase transition-colors",
                   isActive
                     ? "bg-board-fg font-semibold text-board-bg"
                     : "text-board-muted hover:bg-board-panel-raised hover:text-board-fg"
                 )
               }
             >
-              <Icon className="size-4" />
+              <Icon className="size-4 shrink-0" />
               {item.label}
             </NavLink>
           )
         })}
       </nav>
 
-      <div className="board-groove border-t border-board-border px-5 py-4">
-        <NavLink
-          to="/profile"
-          onClick={onNavigate}
-          className={({ isActive }) =>
-            cn(
-              "-mx-2 flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 transition-colors",
-              isActive ? "bg-board-panel-raised" : "hover:bg-board-panel-raised"
-            )
-          }
+      <NavLink
+        to="/profile"
+        onClick={onNavigate}
+        className={({ isActive }) =>
+          cn(
+            "board-groove flex items-center gap-3 border-t border-board-border px-5 py-4 transition-colors",
+            isActive ? "bg-board-panel-raised" : "hover:bg-board-panel-raised"
+          )
+        }
+      >
+        <span
+          className="flex size-9 shrink-0 items-center justify-center rounded-full bg-board-fg font-heading text-xs font-medium text-board-bg"
+          aria-hidden="true"
         >
-          <span className="flex min-w-0 flex-col gap-0.5">
-            <span className="truncate text-sm font-medium text-board-fg">
-              {profile?.fullName ?? profile?.email}
-            </span>
-            <span className="truncate text-xs text-board-muted">
-              BFAR Sorsogon
-            </span>
+          {profile ? initialsFor(profile.fullName) : "?"}
+        </span>
+        <span className="flex min-w-0 flex-col gap-0.5">
+          <span className="truncate font-sans text-sm font-medium text-board-fg">
+            {profile?.fullName ?? profile?.email}
           </span>
-          <ChevronRight className="size-3.5 shrink-0 text-board-muted" />
-        </NavLink>
-      </div>
+          <span className="truncate font-heading text-[0.65rem] tracking-[0.02em] text-board-muted">
+            {profile?.systemRole === "ADMIN" ? "Admin" : "Staff"} · BFAR
+            Sorsogon
+          </span>
+        </span>
+      </NavLink>
     </div>
   )
 }

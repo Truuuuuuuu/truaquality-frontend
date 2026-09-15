@@ -3,7 +3,10 @@ import {
   PARAMETERS,
   STALE_AFTER_MS,
   statusFor,
+  toReadingState,
   worstStatus,
+  type ReadingPoint,
+  type ReadingState,
   type ReadingStatus,
 } from "@/lib/parameters"
 
@@ -29,6 +32,26 @@ export function pondStatus(pond: Pond, now: number): ReadingStatus {
   )
   // A pond that has never reported can't be vouched for, so it reads as stale rather than normal.
   return statuses.length === 0 ? "stale" : worstStatus(statuses)
+}
+
+// One entry per monitored parameter (same order as PARAMETERS), built from a pond's fetched 2 h
+// history — the shared basis for both the per-parameter tile grid and the dashboard's combined
+// trend chart. A device silent for longer than the history window still has a last known value;
+// that's shown (it reads as stale) rather than claiming the pond has no data at all. `reading` is
+// null only when the parameter has no reading ever (not even the pond's own `latest`).
+export function pondReadingStates(
+  pond: Pond,
+  now: number,
+  historyByParameter: Map<string, ReadingPoint[]>
+): { parameter: (typeof PARAMETERS)[number]; reading: ReadingState | null }[] {
+  return PARAMETERS.map((parameter) => {
+    let history = historyByParameter.get(parameter.id) ?? []
+    const latest = pond.latest[parameter.id]
+    if (history.length === 0 && latest) {
+      history = [{ t: Date.parse(latest.recordedAt), v: latest.value }]
+    }
+    return { parameter, reading: toReadingState(parameter, history, now) }
+  })
 }
 
 export function lastReadingAt(pond: Pond): number | null {

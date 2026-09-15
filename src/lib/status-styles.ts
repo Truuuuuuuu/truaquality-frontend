@@ -37,3 +37,12 @@ export const STATUS_LABELS: Record<ReadingStatus, string> = {
   critical: "Critical",
   stale: "No recent data",
 }
+
+// The raw color behind a status, for contexts that need it outside a Tailwind class — an inline SVG
+// stroke/fill, for instance, where `STATUS_STYLES[status].led`'s `bg-*` class doesn't apply.
+export const STATUS_COLOR: Record<ReadingStatus, string> = {
+  nominal: "var(--board-accent)",
+  warning: "var(--board-warn)",
+  critical: "var(--board-critical)",
+  stale: "var(--board-stale)",
+}
