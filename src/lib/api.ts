@@ -60,6 +60,7 @@ export type Profile = {
   fullName: string
   systemRole: "ADMIN" | "USER"
   status: "INVITED" | "ACTIVE" | "DISABLED"
+  createdAt: string
 }
 
 type LoginResponse = {
@@ -309,4 +310,41 @@ export function rotateDeviceSecret(token: string, id: string) {
       token,
     }
   )
+}
+
+export function listUsers(token: string) {
+  return request<{ profiles: Profile[] }>("/admin/users", { token })
+}
+
+export type InviteUserInput = {
+  email: string
+  fullName: string
+  systemRole?: "ADMIN" | "USER"
+}
+
+export function inviteUser(token: string, body: InviteUserInput) {
+  return request<{ profile: Profile }>("/admin/users", {
+    method: "POST",
+    body,
+    token,
+  })
+}
+
+export function updateUserStatus(
+  token: string,
+  id: string,
+  status: "ACTIVE" | "DISABLED"
+) {
+  return request<{ profile: Profile }>(`/admin/users/${id}/status`, {
+    method: "PATCH",
+    body: { status },
+    token,
+  })
+}
+
+export function resendInvite(token: string, id: string) {
+  return request<{ ok: true }>(`/admin/users/${id}/resend-invite`, {
+    method: "POST",
+    token,
+  })
 }

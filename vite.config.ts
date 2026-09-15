@@ -11,4 +11,11 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  server: {
+    // Fixed, not just Vite's default: backend/.env's INVITE_REDIRECT_URL and Supabase's allowed
+    // redirect URLs both hardcode this port, so a dev server that drifts to another port silently
+    // breaks the accept-invite email link.
+    port: 5174,
+    strictPort: true,
+  },
 })

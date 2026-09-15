@@ -1,4 +1,4 @@
-import { Cpu, Gauge, LogOut, Waves } from "lucide-react"
+import { Cpu, Gauge, LogOut, Users, Waves } from "lucide-react"
 import { NavLink } from "react-router"
 import { cn } from "cn"
 import { Button } from "@/components/ui/button"
@@ -11,8 +11,17 @@ const NAV_ITEMS = [
   { label: "Devices", icon: Cpu, href: "/devices" },
 ] as const
 
+// PII-bearing, so unlike the items above it's hidden from non-admins rather than shown read-only.
+const ADMIN_NAV_ITEMS = [
+  { label: "Users", icon: Users, href: "/users" },
+] as const
+
 export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const { profile, logout } = useAuth()
+  const navItems =
+    profile?.systemRole === "ADMIN"
+      ? [...NAV_ITEMS, ...ADMIN_NAV_ITEMS]
+      : NAV_ITEMS
 
   return (
     <div className="flex h-full flex-col">
@@ -29,7 +38,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         className="flex flex-1 flex-col gap-1 px-3 py-4"
         aria-label="Primary"
       >
-        {NAV_ITEMS.map((item) => {
+        {navItems.map((item) => {
           const Icon = item.icon
           return (
             <NavLink
