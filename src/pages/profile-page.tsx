@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   Sun,
   Trash2,
+  TriangleAlert,
 } from "lucide-react"
 import { cn } from "cn"
 import { ChangePasswordDialog } from "@/components/profile/change-password-dialog"
@@ -95,56 +96,6 @@ export function ProfilePage() {
           </div>
         </section>
 
-        {/* Security */}
-        <section className="flex flex-col gap-4 py-7">
-          <SectionHeader icon={ShieldCheck} label="Security" />
-          <div className="flex flex-col divide-y divide-board-border">
-            <SecurityRow
-              label="Password"
-              description="Change the password you use to sign in to TruAquality."
-            >
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setChangePasswordOpen(true)}
-              >
-                Change password
-              </Button>
-            </SecurityRow>
-            <SecurityRow
-              label="This device"
-              description="Sign out of TruAquality in this browser."
-            >
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={logout}
-              >
-                <LogOut />
-                Sign out
-              </Button>
-            </SecurityRow>
-            {canDeleteAccount ? (
-              <SecurityRow
-                label="Delete account"
-                description="Permanently remove your sign-in and personal details from TruAquality."
-              >
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => setDeleteAccountOpen(true)}
-                >
-                  <Trash2 />
-                  Delete account…
-                </Button>
-              </SecurityRow>
-            ) : null}
-          </div>
-        </section>
-
         {/* Appearance */}
         <section className="flex flex-col gap-4 py-7">
           <SectionHeader icon={Palette} label="Appearance" />
@@ -187,6 +138,74 @@ export function ProfilePage() {
             </div>
           </div>
         </section>
+
+        {/* Security — the reversible account controls. Destructive action lives below, on its own. */}
+        <section className="flex flex-col gap-4 py-7">
+          <SectionHeader icon={ShieldCheck} label="Security" />
+          <div className="flex flex-col divide-y divide-board-border">
+            <SecurityRow
+              label="Password"
+              description="Change the password you use to sign in to TruAquality."
+            >
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setChangePasswordOpen(true)}
+              >
+                Change password
+              </Button>
+            </SecurityRow>
+            <SecurityRow
+              label="This device"
+              description="Sign out of TruAquality in this browser."
+            >
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={logout}
+              >
+                <LogOut />
+                Sign out
+              </Button>
+            </SecurityRow>
+          </div>
+        </section>
+
+        {/* Danger zone. Sign out and delete both "end your session" at a glance, so the irreversible one
+            is pulled out of Security entirely: its own section, a critical-toned header that breaks the
+            page's uniform muted-header rhythm, and a flooded plate — the board's own critical vocabulary
+            rather than a generic bordered card. */}
+        {canDeleteAccount ? (
+          <section className="flex flex-col gap-4 py-7">
+            <SectionHeader
+              icon={TriangleAlert}
+              label="Danger zone"
+              tone="critical"
+            />
+            <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-board-critical/25 bg-board-critical/5 px-4 py-3.5">
+              <div className="flex flex-col gap-0.5">
+                <span className="font-sans text-sm font-medium text-board-fg">
+                  Delete account
+                </span>
+                <span className="font-sans text-xs text-board-muted">
+                  Permanently removes your sign-in and personal details. This
+                  can't be undone.
+                </span>
+              </div>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={() => setDeleteAccountOpen(true)}
+              >
+                <Trash2 />
+                Delete account
+              </Button>
+            </div>
+          </section>
+        ) : null}
       </div>
 
       <ChangePasswordDialog
@@ -207,16 +226,25 @@ function SectionHeader({
   icon: Icon,
   label,
   aside,
+  tone = "muted",
 }: {
   icon: React.ComponentType<{ className?: string }>
   label: string
   aside?: string
+  tone?: "muted" | "critical"
 }) {
+  const toneClass =
+    tone === "critical" ? "text-board-critical" : "text-board-muted"
   return (
     <div className="flex flex-wrap items-center justify-between gap-2">
       <div className="flex items-center gap-2">
-        <Icon className="size-3.5 text-board-muted" />
-        <h2 className="font-sans text-xs font-medium tracking-[0.08em] text-board-muted uppercase">
+        <Icon className={cn("size-3.5", toneClass)} />
+        <h2
+          className={cn(
+            "font-sans text-xs font-medium tracking-[0.08em] uppercase",
+            toneClass
+          )}
+        >
           {label}
         </h2>
       </div>

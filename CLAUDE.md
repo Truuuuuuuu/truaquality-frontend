@@ -23,9 +23,17 @@ pages `/login`, `/accept-invite`, and `/reset-password`, which share `AuthShell`
   reflash). Units publish over MQTT to the broker, never to this app or its API.
 - `/notifications` — the signed-in user's alert notifications (all / unread, "load more"). The same feed also
   drives the bell (sidebar header on desktop, top bar on mobile) and toasts.
-- `/profile` — the signed-in user's details, theme, change password, and **delete account**
-  (`DeleteAccountDialog`): staff re-enter their password, the backend verifies it and anonymizes the account
-  (`DELETE /me`), then the app signs out. Admin accounts can't be deleted, so admins see a lock note instead.
+- `/profile` — the signed-in user's details, theme, **change password**, and **delete account**. Both
+  dialogs are reauthentication-gated: the user re-enters their current password before anything happens.
+  - `ChangePasswordDialog` verifies by calling `signInWithPassword` on a throwaway Supabase client
+    (`createAuthActionClient`) and then runs `updateUser` with the fresh session that returns, so the update
+    never rides the app's own long-lived token. Because that strands anyone who has forgotten their current
+    password, the dialog also offers "Forgot your current password?", which sends the same reset email the
+    sign-in page does. Note the gate is client-side; enable Supabase's "Secure password change" setting to
+    have the server enforce it too.
+  - `DeleteAccountDialog` posts the password to the backend, which verifies it and anonymizes the account
+    (`DELETE /me`), then the app signs out. Admin accounts can't be deleted — the backend answers 403 — so
+    the row is not rendered for them at all.
 
 **Scope: BFAR Sorsogon only.** The app serves a single organization, so there's no office/region picker or
 per-office labeling — the org name is shown as the fixed text "BFAR Sorsogon".
