@@ -1,7 +1,6 @@
 import * as React from "react"
 import {
   IdCard,
-  Lock,
   LogOut,
   Mail,
   Monitor,
@@ -38,6 +37,10 @@ export function ProfilePage() {
       <p className="font-sans text-sm text-board-muted">Loading profile…</p>
     )
   }
+
+  // Admin accounts can't be deleted (the backend answers DELETE /me with a 403), so the row is left out
+  // of their page entirely rather than shown as a disabled affordance they can never use.
+  const canDeleteAccount = profile.systemRole !== "ADMIN"
 
   return (
     <div className="flex flex-col gap-6">
@@ -123,16 +126,11 @@ export function ProfilePage() {
                 Sign out
               </Button>
             </SecurityRow>
-            <SecurityRow
-              label="Delete account"
-              description="Permanently remove your sign-in and personal details from TruAquality."
-            >
-              {profile.systemRole === "ADMIN" ? (
-                <span className="flex items-center gap-1.5 font-sans text-xs text-board-muted">
-                  <Lock className="size-3.5 shrink-0" />
-                  Admin accounts can't be deleted
-                </span>
-              ) : (
+            {canDeleteAccount ? (
+              <SecurityRow
+                label="Delete account"
+                description="Permanently remove your sign-in and personal details from TruAquality."
+              >
                 <Button
                   type="button"
                   variant="destructive"
@@ -142,8 +140,8 @@ export function ProfilePage() {
                   <Trash2 />
                   Delete account…
                 </Button>
-              )}
-            </SecurityRow>
+              </SecurityRow>
+            ) : null}
           </div>
         </section>
 
@@ -195,10 +193,12 @@ export function ProfilePage() {
         open={changePasswordOpen}
         onOpenChange={setChangePasswordOpen}
       />
-      <DeleteAccountDialog
-        open={deleteAccountOpen}
-        onOpenChange={setDeleteAccountOpen}
-      />
+      {canDeleteAccount ? (
+        <DeleteAccountDialog
+          open={deleteAccountOpen}
+          onOpenChange={setDeleteAccountOpen}
+        />
+      ) : null}
     </div>
   )
 }

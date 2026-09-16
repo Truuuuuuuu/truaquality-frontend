@@ -20,7 +20,8 @@ type AuthState = {
   session: Session | null
   profile: Profile | null
   isLoading: boolean
-  login: (email: string, password: string) => Promise<void>
+  // `remember` keeps the session across browser restarts; otherwise it ends with the tab.
+  login: (email: string, password: string, remember: boolean) => Promise<void>
   logout: () => void
   // Runs an authenticated call with the current access token, transparently refreshing and
   // retrying it once if the token has already expired server-side.
@@ -132,8 +133,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     function handleStorageChange(event: StorageEvent) {
       if (event.key !== SESSION_STORAGE_KEY) return
 
-      const stored = loadSession()
+      // A removal means another tab signed out, and the backend revokes every session on logout, so
+      // this tab follows even when it holds its own tab-only copy in sessionStorage.
+      const stored = event.newValue === null ? null : loadSession()
       if (!stored) {
+        clearSession()
         clearRefreshTimer()
         setSession(null)
         setProfile(null)
@@ -201,7 +205,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const login = React.useCallback(
-    async (email: string, password: string) => {
+    async (email: string, password: string, remember: boolean) => {
       const { session: apiSession } = await apiLogin(email, password)
       const nextSession: Session = {
         accessToken: apiSession.access_token,
@@ -210,7 +214,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       const { profile: nextProfile } = await getMe(nextSession.accessToken)
 
-      saveSession(nextSession)
+      saveSession(nextSession, { remember })
       setSession(nextSession)
       setProfile(nextProfile)
       scheduleRefresh(nextSession)

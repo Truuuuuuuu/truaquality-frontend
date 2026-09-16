@@ -8,7 +8,11 @@ React 19 + TypeScript SPA built with Vite, Tailwind CSS v4, and shadcn/ui (Base 
 Radix). It talks to `../backend` (a separate Express/Prisma/Supabase project — see its own `CLAUDE.md`).
 
 The system monitors **multiple fishponds**. Each pond has at most one ESP32 sensor device, and each device
-reports its own readings. Routes (`src/App.tsx`, all behind `ProtectedRoute` → `AppShell` except `/login`):
+reports its own readings. Routes (`src/App.tsx`, all behind `ProtectedRoute` → `AppShell` except the signed-out
+pages `/login`, `/accept-invite`, and `/reset-password`, which share `AuthShell` in `src/components/auth-shell.tsx`):
+- `/login` — sign in, plus an in-place "Forgot password?" view that calls `supabase.auth.resetPasswordForEmail`
+  with `redirectTo: <origin>/reset-password`. "Keep me signed in" stores the session in localStorage;
+  unchecked, it lives in the tab's sessionStorage (`src/lib/session.ts`).
 - `/` — operations board: one `PondCard` per active pond, worst condition first.
 - `/ponds` — pond registry table; admins add, rename, and archive ponds.
 - `/ponds/:pondId` — one pond's device info, a `ParameterTile` (value + 2 h trend) per parameter, and a
@@ -31,7 +35,8 @@ admin through the backend's `/admin/*` routes. The page this frontend does need 
 **accept-invite / set-password** page: the user clicks the link Supabase emails them, lands here, and calls
 `supabase.auth.updateUser({ password })` to set their password (their session comes from the invite link
 itself). Its route must match `INVITE_REDIRECT_URL` in `backend/.env` and be in Supabase's allowed redirect
-URLs.
+URLs. The same page, mounted at `/reset-password` with `mode="recovery"`, handles password-reset links, so
+`<origin>/reset-password` must be an allowed redirect URL too.
 
 ## Commands
 
