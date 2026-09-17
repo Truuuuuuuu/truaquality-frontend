@@ -2,7 +2,7 @@ import { Link } from "react-router"
 import { cn } from "cn"
 import type { AppNotification } from "@/lib/api"
 import { formatRelative } from "@/lib/format-time"
-import { describeNotification } from "@/lib/notifications"
+import { describeNotification, notificationPond } from "@/lib/notifications"
 import { STATUS_STYLES } from "@/lib/status-styles"
 
 type NotificationListItemProps = {
@@ -22,11 +22,15 @@ export function NotificationListItem({
   const { title, reading, status } = describeNotification(notification)
   const styles = STATUS_STYLES[status]
   const isUnread = notification.readAt === null
-  const recordedAt = Date.parse(notification.recordedAt)
+  const pond = notificationPond(notification)
+  // DEVICE_* notifications have no reading, so there's no recordedAt to show — the time we noticed is the
+  // next best thing.
+  const timestamp = notification.recordedAt ?? notification.createdAt
+  const recordedAt = Date.parse(timestamp)
 
   return (
     <Link
-      to={`/ponds/${notification.alert.pond.id}`}
+      to={`/ponds/${pond.id}`}
       onClick={() => onSelect?.(notification)}
       className={cn(
         "flex items-start gap-3 rounded-lg px-3 py-2.5 transition-colors outline-none hover:bg-board-panel-raised focus-visible:ring-3 focus-visible:ring-ring/50",
@@ -55,7 +59,7 @@ export function NotificationListItem({
             {title}
           </span>
           <time
-            dateTime={notification.recordedAt}
+            dateTime={timestamp}
             title={new Date(recordedAt).toLocaleString()}
             className="shrink-0 font-heading text-[0.65rem] text-board-muted"
           >
@@ -63,7 +67,7 @@ export function NotificationListItem({
           </time>
         </span>
         <span className="flex min-w-0 items-baseline gap-1.5 font-sans text-xs text-board-muted">
-          <span className="truncate">{notification.alert.pond.name}</span>
+          <span className="truncate">{pond.name}</span>
           <span aria-hidden="true">·</span>
           <span
             className={cn(

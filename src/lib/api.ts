@@ -424,27 +424,39 @@ export function listAuditLog(
 
 export type AlertSeverity = "WARNING" | "CRITICAL"
 export type NotificationKind =
-  "ALERT_OPENED" | "ALERT_ESCALATED" | "ALERT_RESOLVED"
+  | "ALERT_OPENED"
+  | "ALERT_ESCALATED"
+  | "ALERT_RESOLVED"
+  | "DEVICE_OFFLINE"
+  | "DEVICE_ONLINE"
 
-// One event (opened / escalated / resolved) of an out-of-range episode for a pond's parameter. value and
-// recordedAt are the reading that caused this event; the alert itself may have moved on since.
+// One event for either an out-of-range episode for a pond's parameter (ALERT_*) or a device that went
+// offline/came back (DEVICE_*). Exactly one of `alert`/`device` is set, matching which kind this is; value
+// and recordedAt are the reading that caused an ALERT_* event and are null for a DEVICE_* one, which has no
+// reading to attach.
 export type AppNotification = {
   id: string
   kind: NotificationKind
   severity: AlertSeverity
-  value: number
-  recordedAt: string
+  value: number | null
+  recordedAt: string | null
   readAt: string | null
   createdAt: string
   // Whether the reading sat below or above its safe range. Decided by the server, which is the only
-  // side that knows the pond's thresholds.
-  direction: "low" | "high"
+  // side that knows the pond's thresholds. Null for a DEVICE_* event.
+  direction: "low" | "high" | null
   alert: {
     id: string
     parameter: string
     resolvedAt: string | null
     pond: { id: string; name: string; pondType: PondType | null }
-  }
+  } | null
+  device: {
+    id: string
+    label: string | null
+    serial: string
+    pond: { id: string; name: string }
+  } | null
 }
 
 export type NotificationsPage = {

@@ -119,7 +119,7 @@ export function NotificationBell({
           ) : notifications.length === 0 ? (
             <p className="px-3 py-8 text-center font-sans text-xs text-board-muted">
               No notifications yet. You'll be alerted here when a pond reading
-              leaves its safe range.
+              leaves its safe range, or a device goes offline.
             </p>
           ) : (
             notifications.map((notification) => (

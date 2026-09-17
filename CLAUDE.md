@@ -109,13 +109,16 @@ URLs. The same page, mounted at `/reset-password` with `mode="recovery"`, handle
 - `src/lib/pond-status.ts` — derives a pond's per-parameter readings and overall (worst) status from the
   `latest` map the API returns. `src/lib/status-styles.ts` — shared status colors/labels for tiles, cards, and
   `StatusBadge`.
-- **Notifications** are raised by the backend when readings go out of range (see `backend/CLAUDE.md`, "Alerts
-  and notifications") — the frontend never decides what's abnormal for them. `src/hooks/use-notifications.ts`
-  polls every 15 s: `useNotificationFeed` (newest 20 + `unreadCount`) is shared by `NotificationBell` and
+- **Notifications** are raised by the backend when a reading goes out of range (see `backend/CLAUDE.md`,
+  "Alerts and notifications") or a device goes offline/recovers (`backend/CLAUDE.md`, "Device-offline
+  watchdog") — the frontend never decides what's abnormal for them, it just renders what the server sends.
+  `AppNotification` (`src/lib/api.ts`) carries exactly one of `alert`/`device`, matching which kind it is;
+  `src/lib/notifications.ts`'s `notificationPond()` reads the right one's pond, and `describeNotification()`
+  branches on `kind` to build a title/reading/status either way. `src/hooks/use-notifications.ts` polls
+  every 15 s: `useNotificationFeed` (newest 20 + `unreadCount`) is shared by `NotificationBell` and
   `NotificationToaster` (in `AppShell`), which toasts only notifications that appear *after* the first load, so
-  sign-in shows backlog in the bell rather than a burst of toasts. `src/lib/notifications.ts` turns one into a
-  title/reading/status. Toasts use sonner (`src/components/ui/sonner.tsx`, adapted to read this app's
-  `ThemeProvider` instead of `next-themes`).
+  sign-in shows backlog in the bell rather than a burst of toasts. Toasts use sonner
+  (`src/components/ui/sonner.tsx`, adapted to read this app's `ThemeProvider` instead of `next-themes`).
 - Admin-only UI is hidden when `profile.systemRole !== "ADMIN"`; the backend enforces it regardless.
 
 ### Conventions to follow when adding code

@@ -6,7 +6,7 @@ import {
   useNotificationFeed,
 } from "@/hooks/use-notifications"
 import { formatClock } from "@/lib/format-time"
-import { describeNotification } from "@/lib/notifications"
+import { describeNotification, notificationPond } from "@/lib/notifications"
 import { STATUS_STYLES } from "@/lib/status-styles"
 
 // Beyond this many new notifications in one poll, the rest collapse into a single "N more" toast.
@@ -43,9 +43,17 @@ export function NotificationToaster() {
     // The feed is newest-first; toast oldest-first so the newest ends up on top of the stack.
     for (const notification of unread.slice(0, MAX_TOASTS_PER_POLL).reverse()) {
       const { title, reading, status } = describeNotification(notification)
-      SHOW_TOAST[status](`${notification.alert.pond.name}: ${title}`, {
+      const pond = notificationPond(notification)
+      // DEVICE_* notifications have no recordedAt (no reading caused them) — the time we noticed stands in.
+      const when = formatClock(
+        Date.parse(notification.recordedAt ?? notification.createdAt)
+      )
+      const description = notification.recordedAt
+        ? `${reading} · recorded ${when}`
+        : `${reading} · ${when}`
+      SHOW_TOAST[status](`${pond.name}: ${title}`, {
         id: notification.id,
-        description: `${reading} · recorded ${formatClock(Date.parse(notification.recordedAt))}`,
+        description,
         // A critical alert stays up long enough to be noticed by someone glancing back at the screen.
         duration: status === "critical" ? 20_000 : 8_000,
         classNames: { icon: STATUS_STYLES[status].value },
@@ -53,7 +61,7 @@ export function NotificationToaster() {
           label: "View",
           onClick: () => {
             markRead(notification.id)
-            navigate(`/ponds/${notification.alert.pond.id}`)
+            navigate(`/ponds/${pond.id}`)
           },
         },
       })

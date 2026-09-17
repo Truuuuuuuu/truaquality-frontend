@@ -42,8 +42,8 @@ export function NotificationsPage() {
             Notifications
           </h1>
           <p className="font-sans text-xs text-board-muted">
-            Raised when a pond reading leaves its safe range, and again when it
-            recovers
+            Raised when a pond reading leaves its safe range or a device goes
+            offline, and again when it recovers
             {data ? ` · ${unreadCount} unread` : null}
           </p>
         </div>
@@ -94,7 +94,7 @@ export function NotificationsPage() {
         <BoardEmptyState icon={BellOff}>
           {filter === "unread"
             ? "You're all caught up — no unread notifications."
-            : "No notifications yet. You'll be alerted here when a pond reading leaves its safe range."}
+            : "No notifications yet. You'll be alerted here when a pond reading leaves its safe range, or a device goes offline."}
         </BoardEmptyState>
       ) : (
         <div className="flex flex-col gap-4">
