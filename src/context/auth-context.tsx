@@ -51,6 +51,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const performRefreshRef = React.useRef<
     ((refreshToken: string) => Promise<void>) | undefined
   >(undefined)
+  // Several queries can all get a 401 around the same moment (the access token just expired), and
+  // each would otherwise call refreshAndGetToken with the same refresh token. Supabase rotates the
+  // refresh token on every use, so only the first of those calls succeeds — every other concurrent
+  // caller's token is already stale, fails, and signs the user out even though the first refresh
+  // worked fine. Tracking the in-flight attempt here lets every concurrent caller await the same
+  // promise instead of racing separate refreshes.
+  const inFlightRefreshRef = React.useRef<Promise<string> | null>(null)
 
   const clearRefreshTimer = React.useCallback(() => {
     if (refreshTimerRef.current !== undefined) {
@@ -86,27 +93,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Shared by the proactive refresh timer and authorizedRequest's reactive retry, so both paths
   // apply the same new session/profile and only ever have one refresh in flight conceptually.
+  // Deduped via inFlightRefreshRef: if a refresh is already running, every other caller awaits
+  // that same promise instead of starting its own with an already-rotated (and now stale) token.
   const refreshAndGetToken = React.useCallback(
-    async (refreshToken: string): Promise<string> => {
-      try {
-        const { session: apiSession } = await apiRefreshSession(refreshToken)
-        const nextSession: Session = {
-          accessToken: apiSession.access_token,
-          refreshToken: apiSession.refresh_token,
-          expiresAt: apiSession.expires_at,
-        }
-        const { profile: nextProfile } = await getMe(nextSession.accessToken)
+    (refreshToken: string): Promise<string> => {
+      if (inFlightRefreshRef.current) return inFlightRefreshRef.current
 
-        saveSession(nextSession)
-        setSession(nextSession)
-        setProfile(nextProfile)
-        scheduleRefresh(nextSession)
-        return nextSession.accessToken
-      } catch (err) {
-        // The refresh token is invalid or expired; there's no way back in without a fresh login.
-        logout()
-        throw err
-      }
+      const attempt = (async () => {
+        try {
+          const { session: apiSession } = await apiRefreshSession(refreshToken)
+          const nextSession: Session = {
+            accessToken: apiSession.access_token,
+            refreshToken: apiSession.refresh_token,
+            expiresAt: apiSession.expires_at,
+          }
+          const { profile: nextProfile } = await getMe(nextSession.accessToken)
+
+          saveSession(nextSession)
+          setSession(nextSession)
+          setProfile(nextProfile)
+          scheduleRefresh(nextSession)
+          return nextSession.accessToken
+        } catch (err) {
+          // The refresh token is invalid or expired; there's no way back in without a fresh login.
+          logout()
+          throw err
+        } finally {
+          inFlightRefreshRef.current = null
+        }
+      })()
+
+      inFlightRefreshRef.current = attempt
+      return attempt
     },
     [logout, scheduleRefresh]
   )
