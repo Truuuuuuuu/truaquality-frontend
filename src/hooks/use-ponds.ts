@@ -22,11 +22,18 @@ import {
   type UpdateDeviceInput,
   type UpdatePondInput,
 } from "@/lib/api"
+import {
+  DEFAULT_HISTORY_RANGE,
+  HISTORY_RANGE_PRESETS,
+  historyRangeKey,
+  resolveHistoryRange,
+  type HistoryRangeValue,
+} from "@/lib/history-range"
 import type { ReadingPoint } from "@/lib/parameters"
 
 // Devices report about once a minute; polling a few times per report keeps tiles current without a push channel.
 const POLL_MS = 30_000
-export const HISTORY_WINDOW_MS = 2 * 60 * 60 * 1000
+export const HISTORY_WINDOW_MS = HISTORY_RANGE_PRESETS[0].windowMs
 
 export function usePonds() {
   const { authorizedRequest } = useAuth()
@@ -49,50 +56,74 @@ export function usePond(id: string) {
   })
 }
 
-// Tiles' 2 h trend. Goes through /series (not /readings) so it keeps working once raw rows for that window
-// have aged past retention — the server falls back to hourly points itself; a 2 h window never actually
-// needs to, but this is the same call a future "24 h" / "7 d" trend picker would make with a wider range.
-export function usePondSeries(id: string) {
+// A chart-ready series over a history range. `from`/`to` are resolved off `Date.now()` inside `queryFn`
+// rather than passed in already-resolved, so a rolling range's query key stays stable across polls instead
+// of changing (and refetching) on every tick.
+export function usePondSeriesRange(id: string, range: HistoryRangeValue) {
   const { authorizedRequest } = useAuth()
   return useQuery({
-    queryKey: ["ponds", id, "series", HISTORY_WINDOW_MS],
+    queryKey: ["ponds", id, "series", historyRangeKey(range)],
     queryFn: () => {
-      const from = new Date(Date.now() - HISTORY_WINDOW_MS).toISOString()
-      return authorizedRequest((token) => getPondSeries(token, id, { from }))
+      const { from, to } = resolveHistoryRange(range, Date.now())
+      return authorizedRequest((token) =>
+        getPondSeries(token, id, { from, to })
+      )
     },
-    refetchInterval: POLL_MS,
+    refetchInterval: range.kind === "rolling" ? POLL_MS : false,
   })
 }
 
-// A pond's 2 h history, keyed by parameter id — the shared shape both the per-parameter tile grid
-// and the dashboard's combined trend chart plot from, so the two never build it two different ways.
+// Tiles' 2 h trend, and the default for the pond detail page's history range picker. Goes through /series
+// (not /readings) so it keeps working once raw rows for that window have aged past retention — the server
+// falls back to hourly points itself.
+export function usePondSeries(id: string) {
+  return usePondSeriesRange(id, DEFAULT_HISTORY_RANGE)
+}
+
+function seriesPointsToHistoryMap(
+  points: { parameter: string; t: string; avg: number }[]
+): Map<string, ReadingPoint[]> {
+  const byParameter = new Map<string, ReadingPoint[]>()
+  for (const point of points) {
+    const history = byParameter.get(point.parameter) ?? []
+    history.push({ t: Date.parse(point.t), v: point.avg })
+    byParameter.set(point.parameter, history)
+  }
+  return byParameter
+}
+
+// A pond's history, keyed by parameter id — the shared shape both the per-parameter tile grid and any
+// combined trend chart plot from, so callers never build it two different ways.
+export function usePondHistoryRange(id: string, range: HistoryRangeValue) {
+  const { data: series } = usePondSeriesRange(id, range)
+  return React.useMemo(
+    () => seriesPointsToHistoryMap(series?.points ?? []),
+    [series]
+  )
+}
+
 export function usePondHistory(id: string) {
-  const { data: series } = usePondSeries(id)
-  return React.useMemo(() => {
-    const byParameter = new Map<string, ReadingPoint[]>()
-    for (const point of series?.points ?? []) {
-      const history = byParameter.get(point.parameter) ?? []
-      history.push({ t: Date.parse(point.t), v: point.avg })
-      byParameter.set(point.parameter, history)
-    }
-    return byParameter
-  }, [series])
+  return usePondHistoryRange(id, DEFAULT_HISTORY_RANGE)
 }
 
 export const READINGS_PAGE_SIZE = 20
 
-// One page of the reading-history table, newest-first, optionally narrowed to one parameter and/or a
-// date/time range. Pass the `nextCursor` from the current page as `before` to view the next-older page;
-// omit it to view the newest page. Only the newest, unfiltered-by-range page polls — a page a user paged
-// back to, or a fixed `to` in the past, is a snapshot that shouldn't shift under them.
+// One page of the reading-history table, newest-first, optionally narrowed to one parameter and always
+// scoped to a history range. Pass the `nextCursor` from the current page as `before` to view the next-older
+// page; omit it to view the newest page. Only the newest page of a rolling range polls — a page a user paged
+// back to, or a fixed range in the past, is a snapshot that shouldn't shift under them. `from`/`to` are
+// resolved off `Date.now()` inside `queryFn` for the same reason as `usePondSeriesRange`.
 export function usePondReadingsPage(
   id: string,
   {
     before,
     parameter,
-    from,
-    to,
-  }: { before?: string; parameter?: string; from?: string; to?: string } = {}
+    range,
+  }: {
+    before?: string
+    parameter?: string
+    range: HistoryRangeValue
+  }
 ) {
   const { authorizedRequest } = useAuth()
   return useQuery({
@@ -101,12 +132,12 @@ export function usePondReadingsPage(
       id,
       "readings",
       parameter ?? "all",
-      from ?? "-",
-      to ?? "-",
+      historyRangeKey(range),
       before ?? "latest",
     ],
-    queryFn: () =>
-      authorizedRequest((token) =>
+    queryFn: () => {
+      const { from, to } = resolveHistoryRange(range, Date.now())
+      return authorizedRequest((token) =>
         getPondReadingsPage(token, id, {
           parameter,
           before,
@@ -114,8 +145,9 @@ export function usePondReadingsPage(
           to,
           limit: READINGS_PAGE_SIZE,
         })
-      ),
-    refetchInterval: before || to ? false : POLL_MS,
+      )
+    },
+    refetchInterval: before || range.kind === "fixed" ? false : POLL_MS,
     placeholderData: keepPreviousData,
   })
 }

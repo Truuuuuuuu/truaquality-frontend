@@ -1,6 +1,12 @@
 import { cn } from "cn"
-import { HISTORY_WINDOW_MS, usePondHistory } from "@/hooks/use-ponds"
+import { usePondHistoryRange } from "@/hooks/use-ponds"
 import type { Pond } from "@/lib/api"
+import { formatDateTimeShort } from "@/lib/format-time"
+import {
+  DEFAULT_HISTORY_RANGE,
+  resolveHistoryRange,
+  type HistoryRangeValue,
+} from "@/lib/history-range"
 import { PARAMETER_ICONS } from "@/lib/parameters"
 import { pondReadingStates } from "@/lib/pond-status"
 import { STATUS_COLOR, STATUS_STYLES } from "@/lib/status-styles"
@@ -8,6 +14,9 @@ import { STATUS_COLOR, STATUS_STYLES } from "@/lib/status-styles"
 type CombinedTrendChartProps = {
   pond: Pond
   now: number
+  // Omit for the dashboard's fixed "live" 2 h view; pass the pond detail page's selected history range to
+  // chart an arbitrary window instead.
+  range?: HistoryRangeValue
 }
 
 const VIEW_WIDTH = 960
@@ -25,15 +34,20 @@ function toPercent(safeMin: number, safeMax: number, value: number): number {
 // units (°C, mg/L, ppt) share one axis. Each line's color is that parameter's current status
 // (the same whole-tile-flood vocabulary as the parameter tiles above it), so a line reading red is
 // unmistakable even at a glance across the whole chart.
-export function CombinedTrendChart({ pond, now }: CombinedTrendChartProps) {
-  const historyByParameter = usePondHistory(pond.id)
+export function CombinedTrendChart({
+  pond,
+  now,
+  range = DEFAULT_HISTORY_RANGE,
+}: CombinedTrendChartProps) {
+  const historyByParameter = usePondHistoryRange(pond.id, range)
   const readings = pondReadingStates(pond, now, historyByParameter)
   const plottable = readings.filter(
     (entry) => entry.reading && entry.reading.history.length >= 2
   )
 
-  const domainStart = now - HISTORY_WINDOW_MS
-  const domainEnd = now
+  const resolved = resolveHistoryRange(range, now)
+  const domainStart = Date.parse(resolved.from)
+  const domainEnd = resolved.to ? Date.parse(resolved.to) : now
   const toX = (t: number) => {
     const x = ((t - domainStart) / (domainEnd - domainStart)) * VIEW_WIDTH
     return Math.min(VIEW_WIDTH, Math.max(0, x))
@@ -59,7 +73,7 @@ export function CombinedTrendChart({ pond, now }: CombinedTrendChartProps) {
     <div className="flex flex-col gap-4 border-t border-board-border pt-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-sans text-xs font-medium tracking-[0.08em] text-board-muted uppercase">
-          Combined trend · 2h
+          Combined trend · {range.label}
         </h2>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
           {readings.map(({ parameter, reading }) => {
@@ -203,8 +217,8 @@ export function CombinedTrendChart({ pond, now }: CombinedTrendChartProps) {
       )}
 
       <div className="flex items-center justify-between font-heading text-[0.65rem] text-board-muted">
-        <span>2h ago</span>
-        <span>Now</span>
+        <span>{formatDateTimeShort(domainStart)}</span>
+        <span>{resolved.to ? formatDateTimeShort(domainEnd) : "Now"}</span>
       </div>
     </div>
   )

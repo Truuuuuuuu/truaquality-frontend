@@ -13,7 +13,9 @@ import { Link, useParams } from "react-router"
 import { cn } from "cn"
 import { Badge } from "@/components/ui/badge"
 import { BoardEmptyState } from "@/components/board-empty-state"
+import { CombinedTrendChart } from "@/components/ponds/combined-trend-chart"
 import { ExportReadingsDialog } from "@/components/ponds/export-readings-dialog"
+import { HistoryRangePicker } from "@/components/ponds/history-range-picker"
 import { PondDeviceMeta } from "@/components/ponds/pond-device-meta"
 import { PondLiveReadings } from "@/components/ponds/pond-live-readings"
 import { ReadingsFilterDialog } from "@/components/ponds/readings-filter-dialog"
@@ -34,11 +36,12 @@ import {
 } from "@/hooks/use-ponds"
 import { useNow } from "@/hooks/use-now"
 import { ApiError } from "@/lib/api"
+import { formatClock, formatRelative } from "@/lib/format-time"
 import {
-  formatClock,
-  formatDateTimeShort,
-  formatRelative,
-} from "@/lib/format-time"
+  DEFAULT_HISTORY_RANGE,
+  historyRangeKey,
+  type HistoryRangeValue,
+} from "@/lib/history-range"
 import {
   PARAMETER_FILTER_ITEMS,
   PARAMETER_ICONS,
@@ -65,14 +68,14 @@ export function PondDetailPage() {
   >([undefined])
   const [pageIndex, setPageIndex] = React.useState(0)
   const [parameterFilter, setParameterFilter] = React.useState("all")
-  // datetime-local values ("" when unset), in the browser's own timezone — converted to UTC ISO only when
-  // actually sent to the API (see fromIso/toIso below).
-  const [fromFilter, setFromFilter] = React.useState("")
-  const [toFilter, setToFilter] = React.useState("")
+  const [historyRange, setHistoryRange] = React.useState<HistoryRangeValue>(
+    DEFAULT_HISTORY_RANGE
+  )
   const [filterDialogOpen, setFilterDialogOpen] = React.useState(false)
 
-  // One entry per active filter *group* (parameter, date range) — drives both the "Filter • N" count on the
-  // trigger button and the removable badge row, so the two never drift out of sync with each other.
+  // One entry per active filter — drives both the "Filter • N" count on the trigger button and the
+  // removable badge row. The history range has its own dedicated picker/trigger, so it isn't duplicated
+  // here as a badge.
   const activeFilters: { key: string; label: string; onRemove: () => void }[] =
     []
   if (parameterFilter !== "all") {
@@ -85,38 +88,12 @@ export function PondDetailPage() {
       onRemove: () => setParameterFilter("all"),
     })
   }
-  if (fromFilter && toFilter) {
-    activeFilters.push({
-      key: "date",
-      label: `Date: ${formatDateTimeShort(Date.parse(fromFilter))} – ${formatDateTimeShort(Date.parse(toFilter))}`,
-      onRemove: () => {
-        setFromFilter("")
-        setToFilter("")
-      },
-    })
-  } else if (fromFilter) {
-    activeFilters.push({
-      key: "from",
-      label: `From: ${formatDateTimeShort(Date.parse(fromFilter))}`,
-      onRemove: () => setFromFilter(""),
-    })
-  } else if (toFilter) {
-    activeFilters.push({
-      key: "to",
-      label: `To: ${formatDateTimeShort(Date.parse(toFilter))}`,
-      onRemove: () => setToFilter(""),
-    })
-  }
   const hasActiveFilter = activeFilters.length > 0
-  const clearAllFilters = () => {
-    setParameterFilter("all")
-    setFromFilter("")
-    setToFilter("")
-  }
 
-  // A fresh pond, or a changed filter, invalidates whatever page/cursor was scrolled to — a cursor encodes a
-  // position within one (pond, parameter, range) scan and can't carry over to another.
-  const pageResetKey = `${pondId}:${parameterFilter}:${fromFilter}:${toFilter}`
+  // A fresh pond, a changed parameter filter, or a changed range invalidates whatever page/cursor was
+  // scrolled to — a cursor encodes a position within one (pond, parameter, range) scan and can't carry over
+  // to another.
+  const pageResetKey = `${pondId}:${parameterFilter}:${historyRangeKey(historyRange)}`
   const [pageResetFor, setPageResetFor] = React.useState(pageResetKey)
   if (pageResetKey !== pageResetFor) {
     setPageResetFor(pageResetKey)
@@ -124,17 +101,12 @@ export function PondDetailPage() {
     setPageIndex(0)
   }
 
-  const fromIso = fromFilter ? new Date(fromFilter).toISOString() : undefined
-  const toIso = toFilter ? new Date(toFilter).toISOString() : undefined
-  const invalidRange = Boolean(fromFilter && toFilter && fromFilter > toFilter)
-
   const { data: readingsPage, error: readingsError } = usePondReadingsPage(
     pondId,
     {
       before: cursorHistory[pageIndex],
       parameter: parameterFilter === "all" ? undefined : parameterFilter,
-      from: invalidRange ? undefined : fromIso,
-      to: invalidRange ? undefined : toIso,
+      range: historyRange,
     }
   )
   const pageReadings = React.useMemo(
@@ -233,12 +205,18 @@ export function PondDetailPage() {
 
       <PondLiveReadings pond={pond} now={now} />
 
+      <CombinedTrendChart pond={pond} now={now} range={historyRange} />
+
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-sans text-xs font-medium tracking-[0.08em] text-board-muted uppercase">
             Reading history
           </h2>
           <div className="flex items-center gap-2">
+            <HistoryRangePicker
+              value={historyRange}
+              onChange={setHistoryRange}
+            />
             <Button
               variant={hasActiveFilter ? "secondary" : "outline"}
               size="sm"
@@ -281,19 +259,10 @@ export function PondDetailPage() {
                 </button>
               </Badge>
             ))}
-            {activeFilters.length > 1 ? (
-              <Button variant="ghost" size="xs" onClick={clearAllFilters}>
-                Clear all
-              </Button>
-            ) : null}
           </div>
         ) : null}
 
-        {invalidRange ? (
-          <p role="alert" className="font-sans text-xs text-destructive">
-            The "from" date must be before the "to" date.
-          </p>
-        ) : readingsError ? (
+        {readingsError ? (
           <BoardEmptyState icon={AlertTriangle} tone="error">
             {`Couldn't load readings: ${readingsError.message}`}
           </BoardEmptyState>
@@ -376,16 +345,8 @@ export function PondDetailPage() {
       <ReadingsFilterDialog
         open={filterDialogOpen}
         onOpenChange={setFilterDialogOpen}
-        filters={{
-          parameter: parameterFilter,
-          from: fromFilter,
-          to: toFilter,
-        }}
-        onApply={(next) => {
-          setParameterFilter(next.parameter)
-          setFromFilter(next.from)
-          setToFilter(next.to)
-        }}
+        filters={{ parameter: parameterFilter }}
+        onApply={(next) => setParameterFilter(next.parameter)}
       />
     </div>
   )

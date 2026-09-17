@@ -7,7 +7,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
   Select,
@@ -21,11 +20,9 @@ import { PARAMETER_FILTER_ITEMS } from "@/lib/parameters"
 
 export type ReadingsFilters = {
   parameter: string
-  from: string
-  to: string
 }
 
-const EMPTY_FILTERS: ReadingsFilters = { parameter: "all", from: "", to: "" }
+const EMPTY_FILTERS: ReadingsFilters = { parameter: "all" }
 
 type ReadingsFilterDialogProps = {
   open: boolean
@@ -71,16 +68,14 @@ function ReadingsFilterForm({
   onCancel: () => void
 }) {
   const [draft, setDraft] = React.useState(filters)
-  const invalidRange = Boolean(draft.from && draft.to && draft.from > draft.to)
-  const isDirty =
-    draft.parameter !== "all" || draft.from !== "" || draft.to !== ""
+  const isDirty = draft.parameter !== "all"
 
   return (
     <div className="flex flex-col gap-4">
       <DialogHeader>
         <DialogTitle>Filter readings</DialogTitle>
         <DialogDescription>
-          Narrow the reading history table by parameter or date range.
+          Narrow the reading history table by parameter.
         </DialogDescription>
       </DialogHeader>
 
@@ -106,39 +101,6 @@ function ReadingsFilterForm({
         </Select>
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="filter-from">Date range</Label>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <Input
-            id="filter-from"
-            type="datetime-local"
-            aria-label="From date and time"
-            className="sm:w-[172px]"
-            value={draft.from}
-            max={draft.to || undefined}
-            onChange={(event) =>
-              setDraft((current) => ({ ...current, from: event.target.value }))
-            }
-          />
-          <span className="font-sans text-xs text-muted-foreground">to</span>
-          <Input
-            type="datetime-local"
-            aria-label="To date and time"
-            className="sm:w-[172px]"
-            value={draft.to}
-            min={draft.from || undefined}
-            onChange={(event) =>
-              setDraft((current) => ({ ...current, to: event.target.value }))
-            }
-          />
-        </div>
-        {invalidRange ? (
-          <p role="alert" className="text-xs text-destructive">
-            The &quot;from&quot; date must be before the &quot;to&quot; date.
-          </p>
-        ) : null}
-      </div>
-
       <DialogFooter className="sm:justify-between">
         <Button
           type="button"
@@ -153,11 +115,7 @@ function ReadingsFilterForm({
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
           </Button>
-          <Button
-            type="button"
-            disabled={invalidRange}
-            onClick={() => onApply(draft)}
-          >
+          <Button type="button" onClick={() => onApply(draft)}>
             Apply filters
           </Button>
         </div>
