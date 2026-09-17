@@ -40,8 +40,8 @@ const LIFECYCLE_OPTIONS = [
 ] as const satisfies readonly { value: LifecycleFilter; label: string }[]
 
 function matchesSearch(pond: Pond, query: string) {
-  return [pond.name, pond.notes, pond.device?.serial].some((field) =>
-    field?.toLowerCase().includes(query)
+  return [pond.name, pond.notes, pond.fishSpecies, pond.device?.serial].some(
+    (field) => field?.toLowerCase().includes(query)
   )
 }
 

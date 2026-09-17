@@ -16,6 +16,7 @@ import { useNow } from "@/hooks/use-now"
 import { formatClock } from "@/lib/format-time"
 import { compareStatus, type ReadingStatus } from "@/lib/parameters"
 import { pondConnectionLabel, pondStatus } from "@/lib/pond-status"
+import { pondTypeLabel } from "@/lib/pond-types"
 import { STATUS_LABELS } from "@/lib/status-styles"
 
 const SUMMARY_ORDER: ReadingStatus[] = ["critical", "warning", "stale"]
@@ -108,6 +109,20 @@ export function DashboardPage() {
               >
                 {selectedEntry.pond.name}
               </Link>
+              {selectedEntry.pond.fishSpecies || selectedEntry.pond.pondType ? (
+                <p className="flex flex-wrap items-center gap-1.5">
+                  {selectedEntry.pond.fishSpecies ? (
+                    <span className="truncate font-sans text-sm font-bold text-board-fg">
+                      {selectedEntry.pond.fishSpecies}
+                    </span>
+                  ) : null}
+                  {selectedEntry.pond.pondType ? (
+                    <span className="inline-flex shrink-0 items-center rounded-md border border-board-border-strong px-1.5 py-0.5 font-sans text-[0.65rem] font-medium tracking-[0.08em] text-board-muted uppercase">
+                      {pondTypeLabel(selectedEntry.pond.pondType)}
+                    </span>
+                  ) : null}
+                </p>
+              ) : null}
               <p className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 font-sans text-xs text-board-muted">
                 <PondDeviceIdentity pond={selectedEntry.pond} />
               </p>

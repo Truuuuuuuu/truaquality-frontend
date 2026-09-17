@@ -46,6 +46,7 @@ import {
   severityFor,
   type ParameterConfig,
 } from "@/lib/parameters"
+import { pondTypeLabel } from "@/lib/pond-types"
 import { STATUS_LABELS, STATUS_STYLES } from "@/lib/status-styles"
 
 type PivotRow = { recordedAt: string; values: Partial<Record<string, number>> }
@@ -217,6 +218,13 @@ export function PondDetailPage() {
           ) : null}
         </div>
         <PondDeviceMeta pond={pond} now={now} />
+        {pond.fishSpecies || pond.pondType ? (
+          <p className="font-sans text-xs text-board-muted">
+            {[pond.fishSpecies, pondTypeLabel(pond.pondType)]
+              .filter(Boolean)
+              .join(" · ")}
+          </p>
+        ) : null}
         {pond.notes ? (
           <p className="font-sans text-xs text-board-muted">{pond.notes}</p>
         ) : null}

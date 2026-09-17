@@ -9,8 +9,19 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { FloatingLabelInput } from "@/components/ui/floating-input"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { useCreatePond, useUpdatePond } from "@/hooks/use-ponds"
-import { errorMessage, type Pond } from "@/lib/api"
+import { errorMessage, type Pond, type PondType } from "@/lib/api"
+import { POND_TYPES } from "@/lib/pond-types"
+
+const UNSET_POND_TYPE = "unset"
 
 type PondFormDialogProps = {
   open: boolean
@@ -40,6 +51,10 @@ export function PondFormDialog({
 function PondForm({ pond, onDone }: { pond: Pond | null; onDone: () => void }) {
   const [name, setName] = React.useState(pond?.name ?? "")
   const [notes, setNotes] = React.useState(pond?.notes ?? "")
+  const [fishSpecies, setFishSpecies] = React.useState(pond?.fishSpecies ?? "")
+  const [pondType, setPondType] = React.useState<
+    PondType | typeof UNSET_POND_TYPE
+  >(pond?.pondType ?? UNSET_POND_TYPE)
   const [error, setError] = React.useState<string | null>(null)
   const createPond = useCreatePond()
   const updatePond = useUpdatePond()
@@ -57,16 +72,21 @@ function PondForm({ pond, onDone }: { pond: Pond | null; onDone: () => void }) {
 
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
+    const resolvedPondType = pondType === UNSET_POND_TYPE ? null : pondType
     void run(() =>
       pond
         ? updatePond.mutateAsync({
             id: pond.id,
             name: name.trim(),
             notes: notes.trim() || null,
+            fishSpecies: fishSpecies.trim() || null,
+            pondType: resolvedPondType,
           })
         : createPond.mutateAsync({
             name: name.trim(),
             notes: notes.trim() || undefined,
+            fishSpecies: fishSpecies.trim() || undefined,
+            pondType: resolvedPondType ?? undefined,
           })
     )
   }
@@ -78,7 +98,7 @@ function PondForm({ pond, onDone }: { pond: Pond | null; onDone: () => void }) {
         <DialogDescription>
           {pond
             ? "Rename the pond, update its notes, or archive it."
-            : "Register a pond so a monitoring device can be assigned to it."}
+            : "Register a pond so a monitoring device can be assigned to it. Fish species and pond type can be added now or later."}
         </DialogDescription>
       </DialogHeader>
 
@@ -99,8 +119,41 @@ function PondForm({ pond, onDone }: { pond: Pond | null; onDone: () => void }) {
           onChange={(event) => setNotes(event.target.value)}
         />
         <p className="px-0.5 text-xs text-muted-foreground">
-          Optional — location, species, size
+          Optional — location, size
         </p>
+      </div>
+
+      <FloatingLabelInput
+        id="pond-fish-species"
+        label="Fish species"
+        maxLength={120}
+        value={fishSpecies}
+        onChange={(event) => setFishSpecies(event.target.value)}
+      />
+
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="pond-type">Pond type</Label>
+        <Select
+          items={[{ value: UNSET_POND_TYPE, label: "Not set" }, ...POND_TYPES]}
+          value={pondType}
+          onValueChange={(next) =>
+            setPondType(
+              (next as PondType | typeof UNSET_POND_TYPE) ?? UNSET_POND_TYPE
+            )
+          }
+        >
+          <SelectTrigger id="pond-type" className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={UNSET_POND_TYPE}>Not set</SelectItem>
+            {POND_TYPES.map((item) => (
+              <SelectItem key={item.value} value={item.value}>
+                {item.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {error ? (

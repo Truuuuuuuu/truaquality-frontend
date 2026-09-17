@@ -103,6 +103,7 @@ export function deleteAccount(token: string, password: string) {
 }
 
 export type PondStatus = "ACTIVE" | "ARCHIVED"
+export type PondType = "FRESHWATER" | "BRACKISH" | "SALTWATER"
 export type DeviceStatus = "ACTIVE" | "DISABLED"
 
 export type LatestReading = { value: number; recordedAt: string }
@@ -131,6 +132,9 @@ export type Pond = {
   id: string
   name: string
   notes: string | null
+  // Both optional: a pond can be registered before its stocking is decided, and filled in later.
+  fishSpecies: string | null
+  pondType: PondType | null
   status: PondStatus
   createdAt: string
   updatedAt: string
@@ -248,10 +252,17 @@ export function listDevices(token: string) {
   return request<{ devices: Device[] }>("/devices", { token })
 }
 
-export type CreatePondInput = { name: string; notes?: string }
+export type CreatePondInput = {
+  name: string
+  notes?: string
+  fishSpecies?: string
+  pondType?: PondType
+}
 export type UpdatePondInput = {
   name?: string
   notes?: string | null
+  fishSpecies?: string | null
+  pondType?: PondType | null
   status?: PondStatus
 }
 
