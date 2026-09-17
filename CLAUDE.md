@@ -23,6 +23,9 @@ pages `/login`, `/accept-invite`, and `/reset-password`, which share `AuthShell`
   reflash). Units publish over MQTT to the broker, never to this app or its API.
 - `/notifications` — the signed-in user's alert notifications (all / unread, "load more"). The same feed also
   drives the bell (sidebar header on desktop, top bar on mobile) and toasts.
+- `/audit` — admin-only (same in-page `<Navigate>` guard as `/users`): the `AuditLog` trail of every admin
+  change, cursor-paginated with "Load older activity" and filterable by area and action. Server-side
+  filtering, and no polling — it's an append-only history someone reads deliberately.
 - `/profile` — the signed-in user's details, theme, **change password**, and **delete account**. Both
   dialogs are reauthentication-gated: the user re-enters their current password before anything happens.
   - `ChangePasswordDialog` verifies by calling `signInWithPassword` on a throwaway Supabase client
@@ -50,7 +53,10 @@ URLs. The same page, mounted at `/reset-password` with `mode="recovery"`, handle
 
 - Dev server: `npm run dev`
 - Build: `npm run build` (`tsc -b && vite build`)
-- Typecheck only: `npm run typecheck`
+- Typecheck only: `npm run typecheck` (`tsc -b` — it must stay in build mode. Plain `tsc --noEmit` runs
+  against the root `tsconfig.json`, which has `"files": []` and only project references, so it checks
+  **zero** files and always exits 0. That false green is how three React 19 `useRef` type errors sat in
+  `auth-context.tsx` long enough to break `npm run build`.)
 - Lint: `npm run lint`
 - Format: `npm run format` (Prettier, with `prettier-plugin-tailwindcss` for class sorting)
 - Preview a production build: `npm run preview`
@@ -92,10 +98,14 @@ URLs. The same page, mounted at `/reset-password` with `mode="recovery"`, handle
   invalidate both `["ponds"]` and `["devices"]` because each list embeds the other. The cache is cleared on
   sign-out (`ClearQueryCacheOnSignOut` in `App.tsx`). `src/hooks/use-notifications.ts` polls faster, every
   15 s, since that's how a new alert reaches someone (see "Notifications" below).
-- `src/lib/parameters.ts` — `PARAMETERS` (display labels, units, safe/critical ranges), `statusFor`, and
-  `STALE_AFTER_MS` (5 min). Parameter ids must match the backend's `PARAMETER_BOUNDS`, and the safe/critical
-  ranges must match its `PARAMETER_THRESHOLDS` (which raise alerts); add a new parameter in both places.
-  Status is computed client-side: stale beats range checks.
+- `src/lib/parameters.ts` — `PARAMETERS` (**display metadata only**: label, unit, precision), `statusFor`,
+  and `STALE_AFTER_MS` (5 min). Parameter ids must match the backend's `PARAMETER_BOUNDS`. Status is computed
+  here — stale beats range checks — but the *ranges* are not: they depend on a pond's `pondType`, so the
+  server resolves them and sends `pond.thresholds` alongside `pond.latest`. Pass that band into
+  `statusFor`/`severityFor`; never hardcode one.
+  - `SIGNED_OUT_THRESHOLDS` is the single exception: illustrative bands for the range key on the signed-out
+    auth pages, which have no pond to ask and no token to ask with. Nothing that judges a real reading may
+    use it.
 - `src/lib/pond-status.ts` — derives a pond's per-parameter readings and overall (worst) status from the
   `latest` map the API returns. `src/lib/status-styles.ts` — shared status colors/labels for tiles, cards, and
   `StatusBadge`.
@@ -119,6 +129,12 @@ URLs. The same page, mounted at `/reset-password` with `mode="recovery"`, handle
 
 ## Known follow-ups (not yet built)
 
-- No history range picker on the pond detail page (fixed 2 h window).
-- No accept-invite / set-password page (see "Project state" above) and no admin UI for inviting and
-  enabling/disabling users.
+- No history range picker on the pond detail page (fixed 2 h window). The backend's `/ponds/:id/series`
+  already takes an arbitrary range and picks its own resolution, so this is a UI-only gap.
+- **`authorizedRequest` doesn't de-duplicate refreshes.** Six polling queries can 401 in the same tick and
+  each fire `POST /auth/refresh` with the same token; Supabase rotates refresh tokens on use, so the losers
+  of that race get a 400 and sign the user out. Sharing one in-flight promise would fix it.
+- **A disabled user is never signed out.** `requireAuth` answers **403** for `DISABLED`/`DELETED`, but
+  `authorizedRequest` only reacts to 401, so they sit on an error panel still apparently signed in.
+- No React error boundary (a render-time throw blanks the app), no catch-all 404 route, no `.env.example`.
+- No tests anywhere in this project.

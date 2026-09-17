@@ -13,14 +13,15 @@ import {
 export function latestPondReadings(pond: Pond, now: number) {
   return PARAMETERS.map((parameter) => {
     const latest = pond.latest[parameter.id]
-    if (!latest) return { parameter, reading: null }
+    const threshold = pond.thresholds[parameter.id]
+    if (!latest || !threshold) return { parameter, reading: null }
     const updatedAt = Date.parse(latest.recordedAt)
     return {
       parameter,
       reading: {
         value: latest.value,
         updatedAt,
-        status: statusFor(parameter, latest.value, updatedAt, now),
+        status: statusFor(threshold, latest.value, updatedAt, now),
       },
     }
   })
@@ -47,10 +48,17 @@ export function pondReadingStates(
   return PARAMETERS.map((parameter) => {
     let history = historyByParameter.get(parameter.id) ?? []
     const latest = pond.latest[parameter.id]
+    const threshold = pond.thresholds[parameter.id]
     if (history.length === 0 && latest) {
       history = [{ t: Date.parse(latest.recordedAt), v: latest.value }]
     }
-    return { parameter, reading: toReadingState(parameter, history, now) }
+    // No threshold means the server doesn't know this parameter, so there's nothing to judge it by.
+    return {
+      parameter,
+      reading: threshold
+        ? toReadingState(parameter, threshold, history, now)
+        : null,
+    }
   })
 }
 

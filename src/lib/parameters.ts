@@ -3,6 +3,9 @@ import { Droplets, Thermometer, Waves } from "lucide-react"
 
 export type ReadingStatus = "nominal" | "warning" | "critical" | "stale"
 
+// Display metadata only. The safe/critical numbers used to live here too, duplicated from the
+// backend and kept in step by hand; they now depend on a pond's type (fresh water is nominal near
+// 0 ppt, brackish is not), so the server resolves them per pond and sends them as `pond.thresholds`.
 export type ParameterConfig = {
   id: string
   label: string
@@ -10,6 +13,10 @@ export type ParameterConfig = {
   shortLabel: string
   unit: string
   precision: number
+}
+
+// One parameter's safe/critical band for a particular pond, as `Pond.thresholds` carries it.
+export type Threshold = {
   safeMin: number
   safeMax: number
   criticalMin: number
@@ -20,14 +27,14 @@ export type ReadingPoint = { t: number; v: number }
 
 export type ReadingState = {
   parameter: ParameterConfig
+  threshold: Threshold
   current: number
   history: ReadingPoint[]
   updatedAt: number
   status: ReadingStatus
 }
 
-// Representative aquaculture pond targets, not a specific site's calibrated thresholds. Ids match the
-// parameter ids the backend accepts from devices.
+// Ids match the parameter ids the backend accepts from devices.
 export const PARAMETERS: ParameterConfig[] = [
   {
     id: "temperature",
@@ -35,10 +42,6 @@ export const PARAMETERS: ParameterConfig[] = [
     shortLabel: "Temp",
     unit: "°C",
     precision: 1,
-    safeMin: 26,
-    safeMax: 31,
-    criticalMin: 24,
-    criticalMax: 33,
   },
   {
     id: "dissolvedOxygen",
@@ -46,10 +49,6 @@ export const PARAMETERS: ParameterConfig[] = [
     shortLabel: "DO",
     unit: "mg/L",
     precision: 2,
-    safeMin: 5,
-    safeMax: 9,
-    criticalMin: 3,
-    criticalMax: 11,
   },
   {
     id: "salinity",
@@ -57,12 +56,19 @@ export const PARAMETERS: ParameterConfig[] = [
     shortLabel: "Salinity",
     unit: "ppt",
     precision: 1,
-    safeMin: 10,
-    safeMax: 25,
-    criticalMin: 5,
-    criticalMax: 32,
   },
 ]
+
+// Illustrative bands for the signed-out range key on the auth pages (components/auth-shell.tsx).
+// Those pages have no pond in context and no token to fetch one with, so they can't use the real
+// per-pond thresholds. These mirror the backend's UNSET profile — what it applies to a pond nobody
+// has classified yet — which is the honest reading for "some pond, type unknown". Nothing that
+// judges an actual reading may use these; live surfaces read `pond.thresholds`.
+export const SIGNED_OUT_THRESHOLDS: Record<string, Threshold> = {
+  temperature: { safeMin: 26, safeMax: 31, criticalMin: 24, criticalMax: 33 },
+  dissolvedOxygen: { safeMin: 5, safeMax: 9, criticalMin: 3, criticalMax: 11 },
+  salinity: { safeMin: 0, safeMax: 35, criticalMin: 0, criticalMax: 38 },
+}
 
 export const PARAMETER_ICONS: Record<
   string,
@@ -98,24 +104,26 @@ const STATUS_SEVERITY: Record<ReadingStatus, number> = {
 
 // The in-range/warning/critical read on a value alone, with no notion of staleness — useful for a
 // historical row (e.g. a table of past readings) where "now - updatedAt" doesn't mean anything.
+// Mirrors the backend's severityFor, but reads the band it was given rather than looking one up —
+// the pond it belongs to is what decides the numbers.
 export function severityFor(
-  parameter: ParameterConfig,
+  threshold: Threshold,
   value: number
 ): Exclude<ReadingStatus, "stale"> {
-  if (value < parameter.criticalMin || value > parameter.criticalMax)
+  if (value < threshold.criticalMin || value > threshold.criticalMax)
     return "critical"
-  if (value < parameter.safeMin || value > parameter.safeMax) return "warning"
+  if (value < threshold.safeMin || value > threshold.safeMax) return "warning"
   return "nominal"
 }
 
 export function statusFor(
-  parameter: ParameterConfig,
+  threshold: Threshold,
   value: number,
   updatedAt: number,
   now: number
 ): ReadingStatus {
   if (now - updatedAt > STALE_AFTER_MS) return "stale"
-  return severityFor(parameter, value)
+  return severityFor(threshold, value)
 }
 
 export function worstStatus(statuses: ReadingStatus[]): ReadingStatus {
@@ -131,8 +139,11 @@ export function compareStatus(a: ReadingStatus, b: ReadingStatus) {
 }
 
 // Builds a tile's state from a parameter's history (oldest first). Returns null when there is nothing to show.
+// `threshold` travels with the state so every consumer draws its safe band from the same numbers that
+// decided the status.
 export function toReadingState(
   parameter: ParameterConfig,
+  threshold: Threshold,
   history: ReadingPoint[],
   now: number
 ): ReadingState | null {
@@ -140,9 +151,10 @@ export function toReadingState(
   if (!last) return null
   return {
     parameter,
+    threshold,
     current: last.v,
     history,
     updatedAt: last.t,
-    status: statusFor(parameter, last.v, last.t, now),
+    status: statusFor(threshold, last.v, last.t, now),
   }
 }

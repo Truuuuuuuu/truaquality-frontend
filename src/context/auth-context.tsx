@@ -43,11 +43,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = React.useState<Profile | null>(null)
   const [isLoading, setIsLoading] = React.useState(() => loadSession() !== null)
 
-  const refreshTimerRef = React.useRef<number>()
+  // React 19's types dropped the zero-argument useRef overload, so the initial value is explicit
+  // and `undefined` is part of the type rather than implied by the missing argument.
+  const refreshTimerRef = React.useRef<number | undefined>(undefined)
   // scheduleRefresh and performRefresh call each other; a ref breaks the cycle so neither
   // useCallback needs the other in its dependency array.
-  const performRefreshRef =
-    React.useRef<(refreshToken: string) => Promise<void>>()
+  const performRefreshRef = React.useRef<
+    ((refreshToken: string) => Promise<void>) | undefined
+  >(undefined)
 
   const clearRefreshTimer = React.useCallback(() => {
     if (refreshTimerRef.current !== undefined) {

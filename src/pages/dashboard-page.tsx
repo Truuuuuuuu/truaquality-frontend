@@ -13,7 +13,6 @@ import { StatusBadge } from "@/components/status-badge"
 import { Button } from "@/components/ui/button"
 import { usePonds } from "@/hooks/use-ponds"
 import { useNow } from "@/hooks/use-now"
-import { formatClock } from "@/lib/format-time"
 import { compareStatus, type ReadingStatus } from "@/lib/parameters"
 import { pondConnectionLabel, pondStatus } from "@/lib/pond-status"
 import { pondTypeLabel } from "@/lib/pond-types"
@@ -58,10 +57,9 @@ export function DashboardPage() {
         <h1 className="font-sans text-lg font-semibold tracking-tight text-board-fg">
           BFAR Sorsogon Overview
         </h1>
-        <p className="font-sans text-xs text-board-muted">
-          Board time <span className="font-heading">{formatClock(now)}</span>
-          {ponds ? ` · ${summary}` : null}
-        </p>
+        {ponds ? (
+          <p className="font-sans text-xs text-board-muted">{summary}</p>
+        ) : null}
         {isRefetchError ? (
           <p
             role="status"
@@ -105,7 +103,7 @@ export function DashboardPage() {
             <div className="flex min-w-0 flex-col gap-1">
               <Link
                 to={`/ponds/${selectedEntry.pond.id}`}
-                className="truncate font-sans text-sm font-semibold text-board-fg underline-offset-4 hover:underline"
+                className="truncate font-sans text-base font-semibold tracking-tight text-board-fg underline-offset-4 hover:underline"
               >
                 {selectedEntry.pond.name}
               </Link>

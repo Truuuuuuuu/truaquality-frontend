@@ -13,8 +13,8 @@ export function notificationStatus(
 export function describeNotification(notification: AppNotification) {
   const parameter = PARAMETER_BY_ID[notification.alert.parameter]
   const label = parameter?.label ?? notification.alert.parameter
-  const direction =
-    parameter && notification.value < parameter.safeMin ? "low" : "high"
+  // The server decides this: thresholds depend on the pond's type, and it holds them.
+  const direction = notification.direction
 
   const title =
     notification.kind === "ALERT_RESOLVED"

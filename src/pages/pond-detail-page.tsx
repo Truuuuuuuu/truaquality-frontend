@@ -45,6 +45,7 @@ import {
   PARAMETERS,
   severityFor,
   type ParameterConfig,
+  type Threshold,
 } from "@/lib/parameters"
 import { pondTypeLabel } from "@/lib/pond-types"
 import { STATUS_LABELS, STATUS_STYLES } from "@/lib/status-styles"
@@ -332,6 +333,7 @@ export function PondDetailPage() {
                     row={row}
                     now={now}
                     parameters={visibleParameters}
+                    thresholds={pond.thresholds}
                   />
                 ))}
               </TableBody>
@@ -393,10 +395,14 @@ function PivotedRow({
   row,
   now,
   parameters,
+  thresholds,
 }: {
   row: PivotRow
   now: number
   parameters: ParameterConfig[]
+  // Resolved for this pond's type by the server, so a historical row is colored by the same band
+  // that would have alerted on it.
+  thresholds: Record<string, Threshold>
 }) {
   const t = Date.parse(row.recordedAt)
 
@@ -410,7 +416,8 @@ function PivotedRow({
       </TableCell>
       {parameters.map((parameter) => {
         const value = row.values[parameter.id]
-        if (value === undefined) {
+        const threshold = thresholds[parameter.id]
+        if (value === undefined || !threshold) {
           return (
             <TableCell
               key={parameter.id}
@@ -420,7 +427,7 @@ function PivotedRow({
             </TableCell>
           )
         }
-        const severity = severityFor(parameter, value)
+        const severity = severityFor(threshold, value)
         return (
           <TableCell
             key={parameter.id}

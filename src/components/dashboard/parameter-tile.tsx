@@ -16,7 +16,7 @@ export function ParameterTile({
   now,
   icon: Icon,
 }: ParameterTileProps) {
-  const { parameter, current, history, status, updatedAt } = reading
+  const { parameter, threshold, current, history, status, updatedAt } = reading
   const styles = STATUS_STYLES[status]
 
   return (
@@ -63,8 +63,8 @@ export function ParameterTile({
         <TrendChart
           points={history}
           status={status}
-          safeMin={parameter.safeMin}
-          safeMax={parameter.safeMax}
+          safeMin={threshold.safeMin}
+          safeMax={threshold.safeMax}
           precision={parameter.precision}
         />
       </div>

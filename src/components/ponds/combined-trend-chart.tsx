@@ -39,9 +39,9 @@ export function CombinedTrendChart({ pond, now }: CombinedTrendChartProps) {
     return Math.min(VIEW_WIDTH, Math.max(0, x))
   }
 
-  const allPercents = plottable.flatMap(({ parameter, reading }) =>
+  const allPercents = plottable.flatMap(({ reading }) =>
     reading!.history.map((point) =>
-      toPercent(parameter.safeMin, parameter.safeMax, point.v)
+      toPercent(reading!.threshold.safeMin, reading!.threshold.safeMax, point.v)
     )
   )
   const dataMin = Math.min(0, ...allPercents)
@@ -141,8 +141,8 @@ export function CombinedTrendChart({ pond, now }: CombinedTrendChartProps) {
             const path = points
               .map((point, i) => {
                 const percent = toPercent(
-                  parameter.safeMin,
-                  parameter.safeMax,
+                  reading!.threshold.safeMin,
+                  reading!.threshold.safeMax,
                   point.v
                 )
                 return `${i === 0 ? "M" : "L"} ${toX(point.t).toFixed(1)} ${toY(percent).toFixed(1)}`
@@ -150,8 +150,8 @@ export function CombinedTrendChart({ pond, now }: CombinedTrendChartProps) {
               .join(" ")
             const last = points[points.length - 1]
             const lastPercent = toPercent(
-              parameter.safeMin,
-              parameter.safeMax,
+              reading!.threshold.safeMin,
+              reading!.threshold.safeMax,
               last.v
             )
             const isStale = reading!.status === "stale"

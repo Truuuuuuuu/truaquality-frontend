@@ -5,6 +5,7 @@ import { AppShell } from "@/components/app-shell"
 import { ProtectedRoute } from "@/components/protected-route"
 import { AuthProvider, useAuth } from "@/context/auth-context"
 import { AcceptInvitePage } from "@/pages/accept-invite-page"
+import { AuditPage } from "@/pages/audit-page"
 import { DashboardPage } from "@/pages/dashboard-page"
 import { DevicesPage } from "@/pages/devices-page"
 import { LoginPage } from "@/pages/login-page"
@@ -46,6 +47,7 @@ export function App() {
               <Route path="/ponds/:pondId" element={<PondDetailPage />} />
               <Route path="/devices" element={<DevicesPage />} />
               <Route path="/users" element={<UsersPage />} />
+              <Route path="/audit" element={<AuditPage />} />
               <Route path="/notifications" element={<NotificationsPage />} />
               <Route path="/profile" element={<ProfilePage />} />
             </Route>

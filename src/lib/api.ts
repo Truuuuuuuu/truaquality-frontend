@@ -1,3 +1,5 @@
+import type { Threshold } from "@/lib/parameters"
+
 const API_URL = import.meta.env.VITE_API_URL
 
 export class ApiError extends Error {
@@ -141,6 +143,9 @@ export type Pond = {
   device: DeviceSummary | null
   // Keyed by parameter id; a parameter the pond has never reported is absent.
   latest: Record<string, LatestReading>
+  // The safe/critical band for each parameter, already resolved for this pond's type by the server —
+  // the same numbers its alerts are raised from, so the board can't disagree with a notification.
+  thresholds: Record<string, Threshold>
 }
 
 export type ApiReading = {
@@ -267,15 +272,18 @@ export type UpdatePondInput = {
 }
 
 export function createPond(token: string, body: CreatePondInput) {
-  return request<{ pond: Omit<Pond, "device" | "latest"> }>("/admin/ponds", {
-    method: "POST",
-    body,
-    token,
-  })
+  return request<{ pond: Omit<Pond, "device" | "latest" | "thresholds"> }>(
+    "/admin/ponds",
+    {
+      method: "POST",
+      body,
+      token,
+    }
+  )
 }
 
 export function updatePond(token: string, id: string, body: UpdatePondInput) {
-  return request<{ pond: Omit<Pond, "device" | "latest"> }>(
+  return request<{ pond: Omit<Pond, "device" | "latest" | "thresholds"> }>(
     `/admin/ponds/${id}`,
     { method: "PATCH", body, token }
   )
@@ -368,6 +376,52 @@ export function resendInvite(token: string, id: string) {
   })
 }
 
+// One recorded admin action. `actor` is null when the profile that performed it is gone — the row
+// deliberately outlives it, so the raw `actorId` is still there. `action` and `targetType` are open
+// strings because the log holds history, including actions the code no longer has (`office.create`).
+export type AuditEntry = {
+  id: string
+  action: string
+  targetType: string
+  targetId: string
+  metadata: Record<string, unknown> | null
+  createdAt: string
+  actorId: string | null
+  actor: { id: string; fullName: string; email: string } | null
+}
+
+export type AuditPage = {
+  entries: AuditEntry[]
+  nextCursor: string | null
+  // Everything the filters match, not just what's left after this page — lets the page show
+  // "12–22 of 33" and a real Previous/Next pager instead of an unbounded "load more" feed.
+  total: number
+}
+
+export type AuditFilters = {
+  action?: string
+  targetType?: string
+  actorId?: string
+  from?: string
+  to?: string
+}
+
+// Newest-first page of the audit trail. Pass a previous response's `nextCursor` as `before` for the
+// next page.
+export function listAuditLog(
+  token: string,
+  params: AuditFilters & { before?: string; limit?: number } = {}
+) {
+  const query = new URLSearchParams(
+    Object.entries(params)
+      .filter(
+        (entry): entry is [string, string | number] => entry[1] !== undefined
+      )
+      .map(([key, value]) => [key, String(value)])
+  )
+  return request<AuditPage>(`/admin/audit?${query}`, { token })
+}
+
 export type AlertSeverity = "WARNING" | "CRITICAL"
 export type NotificationKind =
   "ALERT_OPENED" | "ALERT_ESCALATED" | "ALERT_RESOLVED"
@@ -382,11 +436,14 @@ export type AppNotification = {
   recordedAt: string
   readAt: string | null
   createdAt: string
+  // Whether the reading sat below or above its safe range. Decided by the server, which is the only
+  // side that knows the pond's thresholds.
+  direction: "low" | "high"
   alert: {
     id: string
     parameter: string
     resolvedAt: string | null
-    pond: { id: string; name: string }
+    pond: { id: string; name: string; pondType: PondType | null }
   }
 }
 

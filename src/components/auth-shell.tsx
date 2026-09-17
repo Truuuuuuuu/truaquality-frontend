@@ -13,7 +13,8 @@ import { ModeToggle } from "@/components/mode-toggle"
 import {
   PARAMETER_ICONS,
   PARAMETERS,
-  type ParameterConfig,
+  SIGNED_OUT_THRESHOLDS,
+  type Threshold,
 } from "@/lib/parameters"
 import { STATUS_LABELS, STATUS_STYLES } from "@/lib/status-styles"
 
@@ -100,8 +101,10 @@ function Wordmark({
   )
 }
 
-// The same safe/warning/critical thresholds the board and the backend's alerts use, drawn as one
-// segmented bar per parameter, so the colors on the board mean something before anyone signs in.
+// The safe/warning/critical bands drawn as one segmented bar per parameter, so the colors on the
+// board mean something before anyone signs in. A signed-out page has no pond to ask, so these are
+// the unclassified-pond bands (SIGNED_OUT_THRESHOLDS) rather than any real pond's — once signed in,
+// a pond stocked for fresh or salt water is judged against its own salinity range.
 function RangeKey() {
   return (
     <div className="flex flex-col gap-4">
@@ -111,6 +114,8 @@ function RangeKey() {
       >
         {PARAMETERS.map((parameter, index) => {
           const Icon = PARAMETER_ICONS[parameter.id]
+          const threshold = SIGNED_OUT_THRESHOLDS[parameter.id]
+          if (!threshold) return null
           return (
             <li
               key={parameter.id}
@@ -123,12 +128,12 @@ function RangeKey() {
                 {parameter.label}
               </span>
               <RangeBar
-                parameter={parameter}
+                threshold={threshold}
                 style={delay(260 + index * 110)}
               />
               <span className="text-right font-heading text-xs text-board-fg tabular-nums">
                 <span className="sr-only">Safe range </span>
-                {parameter.safeMin}–{parameter.safeMax} {parameter.unit}
+                {threshold.safeMin}–{threshold.safeMax} {parameter.unit}
               </span>
             </li>
           )
@@ -153,13 +158,13 @@ function RangeKey() {
 }
 
 function RangeBar({
-  parameter,
+  threshold,
   style,
 }: {
-  parameter: ParameterConfig
+  threshold: Threshold
   style: React.CSSProperties
 }) {
-  const { criticalMin, safeMin, safeMax, criticalMax } = parameter
+  const { criticalMin, safeMin, safeMax, criticalMax } = threshold
   // Extends past the critical limits so the critical zones read as open-ended bands, not slivers.
   const pad = (criticalMax - criticalMin) * 0.25
   const bands = [

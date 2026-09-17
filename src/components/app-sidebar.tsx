@@ -1,4 +1,4 @@
-import { Cpu, Gauge, Users, Waves } from "lucide-react"
+import { Cpu, Gauge, ScrollText, Users, Waves } from "lucide-react"
 import { NavLink } from "react-router"
 import { cn } from "cn"
 import { NotificationBell } from "@/components/notifications/notification-bell"
@@ -11,9 +11,10 @@ const NAV_ITEMS = [
   { label: "Devices", icon: Cpu, href: "/devices" },
 ] as const
 
-// PII-bearing, so unlike the items above it's hidden from non-admins rather than shown read-only.
+// PII-bearing, so unlike the items above these are hidden from non-admins rather than shown read-only.
 const ADMIN_NAV_ITEMS = [
   { label: "Users", icon: Users, href: "/users" },
+  { label: "Audit log", icon: ScrollText, href: "/audit" },
 ] as const
 
 export function SidebarContent({

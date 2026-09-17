@@ -19,4 +19,16 @@ export default defineConfig([
       globals: globals.browser,
     },
   },
+  {
+    // shadcn generates these primitives with a `cva` variants object exported alongside the
+    // component, which react-refresh flags. Editing the files would only be undone the next time
+    // `shadcn add` regenerates one, so the allowance lives here instead.
+    files: ['src/components/ui/**/*.tsx'],
+    rules: {
+      'react-refresh/only-export-components': [
+        'error',
+        { allowExportNames: ['badgeVariants', 'buttonVariants'] },
+      ],
+    },
+  },
 ])
