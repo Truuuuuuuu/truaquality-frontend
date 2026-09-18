@@ -192,14 +192,28 @@ export function PondDetailPage() {
         </div>
         <PondDeviceMeta pond={pond} now={now} />
         {pond.fishSpecies || pond.pondType ? (
-          <p className="font-sans text-xs text-board-muted">
+          <p
+            tabIndex={0}
+            role="group"
+            aria-label={[pond.fishSpecies, pondTypeLabel(pond.pondType)]
+              .filter(Boolean)
+              .join(", ")}
+            className="font-sans text-xs text-board-muted"
+          >
             {[pond.fishSpecies, pondTypeLabel(pond.pondType)]
               .filter(Boolean)
               .join(" · ")}
           </p>
         ) : null}
         {pond.notes ? (
-          <p className="font-sans text-xs text-board-muted">{pond.notes}</p>
+          <p
+            tabIndex={0}
+            role="group"
+            aria-label={`Notes: ${pond.notes}`}
+            className="font-sans text-xs text-board-muted"
+          >
+            {pond.notes}
+          </p>
         ) : null}
       </div>
 

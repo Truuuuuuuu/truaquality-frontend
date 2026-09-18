@@ -63,8 +63,21 @@ type PondDeviceMetaProps = {
 // The device serial/model + online-or-last-seen line, all on one row — used where there's no
 // separate status badge to hang the connection state off of (the pond detail page's header).
 export function PondDeviceMeta({ pond, now, className }: PondDeviceMetaProps) {
+  const device = pond.device
+  const identityLabel = device
+    ? `Device ${device.serial}${device.hardwareModel ? `, ${device.hardwareModel}` : ""}`
+    : "No monitoring device assigned"
+  const connectionLabel = device
+    ? device.lastSeenAt
+      ? `last seen ${formatRelative(Date.parse(device.lastSeenAt), now)}`
+      : "never connected"
+    : null
+
   return (
     <p
+      tabIndex={0}
+      role="group"
+      aria-label={[identityLabel, connectionLabel].filter(Boolean).join(", ")}
       className={cn(
         "flex flex-wrap items-center gap-x-1.5 gap-y-0.5 font-sans text-xs text-board-muted",
         className

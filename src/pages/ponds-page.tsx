@@ -26,7 +26,7 @@ import {
   pondStatus,
 } from "@/lib/pond-status"
 import type { ReadingStatus } from "@/lib/parameters"
-import { STATUS_STYLES } from "@/lib/status-styles"
+import { STATUS_LABELS, STATUS_STYLES } from "@/lib/status-styles"
 
 // Condition and lifecycle are independent axes: archiving a pond is a decision about the record,
 // not a reading, so an archived pond is still bucketed by the condition it last reported.
@@ -189,6 +189,12 @@ export function PondsPage() {
                     {rows.map((pond) => {
                       const lastAt = lastReadingAt(pond)
                       const archived = pond.status === "ARCHIVED"
+                      const deviceLabel = `Device: ${pond.device?.serial ?? "Unassigned"}`
+                      const lastReadingLabel = `Last reading: ${lastAt === null ? "Never" : formatRelative(lastAt, now)}`
+                      const statusLabel = archived
+                        ? "Archived"
+                        : (pondConnectionLabel(pond, now) ??
+                          STATUS_LABELS[pondStatus(pond, now)])
                       return (
                         <TableRow
                           key={pond.id}
@@ -202,24 +208,36 @@ export function PondsPage() {
                               {pond.name}
                             </Link>
                             {pond.notes ? (
-                              <p className="truncate text-xs text-board-muted">
+                              <p
+                                tabIndex={0}
+                                aria-label={`Notes: ${pond.notes}`}
+                                className="truncate text-xs text-board-muted"
+                              >
                                 {pond.notes}
                               </p>
                             ) : null}
                           </TableCell>
-                          <TableCell className="font-heading text-xs">
+                          <TableCell
+                            tabIndex={0}
+                            aria-label={deviceLabel}
+                            className="font-heading text-xs"
+                          >
                             {pond.device?.serial ?? (
                               <span className="text-board-muted">
                                 Unassigned
                               </span>
                             )}
                           </TableCell>
-                          <TableCell className="font-heading text-xs text-board-muted">
+                          <TableCell
+                            tabIndex={0}
+                            aria-label={lastReadingLabel}
+                            className="font-heading text-xs text-board-muted"
+                          >
                             {lastAt === null
                               ? "Never"
                               : formatRelative(lastAt, now)}
                           </TableCell>
-                          <TableCell>
+                          <TableCell tabIndex={0} aria-label={statusLabel}>
                             {archived ? (
                               <StatusBadge status="stale">Archived</StatusBadge>
                             ) : (
@@ -252,6 +270,12 @@ export function PondsPage() {
                   const lastAt = lastReadingAt(pond)
                   const archived = pond.status === "ARCHIVED"
                   const cardStatus = archived ? "stale" : pondStatus(pond, now)
+                  const statusLabel = archived
+                    ? "Archived"
+                    : (pondConnectionLabel(pond, now) ??
+                      STATUS_LABELS[cardStatus])
+                  const lastReadingLabel =
+                    lastAt === null ? "Never" : formatRelative(lastAt, now)
                   return (
                     <div
                       key={pond.id}
@@ -269,7 +293,12 @@ export function PondsPage() {
                             {pond.name}
                           </Link>
                           {pond.notes ? (
-                            <p className="line-clamp-2 font-sans text-xs text-board-muted">
+                            <p
+                              tabIndex={0}
+                              role="group"
+                              aria-label={`Notes: ${pond.notes}`}
+                              className="line-clamp-2 font-sans text-xs text-board-muted"
+                            >
                               {pond.notes}
                             </p>
                           ) : null}
@@ -287,7 +316,12 @@ export function PondsPage() {
                       </div>
 
                       <div className="board-groove flex items-center justify-between gap-3 px-4 py-3">
-                        <div className="shrink-0">
+                        <div
+                          tabIndex={0}
+                          role="group"
+                          aria-label={statusLabel}
+                          className="shrink-0"
+                        >
                           {archived ? (
                             <StatusBadge status="stale">Archived</StatusBadge>
                           ) : (
@@ -296,7 +330,12 @@ export function PondsPage() {
                             </StatusBadge>
                           )}
                         </div>
-                        <div className="flex min-w-0 flex-1 flex-col items-end gap-1 text-right">
+                        <div
+                          tabIndex={0}
+                          role="group"
+                          aria-label={`Device ${pond.device?.serial ?? "Unassigned"}, last reading ${lastReadingLabel}`}
+                          className="flex min-w-0 flex-1 flex-col items-end gap-1 text-right"
+                        >
                           <span className="inline-flex max-w-full min-w-0 items-center gap-1.5 font-heading text-xs text-board-muted">
                             <Cpu className="size-3 shrink-0" />
                             <span className="truncate">
@@ -304,9 +343,7 @@ export function PondsPage() {
                             </span>
                           </span>
                           <span className="shrink-0 font-heading text-[0.7rem] text-board-muted">
-                            {lastAt === null
-                              ? "Never"
-                              : formatRelative(lastAt, now)}
+                            {lastReadingLabel}
                           </span>
                         </div>
                       </div>

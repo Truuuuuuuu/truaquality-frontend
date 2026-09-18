@@ -185,9 +185,27 @@ export function DevicesPage() {
                   <TableBody>
                     {rows.map((device) => {
                       const online = isDeviceOnline(device.lastSeenAt, now)
+                      const deviceLabel = `Device: ${device.serial}${
+                        [device.label, device.hardwareModel].filter(Boolean)
+                          .length > 0
+                          ? `, ${[device.label, device.hardwareModel].filter(Boolean).join(" · ")}`
+                          : ""
+                      }`
+                      const lastSeenLabel = `Last seen: ${
+                        device.lastSeenAt
+                          ? formatRelative(Date.parse(device.lastSeenAt), now)
+                          : "Never"
+                      }, ${online ? "online" : "offline"}`
+                      const firmwareLabel = `Firmware: ${device.firmwareVersion ?? "none"}`
+                      const statusLabel =
+                        device.status === "DISABLED"
+                          ? "Disabled"
+                          : online
+                            ? "Online"
+                            : "Offline"
                       return (
                         <TableRow key={device.id}>
-                          <TableCell>
+                          <TableCell tabIndex={0} aria-label={deviceLabel}>
                             <p className="font-heading text-xs text-board-fg">
                               {device.serial}
                             </p>
@@ -197,7 +215,10 @@ export function DevicesPage() {
                                 .join(" · ") || "—"}
                             </p>
                           </TableCell>
-                          <TableCell>
+                          <TableCell
+                            tabIndex={device.pond ? undefined : 0}
+                            aria-label={device.pond ? undefined : "Unassigned"}
+                          >
                             {device.pond ? (
                               <Link
                                 to={`/ponds/${device.pond.id}`}
@@ -211,7 +232,7 @@ export function DevicesPage() {
                               </span>
                             )}
                           </TableCell>
-                          <TableCell>
+                          <TableCell tabIndex={0} aria-label={lastSeenLabel}>
                             <span
                               className={cn(
                                 "inline-flex items-center gap-1.5 font-heading text-xs",
@@ -238,10 +259,14 @@ export function DevicesPage() {
                               </span>
                             </span>
                           </TableCell>
-                          <TableCell className="font-heading text-xs text-board-muted">
+                          <TableCell
+                            tabIndex={0}
+                            aria-label={firmwareLabel}
+                            className="font-heading text-xs text-board-muted"
+                          >
                             {device.firmwareVersion ?? "—"}
                           </TableCell>
-                          <TableCell>
+                          <TableCell tabIndex={0} aria-label={statusLabel}>
                             {device.status === "DISABLED" ? (
                               <StatusBadge status="critical">
                                 Disabled
@@ -285,6 +310,24 @@ export function DevicesPage() {
                       : online
                         ? "nominal"
                         : "stale"
+                  const deviceLabel = `${device.serial}${
+                    [device.label, device.hardwareModel].filter(Boolean)
+                      .length > 0
+                      ? `, ${[device.label, device.hardwareModel].filter(Boolean).join(" · ")}`
+                      : ""
+                  }`
+                  const lastSeenLabel = `Last seen: ${
+                    device.lastSeenAt
+                      ? formatRelative(Date.parse(device.lastSeenAt), now)
+                      : "Never"
+                  }, ${online ? "online" : "offline"}`
+                  const firmwareLabel = `Firmware: ${device.firmwareVersion ?? "none"}`
+                  const statusLabel =
+                    device.status === "DISABLED"
+                      ? "Disabled"
+                      : online
+                        ? "Online"
+                        : "Offline"
                   return (
                     <div
                       key={device.id}
@@ -294,7 +337,12 @@ export function DevicesPage() {
                       )}
                     >
                       <div className="flex items-start justify-between gap-3 px-4 pt-4 pb-3">
-                        <div className="flex min-w-0 flex-col gap-1">
+                        <div
+                          tabIndex={0}
+                          role="group"
+                          aria-label={deviceLabel}
+                          className="flex min-w-0 flex-col gap-1"
+                        >
                           <span className="truncate font-heading text-sm font-semibold text-board-fg">
                             {device.serial}
                           </span>
@@ -320,7 +368,12 @@ export function DevicesPage() {
                       </div>
 
                       <div className="board-groove flex items-center justify-between gap-3 px-4 py-3">
-                        <div className="shrink-0">
+                        <div
+                          tabIndex={0}
+                          role="group"
+                          aria-label={statusLabel}
+                          className="shrink-0"
+                        >
                           {device.status === "DISABLED" ? (
                             <StatusBadge status="critical">
                               Disabled
@@ -332,7 +385,12 @@ export function DevicesPage() {
                           )}
                         </div>
                         <div className="flex min-w-0 flex-1 flex-col items-end gap-1 text-right">
-                          <span className="max-w-full truncate font-heading text-xs text-board-fg">
+                          <span
+                            tabIndex={device.pond ? undefined : 0}
+                            role={device.pond ? undefined : "group"}
+                            aria-label={device.pond ? undefined : "Unassigned"}
+                            className="max-w-full truncate font-heading text-xs text-board-fg"
+                          >
                             {device.pond ? (
                               <Link
                                 to={`/ponds/${device.pond.id}`}
@@ -346,7 +404,12 @@ export function DevicesPage() {
                               </span>
                             )}
                           </span>
-                          <span className="inline-flex items-center gap-1.5 font-heading text-[0.7rem] text-board-muted">
+                          <span
+                            tabIndex={0}
+                            role="group"
+                            aria-label={lastSeenLabel}
+                            className="inline-flex items-center gap-1.5 font-heading text-[0.7rem] text-board-muted"
+                          >
                             <span
                               className={cn(
                                 "size-1.5 shrink-0 rounded-full",
@@ -367,7 +430,12 @@ export function DevicesPage() {
                         </div>
                       </div>
 
-                      <div className="board-groove flex items-center justify-between gap-3 px-4 py-2.5">
+                      <div
+                        tabIndex={0}
+                        role="group"
+                        aria-label={firmwareLabel}
+                        className="board-groove flex items-center justify-between gap-3 px-4 py-2.5"
+                      >
                         <span className="font-sans text-[0.65rem] tracking-[0.08em] text-board-muted uppercase">
                           Firmware
                         </span>

@@ -3,9 +3,10 @@ import { cn } from "cn"
 import { StatusStamp } from "@/components/dashboard/status-stamp"
 import { usePondHistory } from "@/hooks/use-ponds"
 import type { Pond } from "@/lib/api"
+import { formatRelative } from "@/lib/format-time"
 import { PARAMETER_ICONS } from "@/lib/parameters"
 import { pondReadingStates } from "@/lib/pond-status"
-import { STATUS_STYLES } from "@/lib/status-styles"
+import { STATUS_LABELS, STATUS_STYLES } from "@/lib/status-styles"
 
 type ParameterSummaryProps = {
   pond: Pond
@@ -27,7 +28,13 @@ export function ParameterSummary({ pond, now }: ParameterSummaryProps) {
 
         if (!reading) {
           return (
-            <div key={parameter.id} className="min-w-40 flex-1">
+            <div
+              key={parameter.id}
+              tabIndex={0}
+              role="group"
+              aria-label={`${parameter.label}: no readings yet`}
+              className="min-w-40 flex-1"
+            >
               <div className="flex items-center gap-2 text-board-stale">
                 <Icon className="size-4" />
                 <span className="font-sans text-xs font-medium tracking-[0.08em] uppercase">
@@ -44,7 +51,13 @@ export function ParameterSummary({ pond, now }: ParameterSummaryProps) {
         const styles = STATUS_STYLES[reading.status]
 
         return (
-          <div key={parameter.id} className="min-w-40 flex-1">
+          <div
+            key={parameter.id}
+            tabIndex={0}
+            role="group"
+            aria-label={`${parameter.label}: ${reading.current.toFixed(parameter.precision)} ${parameter.unit}, ${STATUS_LABELS[reading.status]}, updated ${formatRelative(reading.updatedAt, now)}`}
+            className="min-w-40 flex-1"
+          >
             <div className="flex items-center justify-between gap-3">
               <div className={cn("flex items-center gap-2", styles.label)}>
                 <span

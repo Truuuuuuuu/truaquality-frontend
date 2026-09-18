@@ -216,21 +216,43 @@ function MetadataCell({ entry }: { entry: AuditEntry }) {
 
 function AuditRow({ entry, now }: { entry: AuditEntry; now: number }) {
   const t = Date.parse(entry.createdAt)
+  const metadataPairs = auditMetadataPairs(entry.metadata)
+  const metadataLabel =
+    metadataPairs.length === 0
+      ? "no additional details"
+      : metadataPairs.map(({ key, value }) => `${key}: ${value}`).join(", ")
+
   return (
     <TableRow>
-      <TableCell className="font-heading text-xs whitespace-nowrap tabular-nums">
+      <TableCell
+        tabIndex={0}
+        aria-label={`${formatDate(t)} ${formatClock(t)}, ${formatRelative(t, now)}`}
+        className="font-heading text-xs whitespace-nowrap tabular-nums"
+      >
         {formatDate(t)} {formatClock(t)}
         <p className="font-sans text-[0.7rem] text-board-muted">
           {formatRelative(t, now)}
         </p>
       </TableCell>
-      <TableCell className="font-medium text-board-fg">
+      <TableCell
+        tabIndex={0}
+        aria-label={auditActionLabel(entry.action)}
+        className="font-medium text-board-fg"
+      >
         {auditActionLabel(entry.action)}
       </TableCell>
-      <TableCell className="text-xs text-board-muted">
+      <TableCell
+        tabIndex={0}
+        aria-label={`By: ${auditActorLabel(entry)}`}
+        className="text-xs text-board-muted"
+      >
         {auditActorLabel(entry)}
       </TableCell>
-      <TableCell className="font-heading text-xs">
+      <TableCell
+        tabIndex={0}
+        aria-label={metadataLabel}
+        className="font-heading text-xs"
+      >
         <MetadataCell entry={entry} />
       </TableCell>
     </TableRow>
@@ -239,8 +261,19 @@ function AuditRow({ entry, now }: { entry: AuditEntry; now: number }) {
 
 function AuditCard({ entry, now }: { entry: AuditEntry; now: number }) {
   const t = Date.parse(entry.createdAt)
+  const metadataPairs = auditMetadataPairs(entry.metadata)
+  const metadataLabel =
+    metadataPairs.length === 0
+      ? "no additional details"
+      : metadataPairs.map(({ key, value }) => `${key}: ${value}`).join(", ")
+
   return (
-    <li className="board-groove flex flex-col gap-2 rounded-xl border p-4">
+    <li
+      tabIndex={0}
+      role="group"
+      aria-label={`${auditActionLabel(entry.action)} by ${auditActorLabel(entry)}, ${formatDate(t)} ${formatClock(t)}, ${metadataLabel}`}
+      className="board-groove flex flex-col gap-2 rounded-xl border p-4"
+    >
       <div className="flex items-start justify-between gap-3">
         <span className="font-sans text-sm font-medium text-board-fg">
           {auditActionLabel(entry.action)}

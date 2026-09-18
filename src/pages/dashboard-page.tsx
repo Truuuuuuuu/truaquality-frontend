@@ -13,8 +13,14 @@ import { StatusBadge } from "@/components/status-badge"
 import { Button } from "@/components/ui/button"
 import { usePonds } from "@/hooks/use-ponds"
 import { useNow } from "@/hooks/use-now"
+import { formatRelative } from "@/lib/format-time"
 import { compareStatus, type ReadingStatus } from "@/lib/parameters"
-import { pondConnectionLabel, pondStatus } from "@/lib/pond-status"
+import {
+  pondConnectionLabel,
+  pondPanelId,
+  pondStatus,
+  pondTabId,
+} from "@/lib/pond-status"
 import { pondTypeLabel } from "@/lib/pond-types"
 import { STATUS_LABELS } from "@/lib/status-styles"
 
@@ -99,46 +105,91 @@ export function DashboardPage() {
             onSelect={setSelectedId}
           />
 
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex min-w-0 flex-col gap-1">
-              <Link
-                to={`/ponds/${selectedEntry.pond.id}`}
-                className="truncate font-sans text-base font-semibold tracking-tight text-board-fg underline-offset-4 hover:underline"
+          <div
+            role="tabpanel"
+            id={pondPanelId(selectedEntry.pond.id)}
+            aria-labelledby={pondTabId(selectedEntry.pond.id)}
+            tabIndex={0}
+            className="flex flex-col gap-6"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex min-w-0 flex-col gap-1">
+                <Link
+                  to={`/ponds/${selectedEntry.pond.id}`}
+                  className="truncate font-sans text-base font-semibold tracking-tight text-board-fg underline-offset-4 hover:underline"
+                >
+                  {selectedEntry.pond.name}
+                </Link>
+                {selectedEntry.pond.fishSpecies ||
+                selectedEntry.pond.pondType ? (
+                  <p
+                    tabIndex={0}
+                    role="group"
+                    aria-label={[
+                      selectedEntry.pond.fishSpecies,
+                      selectedEntry.pond.pondType
+                        ? pondTypeLabel(selectedEntry.pond.pondType)
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(", ")}
+                    className="flex flex-wrap items-center gap-1.5"
+                  >
+                    {selectedEntry.pond.fishSpecies ? (
+                      <span className="truncate font-sans text-sm font-bold text-board-fg">
+                        {selectedEntry.pond.fishSpecies}
+                      </span>
+                    ) : null}
+                    {selectedEntry.pond.pondType ? (
+                      <span className="inline-flex shrink-0 items-center rounded-md border border-board-border-strong px-1.5 py-0.5 font-sans text-[0.65rem] font-medium tracking-[0.08em] text-board-muted uppercase">
+                        {pondTypeLabel(selectedEntry.pond.pondType)}
+                      </span>
+                    ) : null}
+                  </p>
+                ) : null}
+                <p
+                  tabIndex={0}
+                  role="group"
+                  aria-label={
+                    selectedEntry.pond.device
+                      ? `Device ${selectedEntry.pond.device.serial}${selectedEntry.pond.device.hardwareModel ? `, ${selectedEntry.pond.device.hardwareModel}` : ""}`
+                      : "No monitoring device assigned"
+                  }
+                  className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 font-sans text-xs text-board-muted"
+                >
+                  <PondDeviceIdentity pond={selectedEntry.pond} />
+                </p>
+              </div>
+              <div
+                tabIndex={0}
+                role="group"
+                aria-label={[
+                  pondConnectionLabel(selectedEntry.pond, now) ??
+                    STATUS_LABELS[selectedEntry.status],
+                  selectedEntry.pond.device
+                    ? selectedEntry.pond.device.lastSeenAt
+                      ? `last seen ${formatRelative(Date.parse(selectedEntry.pond.device.lastSeenAt), now)}`
+                      : "never connected"
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(", ")}
+                className="flex shrink-0 flex-col items-end gap-1"
               >
-                {selectedEntry.pond.name}
-              </Link>
-              {selectedEntry.pond.fishSpecies || selectedEntry.pond.pondType ? (
-                <p className="flex flex-wrap items-center gap-1.5">
-                  {selectedEntry.pond.fishSpecies ? (
-                    <span className="truncate font-sans text-sm font-bold text-board-fg">
-                      {selectedEntry.pond.fishSpecies}
-                    </span>
-                  ) : null}
-                  {selectedEntry.pond.pondType ? (
-                    <span className="inline-flex shrink-0 items-center rounded-md border border-board-border-strong px-1.5 py-0.5 font-sans text-[0.65rem] font-medium tracking-[0.08em] text-board-muted uppercase">
-                      {pondTypeLabel(selectedEntry.pond.pondType)}
-                    </span>
-                  ) : null}
-                </p>
-              ) : null}
-              <p className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 font-sans text-xs text-board-muted">
-                <PondDeviceIdentity pond={selectedEntry.pond} />
-              </p>
+                <StatusBadge status={selectedEntry.status}>
+                  {pondConnectionLabel(selectedEntry.pond, now)}
+                </StatusBadge>
+                {selectedEntry.pond.device ? (
+                  <p className="font-sans text-xs text-board-muted">
+                    <PondConnectionStatus pond={selectedEntry.pond} now={now} />
+                  </p>
+                ) : null}
+              </div>
             </div>
-            <div className="flex shrink-0 flex-col items-end gap-1">
-              <StatusBadge status={selectedEntry.status}>
-                {pondConnectionLabel(selectedEntry.pond, now)}
-              </StatusBadge>
-              {selectedEntry.pond.device ? (
-                <p className="font-sans text-xs text-board-muted">
-                  <PondConnectionStatus pond={selectedEntry.pond} now={now} />
-                </p>
-              ) : null}
-            </div>
-          </div>
 
-          <ParameterSummary pond={selectedEntry.pond} now={now} />
-          <CombinedTrendChart pond={selectedEntry.pond} now={now} />
+            <ParameterSummary pond={selectedEntry.pond} now={now} />
+            <CombinedTrendChart pond={selectedEntry.pond} now={now} />
+          </div>
         </div>
       ) : null}
     </div>

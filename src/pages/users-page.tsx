@@ -213,98 +213,141 @@ export function UsersPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {rows.map((user) => (
-                      <TableRow
-                        key={user.id}
-                        className={
-                          user.status === "DISABLED"
-                            ? "text-board-muted"
-                            : undefined
-                        }
-                      >
-                        <TableCell className="max-w-64 font-medium text-board-fg">
-                          {user.fullName}
-                          {user.id === profile?.id ? (
-                            <span className="ml-1.5 text-xs text-board-muted">
-                              (you)
-                            </span>
-                          ) : null}
-                        </TableCell>
-                        <TableCell className="font-heading text-xs text-board-muted">
-                          {user.email}
-                        </TableCell>
-                        <TableCell>
-                          <RoleBadge role={user.systemRole} />
-                        </TableCell>
-                        <TableCell>
-                          <UserStatusBadge status={user.status} />
-                        </TableCell>
-                        <TableCell className="font-heading text-xs text-board-muted">
-                          {formatRelative(
-                            new Date(user.createdAt).getTime(),
-                            now
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openManage(user)}
+                    {rows.map((user) => {
+                      const isSelf = user.id === profile?.id
+                      const roleLabel =
+                        user.systemRole === "ADMIN" ? "Admin" : "Staff"
+                      const statusLabel =
+                        user.status.charAt(0) +
+                        user.status.slice(1).toLowerCase()
+                      const invitedLabel = `Invited ${formatRelative(new Date(user.createdAt).getTime(), now)}`
+                      return (
+                        <TableRow
+                          key={user.id}
+                          className={
+                            user.status === "DISABLED"
+                              ? "text-board-muted"
+                              : undefined
+                          }
+                        >
+                          <TableCell
+                            tabIndex={0}
+                            aria-label={`${user.fullName}${isSelf ? " (you)" : ""}`}
+                            className="max-w-64 font-medium text-board-fg"
                           >
-                            Manage
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                            {user.fullName}
+                            {isSelf ? (
+                              <span className="ml-1.5 text-xs text-board-muted">
+                                (you)
+                              </span>
+                            ) : null}
+                          </TableCell>
+                          <TableCell
+                            tabIndex={0}
+                            aria-label={`Email: ${user.email}`}
+                            className="font-heading text-xs text-board-muted"
+                          >
+                            {user.email}
+                          </TableCell>
+                          <TableCell tabIndex={0} aria-label={roleLabel}>
+                            <RoleBadge role={user.systemRole} />
+                          </TableCell>
+                          <TableCell tabIndex={0} aria-label={statusLabel}>
+                            <UserStatusBadge status={user.status} />
+                          </TableCell>
+                          <TableCell
+                            tabIndex={0}
+                            aria-label={invitedLabel}
+                            className="font-heading text-xs text-board-muted"
+                          >
+                            {formatRelative(
+                              new Date(user.createdAt).getTime(),
+                              now
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openManage(user)}
+                            >
+                              Manage
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
                   </TableBody>
                 </Table>
               </div>
 
               {/* Registry cards: below sm, where the table's fixed columns force cramped, truncated cells. */}
               <div className="flex flex-col gap-3 sm:hidden">
-                {rows.map((user) => (
-                  <div
-                    key={user.id}
-                    className="board-groove overflow-hidden rounded-xl border border-board-border bg-board-panel"
-                  >
-                    <div className="flex items-start justify-between gap-3 px-4 pt-4 pb-3">
-                      <div className="flex min-w-0 flex-col gap-1">
-                        <span className="truncate font-sans text-sm font-semibold text-board-fg">
-                          {user.fullName}
-                          {user.id === profile?.id ? (
-                            <span className="ml-1.5 text-xs font-normal text-board-muted">
-                              (you)
-                            </span>
-                          ) : null}
-                        </span>
-                        <span className="truncate font-heading text-xs text-board-muted">
-                          {user.email}
-                        </span>
+                {rows.map((user) => {
+                  const roleLabel =
+                    user.systemRole === "ADMIN" ? "Admin" : "Staff"
+                  const statusLabel =
+                    user.status.charAt(0) + user.status.slice(1).toLowerCase()
+                  const invitedLabel = `Invited ${formatRelative(new Date(user.createdAt).getTime(), now)}`
+                  return (
+                    <div
+                      key={user.id}
+                      className="board-groove overflow-hidden rounded-xl border border-board-border bg-board-panel"
+                    >
+                      <div className="flex items-start justify-between gap-3 px-4 pt-4 pb-3">
+                        <div
+                          tabIndex={0}
+                          role="group"
+                          aria-label={`${user.fullName}${user.id === profile?.id ? " (you)" : ""}, ${user.email}`}
+                          className="flex min-w-0 flex-col gap-1"
+                        >
+                          <span className="truncate font-sans text-sm font-semibold text-board-fg">
+                            {user.fullName}
+                            {user.id === profile?.id ? (
+                              <span className="ml-1.5 text-xs font-normal text-board-muted">
+                                (you)
+                              </span>
+                            ) : null}
+                          </span>
+                          <span className="truncate font-heading text-xs text-board-muted">
+                            {user.email}
+                          </span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="-mt-1 -mr-2 shrink-0"
+                          onClick={() => openManage(user)}
+                        >
+                          Manage
+                        </Button>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="-mt-1 -mr-2 shrink-0"
-                        onClick={() => openManage(user)}
-                      >
-                        Manage
-                      </Button>
-                    </div>
 
-                    <div className="board-groove flex items-center justify-between gap-3 px-4 py-3">
-                      <div className="flex items-center gap-1.5">
-                        <RoleBadge role={user.systemRole} />
-                        <UserStatusBadge status={user.status} />
+                      <div className="board-groove flex items-center justify-between gap-3 px-4 py-3">
+                        <div
+                          tabIndex={0}
+                          role="group"
+                          aria-label={`${roleLabel}, ${statusLabel}`}
+                          className="flex items-center gap-1.5"
+                        >
+                          <RoleBadge role={user.systemRole} />
+                          <UserStatusBadge status={user.status} />
+                        </div>
+                        <span
+                          tabIndex={0}
+                          role="group"
+                          aria-label={invitedLabel}
+                          className="shrink-0 font-heading text-[0.7rem] text-board-muted"
+                        >
+                          {formatRelative(
+                            new Date(user.createdAt).getTime(),
+                            now
+                          )}
+                        </span>
                       </div>
-                      <span className="shrink-0 font-heading text-[0.7rem] text-board-muted">
-                        {formatRelative(
-                          new Date(user.createdAt).getTime(),
-                          now
-                        )}
-                      </span>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
 
               <BoardPager

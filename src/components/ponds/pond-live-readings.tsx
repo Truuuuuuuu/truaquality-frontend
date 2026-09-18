@@ -37,7 +37,12 @@ export function PondLiveReadings({ pond, now }: PondLiveReadingsProps) {
 function NoDataTile({ parameter }: { parameter: ParameterConfig }) {
   const Icon = PARAMETER_ICONS[parameter.id] ?? Gauge
   return (
-    <div className="board-groove flex min-h-44 flex-col gap-4 rounded-xl border border-dashed border-board-border-strong bg-board-panel/60 p-5">
+    <div
+      tabIndex={0}
+      role="group"
+      aria-label={`${parameter.label}: no readings yet`}
+      className="board-groove flex min-h-44 flex-col gap-4 rounded-xl border border-dashed border-board-border-strong bg-board-panel/60 p-5"
+    >
       <div className="flex items-center gap-2 text-board-stale">
         <Icon className="size-4" />
         <span className="font-sans text-xs font-medium tracking-[0.08em] uppercase">

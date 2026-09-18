@@ -9,7 +9,7 @@ import {
 } from "@/lib/history-range"
 import { PARAMETER_ICONS } from "@/lib/parameters"
 import { pondReadingStates } from "@/lib/pond-status"
-import { STATUS_COLOR, STATUS_STYLES } from "@/lib/status-styles"
+import { STATUS_COLOR, STATUS_LABELS, STATUS_STYLES } from "@/lib/status-styles"
 
 type CombinedTrendChartProps = {
   pond: Pond
@@ -82,6 +82,13 @@ export function CombinedTrendChart({
             return (
               <div
                 key={parameter.id}
+                tabIndex={0}
+                role="group"
+                aria-label={
+                  reading
+                    ? `${parameter.label}: ${reading.current.toFixed(parameter.precision)} ${parameter.unit}, ${STATUS_LABELS[reading.status]}`
+                    : `${parameter.label}: no readings yet`
+                }
                 className={cn(
                   "flex items-center gap-1.5 font-sans text-xs",
                   reading
@@ -111,6 +118,9 @@ export function CombinedTrendChart({
 
       {plottable.length === 0 ? (
         <div
+          tabIndex={0}
+          role="group"
+          aria-label="Not enough recent history to chart"
           className="flex items-center justify-center rounded-md border border-dashed border-board-border font-sans text-xs text-board-muted"
           style={{ height: HEIGHT }}
         >
@@ -118,6 +128,7 @@ export function CombinedTrendChart({
         </div>
       ) : (
         <svg
+          tabIndex={0}
           viewBox={`0 0 ${VIEW_WIDTH} ${HEIGHT}`}
           preserveAspectRatio="none"
           className="h-60 w-full overflow-visible"

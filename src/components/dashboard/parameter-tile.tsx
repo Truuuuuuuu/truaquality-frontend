@@ -1,7 +1,8 @@
 import type { ComponentType } from "react"
 import { cn } from "cn"
+import { formatRelative } from "@/lib/format-time"
 import type { ReadingState } from "@/lib/parameters"
-import { STATUS_STYLES } from "@/lib/status-styles"
+import { STATUS_LABELS, STATUS_STYLES } from "@/lib/status-styles"
 import { StatusStamp } from "./status-stamp"
 import { TrendChart } from "./trend-chart"
 
@@ -21,6 +22,9 @@ export function ParameterTile({
 
   return (
     <div
+      tabIndex={0}
+      role="group"
+      aria-label={`${parameter.label}: ${current.toFixed(parameter.precision)} ${parameter.unit}, ${STATUS_LABELS[status]}, updated ${formatRelative(updatedAt, now)}`}
       className={cn(
         "board-groove flex flex-col gap-4 rounded-xl border p-5 transition-colors duration-500",
         styles.tile

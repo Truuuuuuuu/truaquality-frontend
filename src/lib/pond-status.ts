@@ -10,6 +10,14 @@ import {
   type ReadingStatus,
 } from "@/lib/parameters"
 
+export function pondTabId(pondId: string) {
+  return `pond-tab-${pondId}`
+}
+
+export function pondPanelId(pondId: string) {
+  return `pond-panel-${pondId}`
+}
+
 export function latestPondReadings(pond: Pond, now: number) {
   return PARAMETERS.map((parameter) => {
     const latest = pond.latest[parameter.id]
