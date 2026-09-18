@@ -163,7 +163,18 @@ export function ProfilePage() {
               <Button
                 type="button"
                 variant="outline"
-                size="sm"
+                size="lg"
+                className="w-full sm:hidden"
+                onClick={logout}
+              >
+                <LogOut />
+                Sign out
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="xs"
+                className="hidden w-fit sm:inline-flex"
                 onClick={logout}
               >
                 <LogOut />

@@ -21,7 +21,7 @@ export function ParameterSummary({ pond, now }: ParameterSummaryProps) {
   const readings = pondReadingStates(pond, now, historyByParameter)
 
   return (
-    <div className="flex flex-wrap gap-x-8 gap-y-5">
+    <div className="flex flex-col gap-x-8 gap-y-5 md:flex-row md:flex-wrap">
       {readings.map(({ parameter, reading }) => {
         const Icon = PARAMETER_ICONS[parameter.id] ?? Gauge
 
