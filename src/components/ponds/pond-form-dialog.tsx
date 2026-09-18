@@ -1,4 +1,6 @@
 import * as React from "react"
+import { Archive } from "lucide-react"
+import { cn } from "cn"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -166,9 +168,13 @@ function PondForm({ pond, onDone }: { pond: Pond | null; onDone: () => void }) {
         {pond ? (
           <Button
             type="button"
-            variant={pond.status === "ACTIVE" ? "destructive" : "outline"}
+            variant="outline"
             disabled={isPending}
-            className="sm:mr-auto"
+            className={cn(
+              "sm:mr-auto",
+              pond.status === "ACTIVE" &&
+                "border-board-warn/40 bg-board-warn/10 text-board-warn hover:bg-board-warn/20 focus-visible:border-board-warn/40 focus-visible:ring-board-warn/20 dark:bg-board-warn/20 dark:hover:bg-board-warn/30 dark:focus-visible:ring-board-warn/40"
+            )}
             onClick={() =>
               void run(() =>
                 updatePond.mutateAsync({
@@ -178,7 +184,14 @@ function PondForm({ pond, onDone }: { pond: Pond | null; onDone: () => void }) {
               )
             }
           >
-            {pond.status === "ACTIVE" ? "Archive pond" : "Restore pond"}
+            {pond.status === "ACTIVE" ? (
+              <>
+                <Archive />
+                Archive pond
+              </>
+            ) : (
+              "Restore pond"
+            )}
           </Button>
         ) : null}
         <Button type="submit" disabled={isPending}>

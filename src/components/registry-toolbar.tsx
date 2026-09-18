@@ -49,7 +49,7 @@ export function RegistryToolbar<C extends string, S extends string = string>({
 }: RegistryToolbarProps<C, S>) {
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-      <div className="relative w-full sm:w-60">
+      <div className="relative w-full sm:w-100">
         <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-board-muted" />
         <Input
           value={search}
