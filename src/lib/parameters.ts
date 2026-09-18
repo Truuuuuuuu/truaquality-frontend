@@ -1,11 +1,11 @@
 import type { ComponentType } from "react"
-import { Droplets, Thermometer, Waves } from "lucide-react"
+import { Thermometer } from "lucide-react"
 
 export type ReadingStatus = "nominal" | "warning" | "critical" | "stale"
 
 // Display metadata only. The safe/critical numbers used to live here too, duplicated from the
-// backend and kept in step by hand; they now depend on a pond's type (fresh water is nominal near
-// 0 ppt, brackish is not), so the server resolves them per pond and sends them as `pond.thresholds`.
+// backend and kept in step by hand; they can depend on a pond's type, so the server resolves them
+// per pond and sends them as `pond.thresholds`.
 export type ParameterConfig = {
   id: string
   label: string
@@ -43,20 +43,6 @@ export const PARAMETERS: ParameterConfig[] = [
     unit: "°C",
     precision: 1,
   },
-  {
-    id: "dissolvedOxygen",
-    label: "Dissolved Oxygen",
-    shortLabel: "DO",
-    unit: "mg/L",
-    precision: 2,
-  },
-  {
-    id: "salinity",
-    label: "Salinity",
-    shortLabel: "Salinity",
-    unit: "ppt",
-    precision: 1,
-  },
 ]
 
 // Illustrative bands for the signed-out range key on the auth pages (components/auth-shell.tsx).
@@ -66,8 +52,6 @@ export const PARAMETERS: ParameterConfig[] = [
 // judges an actual reading may use these; live surfaces read `pond.thresholds`.
 export const SIGNED_OUT_THRESHOLDS: Record<string, Threshold> = {
   temperature: { safeMin: 26, safeMax: 31, criticalMin: 24, criticalMax: 33 },
-  dissolvedOxygen: { safeMin: 5, safeMax: 9, criticalMin: 3, criticalMax: 11 },
-  salinity: { safeMin: 0, safeMax: 35, criticalMin: 0, criticalMax: 38 },
 }
 
 export const PARAMETER_ICONS: Record<
@@ -75,8 +59,6 @@ export const PARAMETER_ICONS: Record<
   ComponentType<{ className?: string }>
 > = {
   temperature: Thermometer,
-  dissolvedOxygen: Droplets,
-  salinity: Waves,
 }
 
 export const PARAMETER_BY_ID: Record<string, ParameterConfig> =

@@ -23,15 +23,15 @@ const VIEW_WIDTH = 960
 const HEIGHT = 240
 
 // Percent-of-safe-range: 0% is a parameter's safeMin, 100% its safeMax. Plotting every parameter on
-// this shared scale — instead of raw °C next to raw mg/L next to raw ppt — is what makes "combined"
-// mean something: three lines drawn together read as "how close is each one to its own edge," not
+// this shared scale — instead of each line in its own raw unit — is what makes "combined"
+// mean something: lines drawn together read as "how close is each one to its own edge," not
 // an apples-to-oranges overlay.
 function toPercent(safeMin: number, safeMax: number, value: number): number {
   return ((value - safeMin) / (safeMax - safeMin)) * 100
 }
 
-// A pond's three parameters as one wide trend, normalized to percent-of-safe-range so differing
-// units (°C, mg/L, ppt) share one axis. Each line's color is that parameter's current status
+// A pond's parameters as one wide trend, normalized to percent-of-safe-range so differing units
+// share one axis. Each line's color is that parameter's current status
 // (the same whole-tile-flood vocabulary as the parameter tiles above it), so a line reading red is
 // unmistakable even at a glance across the whole chart.
 export function CombinedTrendChart({

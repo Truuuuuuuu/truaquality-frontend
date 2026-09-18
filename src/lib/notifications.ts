@@ -19,8 +19,8 @@ export function notificationPond(notification: AppNotification) {
   return notification.alert?.pond ?? notification.device!.pond
 }
 
-// Human-readable pieces of a notification, e.g. "Dissolved Oxygen too low" + "3.84 mg/L", or
-// "DO Sensor 2 went offline" + "DO Sensor 2".
+// Human-readable pieces of a notification, e.g. "Temperature too high" + "33.4 °C", or
+// "Pond 2 unit went offline" + "Pond 2 unit".
 export function describeNotification(notification: AppNotification) {
   if (
     notification.kind === "DEVICE_OFFLINE" ||

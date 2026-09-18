@@ -30,15 +30,15 @@ environmental-monitoring dashboard.
 - A real pond deployment site managed by BFAR Sorsogon exists for this system; exact site details are
   not yet recorded (TBD).
 - Temperature sensor hardware is confirmed: a DS18B20 waterproof probe, verified end-to-end on a real
-  ESP32 unit (real readings landing in the database and dashboard). Dissolved oxygen and salinity sensor
-  hardware is not yet selected/recorded (TBD).
+  ESP32 unit (real readings landing in the database and dashboard). Turbidity is the next sensor to be
+  added; its hardware is not yet selected/recorded (TBD).
 - Firmware (`../firmware`) publishes real signed MQTT readings (see `../firmware/CLAUDE.md`); the backend
   (`../backend`) has full pond/device/reading data models and an MQTT subscriber (see `../backend/CLAUDE.md`).
 
 ## Capabilities and Constraints
 
-- Currently monitored parameters: temperature, dissolved oxygen, and salinity. Additional water quality
-  parameters are planned but not yet decided.
+- Currently monitored parameter: temperature. Turbidity is next; further water quality parameters are
+  planned but not yet decided.
 - Readings that fall outside a safe range must be visually flagged, not just displayed as plain numbers.
 - Devices report frequently; the dashboard must show a per-reading last-updated time and flag a device as
   stale/offline when it stops reporting, rather than silently displaying an old value as current.
@@ -51,7 +51,7 @@ environmental-monitoring dashboard.
 ## Evidence on Hand
 
 Real temperature readings from a DS18B20 probe on one ESP32 unit have been verified flowing end-to-end
-(device → MQTT → backend → database → dashboard). No real dissolved oxygen or salinity data, historical
+(device → MQTT → backend → database → dashboard). No real turbidity data, historical
 readings at scale, screenshots, or a deployment site exist yet. Do not fabricate sample readings, site
 names, or device specs presented as real; use clearly-marked placeholder/sample data where a build needs
 example values beyond that one verified reading.
@@ -60,7 +60,7 @@ example values beyond that one verified reading.
 
 - Readings must be legible and trustworthy enough to support real pond-management decisions, not just
   look like a dashboard.
-- Design around temperature, dissolved oxygen, and salinity now, but structure the system so additional
+- Design around temperature now (turbidity next), but structure the system so additional
   water quality parameters can be added later without rework.
 - Built for a government aquaculture agency's field/operations staff — clarity, reliability, and
   scanability outrank cosmetic flourish.

@@ -59,9 +59,8 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
                 Water quality monitoring for BFAR Sorsogon fishponds
               </h2>
               <p className="max-w-[46ch] text-base leading-relaxed text-pretty text-board-muted">
-                A sensor unit at each pond reports temperature, dissolved
-                oxygen, and salinity. The board flags any reading that leaves
-                its safe range.
+                A sensor unit at each pond reports its water temperature. The
+                board flags any reading that leaves its safe range.
               </p>
             </div>
             <RangeKey />
@@ -104,7 +103,7 @@ function Wordmark({
 // The safe/warning/critical bands drawn as one segmented bar per parameter, so the colors on the
 // board mean something before anyone signs in. A signed-out page has no pond to ask, so these are
 // the unclassified-pond bands (SIGNED_OUT_THRESHOLDS) rather than any real pond's — once signed in,
-// a pond stocked for fresh or salt water is judged against its own salinity range.
+// each pond is judged against the thresholds the server resolves for its type.
 function RangeKey() {
   return (
     <div className="flex flex-col gap-4">
