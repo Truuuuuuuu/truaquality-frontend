@@ -11,6 +11,9 @@ node_modules
 dist
 dist-ssr
 *.local
+# *.local catches .env.local but not a plain .env, or .env.production/.env.development
+.env
+.env.*
 
 # Editor directories and files
 .vscode/*
