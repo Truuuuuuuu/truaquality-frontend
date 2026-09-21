@@ -1,4 +1,4 @@
-import { Cpu, WifiOff } from "lucide-react"
+import { Cpu, Wifi, WifiOff } from "lucide-react"
 import { cn } from "cn"
 import type { Pond } from "@/lib/api"
 import { formatRelative } from "@/lib/format-time"
@@ -7,18 +7,38 @@ import { isDeviceOnline } from "@/lib/pond-status"
 // The device serial/model — or the "no device" fallback text when none is assigned. No wrapping
 // element of its own, so a caller can combine it inline with PondConnectionStatus (PondDeviceMeta,
 // below) or place it on its own line elsewhere (the dashboard's pond header).
-export function PondDeviceIdentity({ pond }: { pond: Pond }) {
+export function PondDeviceIdentity({
+  pond,
+  now,
+}: {
+  pond: Pond
+  now?: number
+}) {
   const device = pond.device
   if (!device) {
     return (
       <>No monitoring device assigned — assign one from the Devices page.</>
     )
   }
+  // The SSID is the last network the unit reported, so once it is offline the value is history:
+  // dim it and say so rather than presenting it as the current connection.
+  const stale = now !== undefined && !isDeviceOnline(device.lastSeenAt, now)
   return (
     <>
       <Cpu className="size-3" />
       <span className="font-heading">{device.serial}</span>
       {device.hardwareModel ? <span>· {device.hardwareModel}</span> : null}
+      <span
+        className={cn(
+          "inline-flex items-center gap-1",
+          stale && "text-board-stale"
+        )}
+      >
+        <Wifi className="size-3" />
+        {device.wifiSsid
+          ? `${stale ? "last known " : ""}${device.wifiSsid}`
+          : "WiFi not reported yet"}
+      </span>
     </>
   )
 }
@@ -65,7 +85,7 @@ type PondDeviceMetaProps = {
 export function PondDeviceMeta({ pond, now, className }: PondDeviceMetaProps) {
   const device = pond.device
   const identityLabel = device
-    ? `Device ${device.serial}${device.hardwareModel ? `, ${device.hardwareModel}` : ""}`
+    ? `Device ${device.serial}${device.hardwareModel ? `, ${device.hardwareModel}` : ""}, WiFi ${device.wifiSsid ?? "not reported yet"}`
     : "No monitoring device assigned"
   const connectionLabel = device
     ? device.lastSeenAt
@@ -83,7 +103,7 @@ export function PondDeviceMeta({ pond, now, className }: PondDeviceMetaProps) {
         className
       )}
     >
-      <PondDeviceIdentity pond={pond} />
+      <PondDeviceIdentity pond={pond} now={now} />
       {pond.device ? (
         <>
           <span>·</span>

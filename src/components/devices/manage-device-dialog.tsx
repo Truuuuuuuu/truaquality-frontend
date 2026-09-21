@@ -127,7 +127,8 @@ function ManageDeviceForm({
         <DialogTitle>{device.serial}</DialogTitle>
         <DialogDescription>
           Secret version {device.secretVersion} · firmware{" "}
-          {device.firmwareVersion ?? "unknown"}
+          {device.firmwareVersion ?? "unknown"} · WiFi{" "}
+          {device.wifiSsid ?? "not reported yet"}
         </DialogDescription>
       </DialogHeader>
 

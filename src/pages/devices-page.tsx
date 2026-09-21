@@ -174,6 +174,7 @@ export function DevicesPage() {
                       <TableHead>Pond</TableHead>
                       <TableHead>Last seen</TableHead>
                       <TableHead>Firmware</TableHead>
+                      <TableHead>WiFi</TableHead>
                       <TableHead>Status</TableHead>
                       {isAdmin ? (
                         <TableHead>
@@ -197,6 +198,7 @@ export function DevicesPage() {
                           : "Never"
                       }, ${online ? "online" : "offline"}`
                       const firmwareLabel = `Firmware: ${device.firmwareVersion ?? "none"}`
+                      const wifiLabel = `WiFi: ${device.wifiSsid ? `${online ? "" : "last known "}${device.wifiSsid}` : "not reported yet"}`
                       const statusLabel =
                         device.status === "DISABLED"
                           ? "Disabled"
@@ -266,6 +268,20 @@ export function DevicesPage() {
                           >
                             {device.firmwareVersion ?? "—"}
                           </TableCell>
+                          <TableCell
+                            tabIndex={0}
+                            aria-label={wifiLabel}
+                            className={cn(
+                              "text-xs",
+                              device.wifiSsid && online
+                                ? "text-board-fg"
+                                : "text-board-muted"
+                            )}
+                          >
+                            {device.wifiSsid
+                              ? `${online ? "" : "last known "}${device.wifiSsid}`
+                              : "Not reported yet"}
+                          </TableCell>
                           <TableCell tabIndex={0} aria-label={statusLabel}>
                             {device.status === "DISABLED" ? (
                               <StatusBadge status="critical">
@@ -322,6 +338,7 @@ export function DevicesPage() {
                       : "Never"
                   }, ${online ? "online" : "offline"}`
                   const firmwareLabel = `Firmware: ${device.firmwareVersion ?? "none"}`
+                  const wifiLabel = `WiFi: ${device.wifiSsid ? `${online ? "" : "last known "}${device.wifiSsid}` : "not reported yet"}`
                   const statusLabel =
                     device.status === "DISABLED"
                       ? "Disabled"
@@ -441,6 +458,29 @@ export function DevicesPage() {
                         </span>
                         <span className="font-heading text-xs text-board-muted">
                           {device.firmwareVersion ?? "—"}
+                        </span>
+                      </div>
+
+                      <div
+                        tabIndex={0}
+                        role="group"
+                        aria-label={wifiLabel}
+                        className="board-groove flex items-center justify-between gap-3 px-4 py-2.5"
+                      >
+                        <span className="font-sans text-[0.65rem] tracking-[0.08em] text-board-muted uppercase">
+                          WiFi
+                        </span>
+                        <span
+                          className={cn(
+                            "text-xs",
+                            device.wifiSsid && online
+                              ? "text-board-fg"
+                              : "text-board-muted"
+                          )}
+                        >
+                          {device.wifiSsid
+                            ? `${online ? "" : "last known "}${device.wifiSsid}`
+                            : "Not reported yet"}
                         </span>
                       </div>
                     </div>

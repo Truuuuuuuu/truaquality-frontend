@@ -121,6 +121,8 @@ export type DeviceSummary = {
   pondId: string | null
   assignedAt: string | null
   firmwareVersion: string | null
+  // Last WiFi network the unit reported; null until a firmware >= 0.5.0 unit reports.
+  wifiSsid: string | null
   lastSeenAt: string | null
   createdAt: string
   updatedAt: string

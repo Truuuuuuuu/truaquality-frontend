@@ -152,12 +152,12 @@ export function DashboardPage() {
                   role="group"
                   aria-label={
                     selectedEntry.pond.device
-                      ? `Device ${selectedEntry.pond.device.serial}${selectedEntry.pond.device.hardwareModel ? `, ${selectedEntry.pond.device.hardwareModel}` : ""}`
+                      ? `Device ${selectedEntry.pond.device.serial}${selectedEntry.pond.device.hardwareModel ? `, ${selectedEntry.pond.device.hardwareModel}` : ""}, WiFi ${selectedEntry.pond.device.wifiSsid ?? "not reported yet"}`
                       : "No monitoring device assigned"
                   }
                   className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 font-sans text-xs text-board-muted"
                 >
-                  <PondDeviceIdentity pond={selectedEntry.pond} />
+                  <PondDeviceIdentity pond={selectedEntry.pond} now={now} />
                 </p>
               </div>
               <div
