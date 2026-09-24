@@ -18,7 +18,7 @@ pages `/login`, `/accept-invite`, and `/reset-password`, which share `AuthShell`
 - `/ponds/:pondId` — one pond's device info, a `ParameterTile` (value + 2 h trend) per parameter, and a
   read-only table of raw readings for the same 2 h window.
 - `/devices` — device registry; admins register units, assign them to ponds, disable them, and rotate their
-  secrets. Registering or rotating shows the unit's `DEVICE_ID`/`DEVICE_SECRET` once, for a technician to
+  secrets. Registering or rotating shows the unit's `DEVICE_ID`/`DEVICE_SECRET` once, for the admin to
   enter on the unit's field setup portal (see `firmware/CLAUDE.md`'s "Field provisioning" — there's no
   reflash). Units publish over MQTT to the broker, never to this app or its API.
 - `/notifications` — the signed-in user's alert notifications (all / unread, "load more"). The same feed also

@@ -304,7 +304,7 @@ export type UpdateDeviceInput = {
   pondId?: string | null
 }
 
-// What a technician enters on the unit's setup portal (see DeviceCredentialsNotice). The backend only returns
+// What an admin enters on the unit's setup portal (see DeviceCredentialsNotice). The backend only returns
 // it here and from rotateDeviceSecret.
 export type DeviceCredentials = {
   deviceId: string
