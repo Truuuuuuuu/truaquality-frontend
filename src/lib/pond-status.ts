@@ -5,6 +5,7 @@ import {
   statusFor,
   toReadingState,
   worstStatus,
+  type ParameterConfig,
   type ReadingPoint,
   type ReadingState,
   type ReadingStatus,
@@ -35,12 +36,61 @@ export function latestPondReadings(pond: Pond, now: number) {
   })
 }
 
-export function pondStatus(pond: Pond, now: number): ReadingStatus {
-  const statuses = latestPondReadings(pond, now).flatMap(({ reading }) =>
-    reading ? [reading.status] : []
+// How much a parameter's latest value can be trusted, per the tile state matrix (first match wins):
+// - unit_offline: no device, or the device itself went quiet. The existing whole-unit treatment covers
+//   it, so parameters are not flagged one by one (D-10).
+// - not_reported: this unit has never sent the parameter at all — no reading and no status for it, as
+//   with firmware older than 0.4.0 and turbidity (D-09). Not a fault, so it never counts as stale.
+// - silent: the unit is online but this parameter stopped (or never started) arriving (D-06).
+// - live: a current reading.
+export type ParameterSignal =
+  "unit_offline" | "not_reported" | "silent" | "live"
+
+export function parameterSignal(
+  pond: Pond,
+  parameterId: string,
+  now: number
+): ParameterSignal {
+  if (!pond.device || !isDeviceOnline(pond.device.lastSeenAt, now))
+    return "unit_offline"
+  const latest = pond.latest[parameterId]
+  if (!latest && !Object.hasOwn(pond.sensorStatus ?? {}, parameterId))
+    return "not_reported"
+  if (!latest || now - Date.parse(latest.recordedAt) > STALE_AFTER_MS)
+    return "silent"
+  return "live"
+}
+
+export function silentParameters(pond: Pond, now: number): ParameterConfig[] {
+  return PARAMETERS.filter(
+    (parameter) => parameterSignal(pond, parameter.id, now) === "silent"
   )
+}
+
+export function pondStatus(pond: Pond, now: number): ReadingStatus {
+  const statuses: ReadingStatus[] = latestPondReadings(pond, now).flatMap(
+    ({ reading }) => (reading ? [reading.status] : [])
+  )
+  // A parameter the unit reports a status for but has never delivered a value is silent too (D-06);
+  // one it has never mentioned contributes nothing, so old firmware doesn't pin the pond to the top of
+  // the board (D-09).
+  for (const parameter of PARAMETERS) {
+    if (
+      !pond.latest[parameter.id] &&
+      parameterSignal(pond, parameter.id, now) === "silent"
+    )
+      statuses.push("stale")
+  }
   // A pond that has never reported can't be vouched for, so it reads as stale rather than normal.
   return statuses.length === 0 ? "stale" : worstStatus(statuses)
+}
+
+export type PondReadingEntry = {
+  parameter: ParameterConfig
+  reading: ReadingState | null
+  signal: ParameterSignal
+  // The unit's own last status token for this sensor, or null when it never sent one.
+  sensorStatus: string | null
 }
 
 // One entry per monitored parameter (same order as PARAMETERS), built from a pond's fetched 2 h
@@ -52,7 +102,7 @@ export function pondReadingStates(
   pond: Pond,
   now: number,
   historyByParameter: Map<string, ReadingPoint[]>
-): { parameter: (typeof PARAMETERS)[number]; reading: ReadingState | null }[] {
+): PondReadingEntry[] {
   return PARAMETERS.map((parameter) => {
     let history = historyByParameter.get(parameter.id) ?? []
     const latest = pond.latest[parameter.id]
@@ -66,6 +116,8 @@ export function pondReadingStates(
       reading: threshold
         ? toReadingState(parameter, threshold, history, now)
         : null,
+      signal: parameterSignal(pond, parameter.id, now),
+      sensorStatus: pond.sensorStatus?.[parameter.id] ?? null,
     }
   })
 }
@@ -81,11 +133,17 @@ export function isDeviceOnline(lastSeenAt: string | null, now: number) {
   return lastSeenAt !== null && now - Date.parse(lastSeenAt) <= STALE_AFTER_MS
 }
 
-// Overrides the generic "stale" label ("No recent data") with the more specific reason, when the pond's
-// status is "stale" because of the device itself rather than, say, a freshly-assigned device with no data yet.
-// Returns null when the device is online — the default per-status label already covers that case.
+// Overrides the generic "stale" label ("No recent data") with the more specific reason: the device
+// itself ("No device" / "Offline"), or, with the unit online, which sensor went quiet ("No turbidity
+// reading" / "No reading from 2 sensors"). The sensor wording only applies while the pond reads stale,
+// so a Warning/Critical pond keeps its severity label (D-06). Returns null otherwise — the default
+// per-status label already covers it.
 export function pondConnectionLabel(pond: Pond, now: number): string | null {
   if (!pond.device) return "No device"
   if (!isDeviceOnline(pond.device.lastSeenAt, now)) return "Offline"
+  if (pondStatus(pond, now) !== "stale") return null
+  const silent = silentParameters(pond, now)
+  if (silent.length === 1) return `No ${silent[0].label.toLowerCase()} reading`
+  if (silent.length > 1) return `No reading from ${silent.length} sensors`
   return null
 }

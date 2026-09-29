@@ -27,7 +27,7 @@ import {
   type ParameterConfig,
   type ReadingState,
 } from "@/lib/parameters"
-import { pondReadingStates } from "@/lib/pond-status"
+import { pondReadingStates, type PondReadingEntry } from "@/lib/pond-status"
 import { STATUS_COLOR, STATUS_LABELS, STATUS_STYLES } from "@/lib/status-styles"
 
 type PondHistoryChartsProps = {
@@ -44,7 +44,7 @@ type PondHistoryChartsProps = {
 const TOOLTIP_WIDTH = 208
 const TOOLTIP_OFFSET = 12
 
-type Plottable = { parameter: ParameterConfig; reading: ReadingState }
+type Plottable = PondReadingEntry & { reading: ReadingState }
 
 function formatValue(parameter: ParameterConfig, value: number) {
   return `${value.toFixed(parameter.precision)} ${parameter.unit}`
