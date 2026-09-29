@@ -1,5 +1,5 @@
 import type { ComponentType } from "react"
-import { Gauge, Waves } from "lucide-react"
+import { Gauge } from "lucide-react"
 import type {
   DeviceEvent,
   DeviceHealth,
@@ -98,6 +98,21 @@ function statusText(token: string) {
     : { label: "Reported a fault", action: `Unit reported: ${token}` }
 }
 
+const SILENT_WIRING_HINT = "Check the probe's plug and wiring"
+
+// Why a parameter went quiet while its unit stays online, in the same words the device page uses:
+// reuses STATUS_TEXT so the board and the device page never describe a fault differently. "ok" or no
+// token means the unit didn't say why, so the reason is unknown rather than "Connected".
+export function silentReason(token: string | null | undefined): {
+  label: string
+  action: string
+} {
+  if (!token || token === "ok")
+    return { label: "No reason reported", action: SILENT_WIRING_HINT }
+  const text = statusText(token)
+  return { label: text.label, action: text.action ?? SILENT_WIRING_HINT }
+}
+
 export type SensorTone = "ok" | "fault" | "stale"
 
 export const SENSOR_TONE_STATUS: Record<SensorTone, ReadingStatus> = {
@@ -172,12 +187,6 @@ export type SensorDisplay = {
   icon: ComponentType<{ className?: string }>
 }
 
-// Only for a sensor the unit already reports before its parameter lands in PARAMETERS (turbidity today).
-// Display metadata only — no range numbers.
-const FALLBACK_DISPLAY: Record<string, SensorDisplay> = {
-  turbidity: { label: "Turbidity", unit: "NTU", precision: 1, icon: Waves },
-}
-
 export function sensorDisplay(parameter: string): SensorDisplay {
   const known = PARAMETER_BY_ID[parameter]
   if (known)
@@ -187,8 +196,6 @@ export function sensorDisplay(parameter: string): SensorDisplay {
       precision: known.precision,
       icon: PARAMETER_ICONS[parameter] ?? Gauge,
     }
-  if (Object.hasOwn(FALLBACK_DISPLAY, parameter))
-    return FALLBACK_DISPLAY[parameter]
   return {
     label: parameter.charAt(0).toUpperCase() + parameter.slice(1),
     unit: "",

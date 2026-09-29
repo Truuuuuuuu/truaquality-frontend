@@ -1,5 +1,5 @@
 import type { ComponentType } from "react"
-import { Thermometer } from "lucide-react"
+import { Thermometer, Waves } from "lucide-react"
 
 export type ReadingStatus = "nominal" | "warning" | "critical" | "stale"
 
@@ -13,6 +13,15 @@ export type ParameterConfig = {
   shortLabel: string
   unit: string
   precision: number
+  // The value is an estimate (a low-cost sensor, not a lab instrument), so every surface prefixes "≈"
+  // and says "approx." rather than presenting it as exact.
+  approximate?: boolean
+  // Tile foot copy explaining why the value is approximate.
+  approximateHint?: string
+  // The highest value the sensor can report. A reading here means "at least this", shown as "≥ N".
+  // A display limit only: never a threshold, never passed to severityFor/statusFor.
+  sensorCeiling?: number
+  ceilingHint?: string
 }
 
 // One parameter's safe/critical band for a particular pond, as `Pond.thresholds` carries it.
@@ -21,6 +30,10 @@ export type Threshold = {
   safeMax: number
   criticalMin: number
   criticalMax: number
+  // Mirrors the backend marker: the critical line is pending BFAR's figure and criticalMax is only a
+  // placeholder. While set, charts and range bars draw no critical band and keep the axis off the
+  // placeholder (D-02, D-03).
+  criticalPending?: boolean
 }
 
 export type ReadingPoint = { t: number; v: number }
@@ -43,6 +56,23 @@ export const PARAMETERS: ParameterConfig[] = [
     unit: "°C",
     precision: 1,
   },
+  {
+    id: "turbidity",
+    label: "Turbidity",
+    shortLabel: "Turb",
+    unit: "NTU",
+    precision: 1,
+    approximate: true,
+    approximateHint:
+      "Estimated by a low-cost optical sensor. Good for spotting trends, not a lab measurement.",
+    // The firmware clamps water muddier than it can measure to 3000 NTU (Phase 3 D-02), so a reading
+    // there means "at least this" and shows as "≥ 3000 NTU" (D-05). Kept as a frontend display
+    // constant because no endpoint carries per-parameter display metadata, and it is not an alert
+    // threshold.
+    sensorCeiling: 3000,
+    ceilingHint:
+      "Beyond what the sensor can measure. The water is at least this cloudy.",
+  },
 ]
 
 // Illustrative bands for the signed-out range key on the auth pages (components/auth-shell.tsx).
@@ -52,6 +82,13 @@ export const PARAMETERS: ParameterConfig[] = [
 // judges an actual reading may use these; live surfaces read `pond.thresholds`.
 export const SIGNED_OUT_THRESHOLDS: Record<string, Threshold> = {
   temperature: { safeMin: 26, safeMax: 31, criticalMin: 24, criticalMax: 33 },
+  turbidity: {
+    safeMin: 0,
+    safeMax: 25,
+    criticalMin: 0,
+    criticalMax: 3000,
+    criticalPending: true,
+  },
 }
 
 export const PARAMETER_ICONS: Record<
@@ -59,6 +96,7 @@ export const PARAMETER_ICONS: Record<
   ComponentType<{ className?: string }>
 > = {
   temperature: Thermometer,
+  turbidity: Waves,
 }
 
 export const PARAMETER_BY_ID: Record<string, ParameterConfig> =

@@ -148,6 +148,11 @@ export type Pond = {
   // The safe/critical band for each parameter, already resolved for this pond's type by the server —
   // the same numbers its alerts are raised from, so the board can't disagree with a notification.
   thresholds: Record<string, Threshold>
+  // The assigned unit's own last word on each sensor — status tokens such as ok, uncalibrated,
+  // no_signal, over_range (a newer firmware may send tokens this build doesn't know, hence string).
+  // A sensor absent from the map was never reported by this unit. Optional so an older backend
+  // degrades to "No reason reported" instead of breaking the board.
+  sensorStatus?: Record<string, string>
 }
 
 export type ApiReading = {
@@ -301,8 +306,9 @@ export type DeviceHealth = {
 }
 
 // `reportedStatus` is null for a unit on firmware older than 0.6.0 (it never says whether a probe is
-// plugged in), so the page has to infer that from reading times instead. `parameter` may be one the
-// frontend has no display metadata for yet (turbidity reports before it lands in PARAMETERS).
+// plugged in), so the page has to infer that from reading times instead. `parameter` may be a sensor
+// the frontend has no display metadata for yet (one a newer firmware reports before it lands in
+// PARAMETERS).
 export type SensorDiagnostics = {
   parameter: string
   lastReadingAt: string | null
@@ -346,21 +352,19 @@ export type UpdatePondInput = {
 }
 
 export function createPond(token: string, body: CreatePondInput) {
-  return request<{ pond: Omit<Pond, "device" | "latest" | "thresholds"> }>(
-    "/admin/ponds",
-    {
-      method: "POST",
-      body,
-      token,
-    }
-  )
+  return request<{
+    pond: Omit<Pond, "device" | "latest" | "thresholds" | "sensorStatus">
+  }>("/admin/ponds", {
+    method: "POST",
+    body,
+    token,
+  })
 }
 
 export function updatePond(token: string, id: string, body: UpdatePondInput) {
-  return request<{ pond: Omit<Pond, "device" | "latest" | "thresholds"> }>(
-    `/admin/ponds/${id}`,
-    { method: "PATCH", body, token }
-  )
+  return request<{
+    pond: Omit<Pond, "device" | "latest" | "thresholds" | "sensorStatus">
+  }>(`/admin/ponds/${id}`, { method: "PATCH", body, token })
 }
 
 export type CreateDeviceInput = {
