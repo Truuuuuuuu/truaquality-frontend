@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/context/auth-context"
 import { AcceptInvitePage } from "@/pages/accept-invite-page"
 import { AuditPage } from "@/pages/audit-page"
 import { DashboardPage } from "@/pages/dashboard-page"
+import { DeviceDetailPage } from "@/pages/device-detail-page"
 import { DevicesPage } from "@/pages/devices-page"
 import { LoginPage } from "@/pages/login-page"
 import { NotificationsPage } from "@/pages/notifications-page"
@@ -46,6 +47,7 @@ export function App() {
               <Route path="/ponds" element={<PondsPage />} />
               <Route path="/ponds/:pondId" element={<PondDetailPage />} />
               <Route path="/devices" element={<DevicesPage />} />
+              <Route path="/devices/:deviceId" element={<DeviceDetailPage />} />
               <Route path="/users" element={<UsersPage />} />
               <Route path="/audit" element={<AuditPage />} />
               <Route path="/notifications" element={<NotificationsPage />} />

@@ -207,10 +207,14 @@ export function DevicesPage() {
                             : "Offline"
                       return (
                         <TableRow key={device.id}>
-                          <TableCell tabIndex={0} aria-label={deviceLabel}>
-                            <p className="font-heading text-xs text-board-fg">
+                          <TableCell>
+                            <Link
+                              to={`/devices/${device.id}`}
+                              aria-label={deviceLabel}
+                              className="font-heading text-xs text-board-fg underline-offset-4 hover:underline"
+                            >
                               {device.serial}
-                            </p>
+                            </Link>
                             <p className="text-xs text-board-muted">
                               {[device.label, device.hardwareModel]
                                 .filter(Boolean)
@@ -354,15 +358,14 @@ export function DevicesPage() {
                       )}
                     >
                       <div className="flex items-start justify-between gap-3 px-4 pt-4 pb-3">
-                        <div
-                          tabIndex={0}
-                          role="group"
-                          aria-label={deviceLabel}
-                          className="flex min-w-0 flex-col gap-1"
-                        >
-                          <span className="truncate font-heading text-sm font-semibold text-board-fg">
+                        <div className="flex min-w-0 flex-col gap-1">
+                          <Link
+                            to={`/devices/${device.id}`}
+                            aria-label={deviceLabel}
+                            className="truncate font-heading text-sm font-semibold text-board-fg underline-offset-4 hover:underline"
+                          >
                             {device.serial}
-                          </span>
+                          </Link>
                           <span className="truncate font-sans text-xs text-board-muted">
                             {[device.label, device.hardwareModel]
                               .filter(Boolean)

@@ -24,6 +24,10 @@ pages `/login`, `/accept-invite`, and `/reset-password`, which share `AuthShell`
   secrets. Registering or rotating shows the unit's `DEVICE_ID`/`DEVICE_SECRET` once, for the admin to
   enter on the unit's field setup portal (see `firmware/CLAUDE.md`'s "Field provisioning" — there's no
   reflash). Units publish over MQTT to the broker, never to this app or its API.
+- `/devices/:deviceId` — one unit's detail page (linked from each serial on `/devices` and from "View details"
+  in the pond header's device disclosure): a status readout plus Assignment, Connection, Hardware, and
+  Registration panels, and admins get the same Manage dialog. There's no `GET /devices/:id`; the page reads
+  the device out of the cached `useDevices()` list.
 - `/notifications` — the signed-in user's alert notifications (all / unread, "load more"). The same feed also
   drives the bell (sidebar header on desktop, top bar on mobile) and toasts.
 - `/audit` — admin-only (same in-page `<Navigate>` guard as `/users`): the `AuditLog` trail of every admin

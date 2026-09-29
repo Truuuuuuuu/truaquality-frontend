@@ -199,6 +199,7 @@ The palette is a narrow, deliberately desaturated slate family for structure, wi
 ### Hierarchy
 - **Title** (500 weight, 36px, line-height 1.1, tabular-nums): the numeral on every parameter tile — the single largest recurring element on the dashboard, identical across all tiles.
 - **Headline** (600 weight, 18px, tracking tight): the page title ("BFAR Sorsogon Overview", "Ponds", "Devices").
+- **Entity title** (600 weight, 24px, line-height tight, tracking tight, balanced wrap): the name of the one thing a detail page is about (the pond name on `/ponds/:pondId`), one step above Headline because the page is *that pond* rather than a list. The pond header is a split title bar: identity on the left (the title, a 14px descriptor line with species in ink and "<type> pond" in muted, an optional 12px notes paragraph at a 65ch measure, and a 12px muted device/network reference line), and on the right a **status readout** — a small plate flooded with the pond's condition color exactly like a parameter tile (Whole-Tile Flood Rule), carrying a 10px LED, the condition in 14px semibold uppercase, then the connection ("last seen …") and the last reading time in mono. It replaces the badge beside the name; below `lg` it stacks under the identity.
 - **Label** (500 weight, 10.4px/0.65rem–11.2px/0.7rem, tracking 0.08em–0.14em, uppercase): parameter names and nav item labels.
 - **Mono/Stamp** (400 weight, 0.65rem, tracking 0.02em): every timestamp and relative-time stamp ("Board time", per-tile last-updated stamps).
 

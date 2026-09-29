@@ -2,11 +2,15 @@ import * as React from "react"
 import {
   AlertTriangle,
   ArrowLeft,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Cpu,
   Download,
   Filter,
   Gauge,
+  Waves,
+  Wifi,
   X,
 } from "lucide-react"
 import { Link, useParams } from "react-router"
@@ -15,11 +19,10 @@ import { Badge } from "@/components/ui/badge"
 import { BoardEmptyState } from "@/components/board-empty-state"
 import { ExportReadingsDialog } from "@/components/ponds/export-readings-dialog"
 import { HistoryRangePicker } from "@/components/ponds/history-range-picker"
-import { PondDeviceMeta } from "@/components/ponds/pond-device-meta"
+import { PondConnectionStatus } from "@/components/ponds/pond-device-meta"
 import { PondHistoryCharts } from "@/components/ponds/pond-history-charts"
 import { PondLiveReadings } from "@/components/ponds/pond-live-readings"
 import { ReadingsFilterDialog } from "@/components/ponds/readings-filter-dialog"
-import { StatusBadge } from "@/components/status-badge"
 import { Button } from "@/components/ui/button"
 import {
   Table,
@@ -35,7 +38,7 @@ import {
   usePondReadingsPage,
 } from "@/hooks/use-ponds"
 import { useNow } from "@/hooks/use-now"
-import { ApiError } from "@/lib/api"
+import { ApiError, type Pond } from "@/lib/api"
 import { formatClock, formatRelative } from "@/lib/format-time"
 import {
   DEFAULT_HISTORY_RANGE,
@@ -50,6 +53,12 @@ import {
   type ParameterConfig,
   type Threshold,
 } from "@/lib/parameters"
+import {
+  isDeviceOnline,
+  lastReadingAt,
+  pondConnectionLabel,
+  pondStatus,
+} from "@/lib/pond-status"
 import { pondTypeLabel } from "@/lib/pond-types"
 import { STATUS_LABELS, STATUS_STYLES } from "@/lib/status-styles"
 
@@ -178,44 +187,72 @@ export function PondDetailPage() {
     )
   }
 
+  const pondType = pondTypeLabel(pond.pondType)
+
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-8">
+      {/* Split title bar: who the pond is on the left, how it's doing on the right. The question someone
+          opens this page with — "is this pond OK, and is its unit still reporting?" — gets its own
+          readout instead of a badge tucked beside the name, and the device/network details drop to a
+          quiet reference line under the identity. */}
+      <header className="flex flex-col gap-3">
         {backLink}
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="font-sans text-lg font-semibold tracking-tight text-board-fg">
-            {pond.name}
-          </h1>
-          {pond.status === "ARCHIVED" ? (
-            <StatusBadge status="stale">Archived</StatusBadge>
-          ) : null}
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-8">
+          <div className="flex min-w-0 flex-col gap-3">
+            <div className="flex flex-col gap-1.5">
+              <h1 className="font-sans text-2xl leading-tight font-semibold tracking-tight text-balance text-board-fg">
+                {pond.name}
+              </h1>
+              {pond.fishSpecies || pondType ? (
+                <p
+                  tabIndex={0}
+                  role="group"
+                  aria-label={[
+                    pond.fishSpecies ? `Species: ${pond.fishSpecies}` : null,
+                    pondType ? `Pond type: ${pondType}` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(", ")}
+                  className="flex flex-wrap items-center gap-x-4 gap-y-1 font-sans text-sm"
+                >
+                  {/* The icons carry the "species" / "pond type" labels, so the two values read as two
+                      distinct facts without a separator dot between them. */}
+                  {pond.fishSpecies ? (
+                    <span className="inline-flex items-center gap-1.5 font-medium text-board-fg">
+                      <FishIcon
+                        className="size-4 shrink-0 text-board-muted"
+                        aria-hidden="true"
+                      />
+                      {pond.fishSpecies}
+                    </span>
+                  ) : null}
+                  {pondType ? (
+                    <span className="inline-flex items-center gap-1.5 text-board-muted">
+                      <Waves className="size-4 shrink-0" aria-hidden="true" />
+                      {pondType} pond
+                    </span>
+                  ) : null}
+                </p>
+              ) : null}
+            </div>
+
+            {pond.notes ? (
+              <p
+                tabIndex={0}
+                role="group"
+                aria-label={`Notes: ${pond.notes}`}
+                className="max-w-[65ch] font-sans text-xs leading-relaxed text-pretty text-board-muted"
+              >
+                {pond.notes}
+              </p>
+            ) : null}
+
+            {pond.device ? <DeviceDisclosure pond={pond} now={now} /> : null}
+          </div>
+
+          <PondStatusReadout pond={pond} now={now} />
         </div>
-        <PondDeviceMeta pond={pond} now={now} />
-        {pond.fishSpecies || pond.pondType ? (
-          <p
-            tabIndex={0}
-            role="group"
-            aria-label={[pond.fishSpecies, pondTypeLabel(pond.pondType)]
-              .filter(Boolean)
-              .join(", ")}
-            className="font-sans text-xs text-board-muted"
-          >
-            {[pond.fishSpecies, pondTypeLabel(pond.pondType)]
-              .filter(Boolean)
-              .join(" · ")}
-          </p>
-        ) : null}
-        {pond.notes ? (
-          <p
-            tabIndex={0}
-            role="group"
-            aria-label={`Notes: ${pond.notes}`}
-            className="font-sans text-xs text-board-muted"
-          >
-            {pond.notes}
-          </p>
-        ) : null}
-      </div>
+      </header>
 
       <PondLiveReadings pond={pond} now={now} />
 
@@ -435,5 +472,179 @@ function PivotedRow({
         )
       })}
     </TableRow>
+  )
+}
+
+// The right half of the pond header: the pond's condition as one flooded readout, the same whole-region
+// state color the parameter tiles use, so "Warning" here and a warning tile below read as one signal. The
+// second line answers the other half of "can I trust this?" — whether the unit is still reporting.
+function PondStatusReadout({ pond, now }: { pond: Pond; now: number }) {
+  const archived = pond.status === "ARCHIVED"
+  const status = archived ? "stale" : pondStatus(pond, now)
+  const label = archived
+    ? "Archived"
+    : (pondConnectionLabel(pond, now) ?? STATUS_LABELS[status])
+  const styles = STATUS_STYLES[status]
+  const lastReading = lastReadingAt(pond)
+
+  return (
+    <div
+      tabIndex={0}
+      role="group"
+      aria-label={[
+        `Pond condition: ${label}`,
+        pond.device
+          ? pond.device.lastSeenAt
+            ? `device last seen ${formatRelative(Date.parse(pond.device.lastSeenAt), now)}`
+            : "device never connected"
+          : "no device assigned",
+        lastReading ? `last reading at ${formatClock(lastReading)}` : null,
+      ]
+        .filter(Boolean)
+        .join(", ")}
+      className={cn(
+        "board-groove flex shrink-0 flex-col gap-2 rounded-xl border px-4 py-3 transition-colors duration-500 lg:min-w-60",
+        styles.tile
+      )}
+    >
+      <div className={cn("flex items-center gap-2.5", styles.label)}>
+        <span
+          className={cn("size-2.5 shrink-0 rounded-full", styles.led)}
+          aria-hidden="true"
+        />
+        <span className="font-sans text-sm font-semibold tracking-[0.08em] uppercase">
+          {label}
+        </span>
+      </div>
+      <div className="flex flex-col gap-0.5 pl-5 font-sans text-xs text-board-muted">
+        {pond.device ? (
+          <span className="inline-flex items-center gap-1">
+            {isDeviceOnline(pond.device.lastSeenAt, now) ? (
+              <Wifi className="size-3" aria-hidden="true" />
+            ) : null}
+            <PondConnectionStatus pond={pond} now={now} />
+          </span>
+        ) : (
+          <span>
+            No device assigned ·{" "}
+            <Link
+              to="/devices"
+              className="text-board-fg underline decoration-board-border-strong underline-offset-2 hover:decoration-board-fg"
+            >
+              Devices
+            </Link>
+          </span>
+        )}
+        {lastReading ? (
+          <span className="font-heading tabular-nums">
+            Last reading {formatClock(lastReading)}
+          </span>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+// Lucide's Fish is too busy at 16px (scales, fins) and its FishSymbol too abstract to read as a fish, so
+// this is a plain side-on fish drawn to lucide's grid and stroke (24 px box, 2 px round stroke): an oval
+// body, a forked tail, and an eye — just enough to be unmistakable next to the Waves icon.
+function FishIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M2 12c2.5-4 5.5-6 9-6s5.5 2.5 7 6c-1.5 3.5-3.5 6-7 6s-6.5-2-9-6Z" />
+      <path d="M18 12l4-4v8l-4-4" />
+      <path d="M6.5 11h.01" />
+    </svg>
+  )
+}
+
+// The unit reporting from this pond, reduced to its name by default: the model and WiFi network are
+// reference detail someone reaches for when troubleshooting, not something to read on every visit. A plain
+// disclosure button (aria-expanded + aria-controls) rather than a popover, so the detail pushes content down
+// in place and stays readable while someone compares it against the unit in the field.
+function DeviceDisclosure({ pond, now }: { pond: Pond; now: number }) {
+  const [open, setOpen] = React.useState(false)
+  const detailsId = React.useId()
+  const device = pond.device
+  if (!device) return null
+
+  const name = device.label ?? device.serial
+  // The SSID is the last network the unit reported, so once it's offline the value is history.
+  const online = isDeviceOnline(device.lastSeenAt, now)
+  const details = [
+    device.label ? { label: "Serial", value: device.serial, mono: true } : null,
+    {
+      label: "Model",
+      value: device.hardwareModel ?? "Not reported",
+      mono: false,
+    },
+    {
+      label: online || !device.wifiSsid ? "WiFi" : "Last known WiFi",
+      value: device.wifiSsid ?? "Not reported yet",
+      mono: false,
+    },
+  ].filter((detail) => detail !== null)
+
+  return (
+    <div className="flex flex-col gap-2">
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls={detailsId}
+        aria-label={`Device ${name}, ${open ? "hide" : "show"} device details`}
+        onClick={() => setOpen((value) => !value)}
+        className="group -mx-1.5 inline-flex w-fit items-center gap-1.5 rounded-md px-1.5 py-1 font-sans text-xs text-board-muted transition-colors hover:bg-board-panel-raised hover:text-board-fg"
+      >
+        <Cpu className="size-3.5 shrink-0" aria-hidden="true" />
+        <span className={cn(device.label ? "font-medium" : "font-heading")}>
+          {name}
+        </span>
+        <ChevronDown
+          className={cn(
+            "size-3.5 shrink-0 motion-safe:transition-transform motion-safe:duration-200",
+            open && "rotate-180"
+          )}
+          aria-hidden="true"
+        />
+      </button>
+      <dl
+        id={detailsId}
+        hidden={!open}
+        className="grid w-fit grid-cols-[auto_1fr] gap-x-4 gap-y-1 border-l border-board-border-strong pl-3 font-sans text-xs"
+      >
+        {details.map((detail) => (
+          <React.Fragment key={detail.label}>
+            <dt className="text-board-muted">{detail.label}</dt>
+            <dd
+              className={cn(
+                "text-board-fg",
+                detail.mono && "font-heading",
+                detail.label === "Last known WiFi" && "text-board-stale"
+              )}
+            >
+              {detail.value}
+            </dd>
+          </React.Fragment>
+        ))}
+        <dd className="col-span-2 pt-1">
+          <Link
+            to={`/devices/${device.id}`}
+            className="inline-flex items-center gap-1 font-medium text-board-fg underline decoration-board-border-strong underline-offset-2 hover:decoration-board-fg"
+          >
+            View details
+            <ChevronRight className="size-3.5" aria-hidden="true" />
+          </Link>
+        </dd>
+      </dl>
+    </div>
   )
 }
