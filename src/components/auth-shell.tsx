@@ -10,6 +10,7 @@ import {
 import { Link } from "react-router"
 import { cn } from "cn"
 import { ModeToggle } from "@/components/mode-toggle"
+import { hasLowSide } from "@/lib/chart-scale"
 import {
   PARAMETER_ICONS,
   PARAMETERS,
@@ -59,8 +60,9 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
                 Water quality monitoring for BFAR Sorsogon fishponds
               </h2>
               <p className="max-w-[46ch] text-base leading-relaxed text-pretty text-board-muted">
-                A sensor unit at each pond reports its water temperature. The
-                board flags any reading that leaves its safe range.
+                A sensor unit at each pond reports its water temperature and
+                turbidity. The board flags any reading that leaves its safe
+                range.
               </p>
             </div>
             <RangeKey />
@@ -124,7 +126,14 @@ function RangeKey() {
                 {Icon ? (
                   <Icon className="size-4 shrink-0 text-board-muted" />
                 ) : null}
-                {parameter.label}
+                <span className="flex items-baseline gap-1">
+                  {parameter.label}
+                  {parameter.approximate ? (
+                    <span className="text-xs font-normal text-board-muted">
+                      approx.
+                    </span>
+                  ) : null}
+                </span>
               </span>
               <RangeBar
                 threshold={threshold}
@@ -166,13 +175,22 @@ function RangeBar({
   const { criticalMin, safeMin, safeMax, criticalMax } = threshold
   // Extends past the critical limits so the critical zones read as open-ended bands, not slivers.
   const pad = (criticalMax - criticalMin) * 0.25
-  const bands = [
-    { size: pad, className: "bg-board-critical/75" },
-    { size: safeMin - criticalMin, className: "bg-board-warn/75" },
-    { size: safeMax - safeMin, className: "bg-board-accent" },
-    { size: criticalMax - safeMax, className: "bg-board-warn/75" },
-    { size: pad, className: "bg-board-critical/75" },
-  ]
+  // While BFAR's critical line is still pending (D-02) there is no critical band to draw, and a
+  // parameter whose safe and critical minimums coincide has no low side. Zero-size segments are left
+  // out entirely, because an empty span would still leave a visible 3px gap.
+  const bands =
+    threshold.criticalPending && !hasLowSide(threshold)
+      ? [
+          { size: safeMax - safeMin, className: "bg-board-accent" },
+          { size: safeMax - safeMin, className: "bg-board-warn/75" },
+        ]
+      : [
+          { size: pad, className: "bg-board-critical/75" },
+          { size: safeMin - criticalMin, className: "bg-board-warn/75" },
+          { size: safeMax - safeMin, className: "bg-board-accent" },
+          { size: criticalMax - safeMax, className: "bg-board-warn/75" },
+          { size: pad, className: "bg-board-critical/75" },
+        ]
 
   return (
     <span
