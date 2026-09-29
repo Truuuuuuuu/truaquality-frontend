@@ -18,8 +18,9 @@ import {
 import { useAuth } from "@/context/auth-context"
 import { usePonds } from "@/hooks/use-ponds"
 import { useNow } from "@/hooks/use-now"
-import type { Pond } from "@/lib/api"
+import type { Pond, PondType } from "@/lib/api"
 import { formatRelative } from "@/lib/format-time"
+import { POND_TYPES } from "@/lib/pond-types"
 import {
   lastReadingAt,
   pondConnectionLabel,
@@ -32,12 +33,25 @@ import { STATUS_LABELS, STATUS_STYLES } from "@/lib/status-styles"
 // not a reading, so an archived pond is still bucketed by the condition it last reported.
 type ConditionFilter = "ALL" | ReadingStatus
 type LifecycleFilter = "ALL" | "ACTIVE" | "ARCHIVED"
+type PondTypeFilter = "ALL" | PondType | "UNSET"
 
 const LIFECYCLE_OPTIONS = [
   { value: "ALL", label: "All ponds" },
   { value: "ACTIVE", label: "Active" },
   { value: "ARCHIVED", label: "Archived" },
 ] as const satisfies readonly { value: LifecycleFilter; label: string }[]
+
+const POND_TYPE_OPTIONS = [
+  { value: "ALL", label: "All types" },
+  ...POND_TYPES,
+  { value: "UNSET", label: "Type not set" },
+] as const satisfies readonly { value: PondTypeFilter; label: string }[]
+
+function matchesPondType(pond: Pond, filter: PondTypeFilter) {
+  if (filter === "ALL") return true
+  if (filter === "UNSET") return pond.pondType === null
+  return pond.pondType === filter
+}
 
 function matchesSearch(pond: Pond, query: string) {
   return [pond.name, pond.notes, pond.fishSpecies, pond.device?.serial].some(
@@ -58,11 +72,13 @@ export function PondsPage() {
   const [search, setSearch] = React.useState("")
   const [condition, setCondition] = React.useState<ConditionFilter>("ALL")
   const [lifecycle, setLifecycle] = React.useState<LifecycleFilter>("ALL")
+  const [pondType, setPondType] = React.useState<PondTypeFilter>("ALL")
 
   function clearFilters() {
     setSearch("")
     setCondition("ALL")
     setLifecycle("ALL")
+    setPondType("ALL")
   }
 
   function openDialog(pond: Pond | null) {
@@ -78,10 +94,11 @@ export function PondsPage() {
 
   const query = search.trim().toLowerCase()
   // Counts sit on the condition chips, so they're taken before the condition filter but after the
-  // other two — clicking a chip then shows exactly the number it advertised.
+  // others — clicking a chip then shows exactly the number it advertised.
   const narrowed = all.filter(
     (pond) =>
       (query === "" || matchesSearch(pond, query)) &&
+      matchesPondType(pond, pondType) &&
       (lifecycle === "ALL" ||
         (lifecycle === "ARCHIVED") === (pond.status === "ARCHIVED"))
   )
@@ -146,6 +163,12 @@ export function PondsPage() {
               value: condition,
               onChange: setCondition,
               options: conditionOptions,
+            }}
+            extraSelect={{
+              label: "Filter by pond type",
+              value: pondType,
+              onChange: setPondType,
+              options: POND_TYPE_OPTIONS,
             }}
             select={{
               label: "Filter by archive state",

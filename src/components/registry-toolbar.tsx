@@ -31,22 +31,65 @@ type SelectFilter<T extends string> = {
   options: readonly { value: T; label: string }[]
 }
 
-type RegistryToolbarProps<C extends string, S extends string> = {
+type RegistryToolbarProps<
+  C extends string,
+  S extends string,
+  T extends string,
+> = {
   search: string
   onSearchChange: (search: string) => void
   /** Shown in the field and read to screen readers — name the columns it actually searches. */
   searchLabel: string
   chips: ChipFilter<C>
   select?: SelectFilter<S>
+  /** A second secondary axis, sitting just before `select` at the right edge. */
+  extraSelect?: SelectFilter<T>
 }
 
-export function RegistryToolbar<C extends string, S extends string = string>({
+function SelectControl<S extends string>({
+  select,
+  className,
+}: {
+  select: SelectFilter<S>
+  className?: string
+}) {
+  return (
+    <Select
+      items={select.options.map(({ value, label }) => ({ value, label }))}
+      value={select.value}
+      onValueChange={(next) =>
+        select.onChange((next ?? select.options[0].value) as S)
+      }
+    >
+      <SelectTrigger
+        aria-label={select.label}
+        className={cn("w-36", className)}
+      >
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {select.options.map((option) => (
+          <SelectItem key={option.value} value={option.value}>
+            {option.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
+}
+
+export function RegistryToolbar<
+  C extends string,
+  S extends string = string,
+  T extends string = string,
+>({
   search,
   onSearchChange,
   searchLabel,
   chips,
   select,
-}: RegistryToolbarProps<C, S>) {
+  extraSelect,
+}: RegistryToolbarProps<C, S, T>) {
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
       <div className="relative w-full sm:w-100">
@@ -109,27 +152,16 @@ export function RegistryToolbar<C extends string, S extends string = string>({
         })}
       </div>
 
+      {/* Pushed to the right edge only once the toolbar is a single row; stacked, they stay in the
+          left-aligned column with the controls above them instead of floating off alone. */}
+      {extraSelect ? (
+        <SelectControl select={extraSelect} className="sm:ml-auto" />
+      ) : null}
       {select ? (
-        <Select
-          items={select.options.map(({ value, label }) => ({ value, label }))}
-          value={select.value}
-          onValueChange={(next) =>
-            select.onChange((next ?? select.options[0].value) as S)
-          }
-        >
-          {/* Pushed to the right edge only once the toolbar is a single row; stacked, it stays in
-              the left-aligned column with the controls above it instead of floating off alone. */}
-          <SelectTrigger aria-label={select.label} className="w-36 sm:ml-auto">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {select.options.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <SelectControl
+          select={select}
+          className={extraSelect ? undefined : "sm:ml-auto"}
+        />
       ) : null}
     </div>
   )
