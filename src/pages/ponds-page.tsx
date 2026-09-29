@@ -3,6 +3,7 @@ import { AlertTriangle, Cpu, Plus, SearchX, Waves } from "lucide-react"
 import { Link } from "react-router"
 import { cn } from "cn"
 import { BoardEmptyState } from "@/components/board-empty-state"
+import { BoardPager } from "@/components/board-pager"
 import { RegistryToolbar } from "@/components/registry-toolbar"
 import { PondFormDialog } from "@/components/ponds/pond-form-dialog"
 import { StatusBadge } from "@/components/status-badge"
@@ -28,6 +29,10 @@ import {
 } from "@/lib/pond-status"
 import type { ReadingStatus } from "@/lib/parameters"
 import { STATUS_LABELS, STATUS_STYLES } from "@/lib/status-styles"
+
+// One office's ponds, so the whole registry arrives in a single request and search, filtering, and
+// paging all run here rather than as query parameters on the backend.
+const PAGE_SIZE = 10
 
 // Condition and lifecycle are independent axes: archiving a pond is a decision about the record,
 // not a reading, so an archived pond is still bucketed by the condition it last reported.
@@ -73,12 +78,34 @@ export function PondsPage() {
   const [condition, setCondition] = React.useState<ConditionFilter>("ALL")
   const [lifecycle, setLifecycle] = React.useState<LifecycleFilter>("ALL")
   const [pondType, setPondType] = React.useState<PondTypeFilter>("ALL")
+  const [page, setPage] = React.useState(1)
+
+  function changeSearch(next: string) {
+    setSearch(next)
+    setPage(1)
+  }
+
+  function changeCondition(next: ConditionFilter) {
+    setCondition(next)
+    setPage(1)
+  }
+
+  function changeLifecycle(next: LifecycleFilter) {
+    setLifecycle(next)
+    setPage(1)
+  }
+
+  function changePondType(next: PondTypeFilter) {
+    setPondType(next)
+    setPage(1)
+  }
 
   function clearFilters() {
     setSearch("")
     setCondition("ALL")
     setLifecycle("ALL")
     setPondType("ALL")
+    setPage(1)
   }
 
   function openDialog(pond: Pond | null) {
@@ -115,8 +142,22 @@ export function PondsPage() {
     label: string
     count: number
   }[]
-  const rows = narrowed.filter(
+  const filtered = narrowed.filter(
     (pond) => condition === "ALL" || pondStatus(pond, now) === condition
+  )
+
+  const hasFilters =
+    query !== "" ||
+    condition !== "ALL" ||
+    lifecycle !== "ALL" ||
+    pondType !== "ALL"
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  // Clamped rather than corrected in an effect: the 30 s poll can shrink the list under a page
+  // number that was valid when it was set.
+  const currentPage = Math.min(page, pageCount)
+  const rows = filtered.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
   )
 
   return (
@@ -156,29 +197,29 @@ export function PondsPage() {
         <>
           <RegistryToolbar
             search={search}
-            onSearchChange={setSearch}
+            onSearchChange={changeSearch}
             searchLabel="Find by pond, note, or device"
             chips={{
               label: "Filter by condition",
               value: condition,
-              onChange: setCondition,
+              onChange: changeCondition,
               options: conditionOptions,
             }}
             extraSelect={{
               label: "Filter by pond type",
               value: pondType,
-              onChange: setPondType,
+              onChange: changePondType,
               options: POND_TYPE_OPTIONS,
             }}
             select={{
               label: "Filter by archive state",
               value: lifecycle,
-              onChange: setLifecycle,
+              onChange: changeLifecycle,
               options: LIFECYCLE_OPTIONS,
             }}
           />
 
-          {rows.length === 0 ? (
+          {filtered.length === 0 ? (
             <BoardEmptyState
               icon={SearchX}
               action={
@@ -374,6 +415,22 @@ export function PondsPage() {
                   )
                 })}
               </div>
+
+              <BoardPager
+                page={currentPage}
+                pageSize={PAGE_SIZE}
+                total={filtered.length}
+                onPageChange={setPage}
+                noun={
+                  hasFilters
+                    ? filtered.length === 1
+                      ? "match"
+                      : "matches"
+                    : filtered.length === 1
+                      ? "pond"
+                      : "ponds"
+                }
+              />
             </>
           )}
         </>
