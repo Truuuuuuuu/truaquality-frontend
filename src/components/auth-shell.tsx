@@ -173,24 +173,28 @@ function RangeBar({
   style: React.CSSProperties
 }) {
   const { criticalMin, safeMin, safeMax, criticalMax } = threshold
+  const pending = threshold.criticalPending === true
   // Extends past the critical limits so the critical zones read as open-ended bands, not slivers.
-  const pad = (criticalMax - criticalMin) * 0.25
-  // While BFAR's critical line is still pending (D-02) there is no critical band to draw, and a
-  // parameter whose safe and critical minimums coincide has no low side. Zero-size segments are left
-  // out entirely, because an empty span would still leave a visible 3px gap.
-  const bands =
-    threshold.criticalPending && !hasLowSide(threshold)
+  // While BFAR's critical line is pending, criticalMax is a placeholder, so nothing is sized from it.
+  const pad = ((pending ? safeMax : criticalMax) - criticalMin) * 0.25
+  // Built side by side: a parameter whose safe and critical minimums coincide has no low side, and
+  // while the critical line is pending (D-02) there is no high critical band and the warning segment
+  // is open-ended rather than running to the placeholder. Zero-size segments are left out entirely,
+  // because an empty span would still leave a visible 3px gap.
+  const bands = [
+    ...(hasLowSide(threshold)
       ? [
-          { size: safeMax - safeMin, className: "bg-board-accent" },
-          { size: safeMax - safeMin, className: "bg-board-warn/75" },
-        ]
-      : [
           { size: pad, className: "bg-board-critical/75" },
           { size: safeMin - criticalMin, className: "bg-board-warn/75" },
-          { size: safeMax - safeMin, className: "bg-board-accent" },
-          { size: criticalMax - safeMax, className: "bg-board-warn/75" },
-          { size: pad, className: "bg-board-critical/75" },
         ]
+      : []),
+    { size: safeMax - safeMin, className: "bg-board-accent" },
+    {
+      size: pending ? safeMax - safeMin : criticalMax - safeMax,
+      className: "bg-board-warn/75",
+    },
+    ...(pending ? [] : [{ size: pad, className: "bg-board-critical/75" }]),
+  ].filter((band) => band.size > 0)
 
   return (
     <span
