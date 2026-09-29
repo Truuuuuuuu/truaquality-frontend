@@ -126,7 +126,11 @@ URLs. The same page, mounted at `/reset-password` with `mode="recovery"`, handle
     auth pages, which have no pond to ask and no token to ask with. Nothing that judges a real reading may
     use it.
 - `src/lib/pond-status.ts` — derives a pond's per-parameter readings and overall (worst) status from the
-  `latest` map the API returns. `src/lib/status-styles.ts` — shared status colors/labels for tiles, cards, and
+  `latest` map the API returns. `parameterSignal` scopes that pond-wide map to the current unit (readings
+  before `device.assignedAt` are ignored) and calls a parameter "not reported" (never stale) only when the unit
+  is known not to send it: its `sensorStatus` map omits it, or its `firmwareVersion` is older than the
+  parameter's `sinceFirmware` in `PARAMETERS` (turbidity: 0.4.0). Set `sinceFirmware` on any parameter added
+  after the first firmware release; otherwise a unit that lacks it pins its pond to stale. `src/lib/status-styles.ts` — shared status colors/labels for tiles, cards, and
   `StatusBadge`.
 - **Notifications** are raised by the backend when a reading goes out of range (see `backend/CLAUDE.md`,
   "Alerts and notifications") or a device goes offline/recovers (`backend/CLAUDE.md`, "Device-offline
