@@ -86,7 +86,7 @@ export const PARAMETERS: ParameterConfig[] = [
 // has classified yet — which is the honest reading for "some pond, type unknown". Nothing that
 // judges an actual reading may use these; live surfaces read `pond.thresholds`.
 export const SIGNED_OUT_THRESHOLDS: Record<string, Threshold> = {
-  temperature: { safeMin: 26, safeMax: 31, criticalMin: 24, criticalMax: 33 },
+  temperature: { safeMin: 20, safeMax: 30, criticalMin: 15, criticalMax: 35.5 },
   turbidity: {
     safeMin: 0,
     safeMax: 25,

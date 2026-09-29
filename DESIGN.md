@@ -207,7 +207,7 @@ Signed-out surface roles (Inter unless noted):
 - **Rail headline** (600 weight, 30px stepping to 36px at `xl`, line-height 1.15, tracking -0.025em, balanced wrap): the one product statement on the auth rail. It is the largest Inter setting in the app and appears nowhere on the board.
 - **Panel title** (600 weight, 24px, line-height tight, tracking -0.02em, balanced wrap): the auth panel heading. It owns its row outright — nothing sits beside it — which is what lets it run two steps above body text without crowding.
 - **Field label and body** (500 weight / 400 weight, 14px): field labels, panel descriptions, the invite note; field input text is 16px so mobile browsers never zoom on focus.
-- **Range value** (Geist Mono, 12px, tabular-nums): the safe range beside each range bar ("26–31 °C"). It is a real threshold, so it takes mono; parameter names beside it stay Inter.
+- **Range value** (Geist Mono, 12px, tabular-nums): the safe range beside each range bar ("20–30 °C"). It is a real threshold, so it takes mono; parameter names beside it stay Inter.
 
 ### Named Rules
 **The Equal-Tiles Rule.** No parameter tile is scaled up into a "hero" reading — every tile shares the same numeral size (36px), padding, and sparkline height. Visual hierarchy across tiles is expressed only through state color (nominal/warning/critical/stale), never through a size difference between parameters. (An earlier iteration promoted Temperature to a larger "flagship" tile; that pattern was retired so a third or fourth parameter has no special case to imitate or break.)
