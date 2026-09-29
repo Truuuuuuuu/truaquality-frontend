@@ -3,6 +3,7 @@ import { AlertTriangle, Cpu, Plus, SearchX } from "lucide-react"
 import { Link } from "react-router"
 import { cn } from "cn"
 import { BoardEmptyState } from "@/components/board-empty-state"
+import { BoardPager } from "@/components/board-pager"
 import { RegistryToolbar } from "@/components/registry-toolbar"
 import { ManageDeviceDialog } from "@/components/devices/manage-device-dialog"
 import { RegisterDeviceDialog } from "@/components/devices/register-device-dialog"
@@ -23,6 +24,10 @@ import type { Device } from "@/lib/api"
 import { formatRelative } from "@/lib/format-time"
 import { isDeviceOnline } from "@/lib/pond-status"
 import { STATUS_STYLES } from "@/lib/status-styles"
+
+// One office's fleet, so the whole device list arrives in a single request and search, filtering,
+// and paging all run here rather than as query parameters on the backend.
+const PAGE_SIZE = 10
 
 // A unit is exactly one of these: disabled beats reachability, because a disabled unit's silence
 // is a decision rather than a fault.
@@ -64,11 +69,28 @@ export function DevicesPage() {
   const [search, setSearch] = React.useState("")
   const [state, setState] = React.useState<StateFilter>("ALL")
   const [assignment, setAssignment] = React.useState<AssignmentFilter>("ALL")
+  const [page, setPage] = React.useState(1)
+
+  function changeSearch(next: string) {
+    setSearch(next)
+    setPage(1)
+  }
+
+  function changeState(next: StateFilter) {
+    setState(next)
+    setPage(1)
+  }
+
+  function changeAssignment(next: AssignmentFilter) {
+    setAssignment(next)
+    setPage(1)
+  }
 
   function clearFilters() {
     setSearch("")
     setState("ALL")
     setAssignment("ALL")
+    setPage(1)
   }
 
   const all = devices ?? []
@@ -93,8 +115,18 @@ export function DevicesPage() {
     label: string
     count: number
   }[]
-  const rows = narrowed.filter(
+  const filtered = narrowed.filter(
     (device) => state === "ALL" || deviceState(device, now) === state
+  )
+
+  const hasFilters = query !== "" || state !== "ALL" || assignment !== "ALL"
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  // Clamped rather than corrected in an effect: the 30 s poll can shrink the list under a page
+  // number that was valid when it was set.
+  const currentPage = Math.min(page, pageCount)
+  const rows = filtered.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
   )
 
   return (
@@ -134,23 +166,23 @@ export function DevicesPage() {
         <>
           <RegistryToolbar
             search={search}
-            onSearchChange={setSearch}
+            onSearchChange={changeSearch}
             searchLabel="Find by serial, label, or pond"
             chips={{
               label: "Filter by status",
               value: state,
-              onChange: setState,
+              onChange: changeState,
               options: stateOptions,
             }}
             select={{
               label: "Filter by pond assignment",
               value: assignment,
-              onChange: setAssignment,
+              onChange: changeAssignment,
               options: ASSIGNMENT_OPTIONS,
             }}
           />
 
-          {rows.length === 0 ? (
+          {filtered.length === 0 ? (
             <BoardEmptyState
               icon={SearchX}
               action={
@@ -490,6 +522,22 @@ export function DevicesPage() {
                   )
                 })}
               </div>
+
+              <BoardPager
+                page={currentPage}
+                pageSize={PAGE_SIZE}
+                total={filtered.length}
+                onPageChange={setPage}
+                noun={
+                  hasFilters
+                    ? filtered.length === 1
+                      ? "match"
+                      : "matches"
+                    : filtered.length === 1
+                      ? "device"
+                      : "devices"
+                }
+              />
             </>
           )}
         </>
