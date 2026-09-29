@@ -40,6 +40,7 @@ import {
 import { useNow } from "@/hooks/use-now"
 import { ApiError, type Pond } from "@/lib/api"
 import { formatClock, formatRelative } from "@/lib/format-time"
+import { formatReading } from "@/lib/reading-format"
 import {
   DEFAULT_HISTORY_RANGE,
   historyRangeKey,
@@ -458,6 +459,7 @@ function PivotedRow({
           )
         }
         const severity = severityFor(threshold, value)
+        const shown = formatReading(parameter, value)
         return (
           <TableCell
             key={parameter.id}
@@ -466,8 +468,20 @@ function PivotedRow({
               STATUS_STYLES[severity].value
             )}
           >
-            {value.toFixed(parameter.precision)} {parameter.unit}
-            <span className="sr-only"> — {STATUS_LABELS[severity]}</span>
+            {shown.prefix ? (
+              // "≈" and "≥" read inconsistently in screen readers, so the spoken form replaces the glyphs.
+              <>
+                <span aria-hidden="true">{shown.text}</span>
+                <span className="sr-only">
+                  {shown.spoken}, {STATUS_LABELS[severity]}
+                </span>
+              </>
+            ) : (
+              <>
+                {shown.number} {shown.unit}
+                <span className="sr-only"> — {STATUS_LABELS[severity]}</span>
+              </>
+            )}
           </TableCell>
         )
       })}
