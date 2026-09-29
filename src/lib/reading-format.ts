@@ -13,9 +13,11 @@ export type FormattedReading = {
   atCeiling: boolean
 }
 
+// Exactly the ceiling: the firmware clamps muddier water to it. A value above it can only come from a
+// refitted curve (the backend accepts up to its bounds), so it is a real measurement, shown as itself.
 function isAtCeiling(parameter: ParameterConfig, value: number) {
   return (
-    parameter.sensorCeiling !== undefined && value >= parameter.sensorCeiling
+    parameter.sensorCeiling !== undefined && value === parameter.sensorCeiling
   )
 }
 

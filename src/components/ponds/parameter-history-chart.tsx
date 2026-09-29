@@ -108,7 +108,8 @@ export function formatShare(share: number) {
   return `${Math.round(share * 100)}%`
 }
 
-type Band = { y1: number; y2: number }
+// `clipOnly` bands color the line but paint no zone tint.
+type Band = { y1: number; y2: number; clipOnly?: boolean }
 
 // One parameter's history in its own units, drawn against its own safe and critical edges. The line is
 // painted three times through zone clip paths, so each stretch takes the color of the zone it passes
@@ -204,7 +205,14 @@ export function ParameterHistoryChart({
           { y1: -10, y2: ySafeMax },
           ...(lowSide ? [{ y1: ySafeMin, y2: yCritMin }] : []),
         ],
-        critical: lowSide ? [{ y1: yCritMin, y2: innerHeight + 10 }] : [],
+        // The backend still judges a value above the placeholder critical (severityFor is unchanged
+        // while pending, D-03), so the line turns red there to match the header, markers and alert. It
+        // is clip-only, so no critical band is drawn (D-02), and it sits off the plot unless the data
+        // actually goes past the placeholder. Painted after warning, so it wins where they overlap.
+        critical: [
+          { y1: -10, y2: yCritMax, clipOnly: true },
+          ...(lowSide ? [{ y1: yCritMin, y2: innerHeight + 10 }] : []),
+        ],
       }
     : {
         nominal: [{ y1: ySafeMax, y2: ySafeMin }],
@@ -422,6 +430,7 @@ export function ParameterHistoryChart({
             {/* Zone tints */}
             {(["nominal", "warning", "critical"] as const).flatMap((zone) =>
               zones[zone].map((band, i) => {
+                if (band.clipOnly) return null
                 const y1 = clampY(Math.min(band.y1, band.y2))
                 const y2 = clampY(Math.max(band.y1, band.y2))
                 return (
