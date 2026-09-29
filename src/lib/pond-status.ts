@@ -1,5 +1,6 @@
 import type { Pond } from "@/lib/api"
 import {
+  PARAMETER_BY_ID,
   PARAMETERS,
   STALE_AFTER_MS,
   statusFor,
@@ -19,30 +20,59 @@ export function pondPanelId(pondId: string) {
   return `pond-panel-${pondId}`
 }
 
-export function latestPondReadings(pond: Pond, now: number) {
-  return PARAMETERS.map((parameter) => {
-    const latest = pond.latest[parameter.id]
-    const threshold = pond.thresholds[parameter.id]
-    if (!latest || !threshold) return { parameter, reading: null }
-    const updatedAt = Date.parse(latest.recordedAt)
-    return {
-      parameter,
-      reading: {
-        value: latest.value,
-        updatedAt,
-        status: statusFor(threshold, latest.value, updatedAt, now),
-      },
-    }
-  })
+// The pond's latest reading of a parameter, but only if the unit assigned now sent it. `pond.latest` is
+// pond-scoped (any unit that was ever assigned here), while the unit's status map and firmware are
+// device-scoped, so a previous unit's reading must not stand in for the current one's.
+function currentUnitLatest(pond: Pond, parameterId: string) {
+  const latest = pond.latest[parameterId]
+  if (!latest) return undefined
+  const assignedAt = pond.device?.assignedAt
+  if (assignedAt && Date.parse(latest.recordedAt) < Date.parse(assignedAt))
+    return undefined
+  return latest
+}
+
+// Dotted numeric compare ("0.10.0" > "0.9.2"); anything after a "-" or "+" is ignored.
+function firmwareAtLeast(version: string, minimum: string) {
+  const parse = (v: string) =>
+    v
+      .split(/[-+]/)[0]
+      .split(".")
+      .map((part) => Number.parseInt(part, 10) || 0)
+  const a = parse(version)
+  const b = parse(minimum)
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    const diff = (a[i] ?? 0) - (b[i] ?? 0)
+    if (diff !== 0) return diff > 0
+  }
+  return true
+}
+
+// Whether this unit is known not to send the parameter at all: a unit that reports a sensors map
+// (firmware 0.6.0+) and leaves the parameter out of it, or a unit whose firmware predates the
+// parameter. Without either fact the unit can't be said to lack it, so a missing value is a fault.
+function unitLacksParameter(pond: Pond, parameter: ParameterConfig) {
+  const statuses = pond.sensorStatus ?? {}
+  if (Object.hasOwn(statuses, parameter.id)) return false
+  if (Object.keys(statuses).length > 0) return true
+  const firmware = pond.device?.firmwareVersion
+  return (
+    parameter.sinceFirmware !== undefined &&
+    firmware != null &&
+    !firmwareAtLeast(firmware, parameter.sinceFirmware)
+  )
 }
 
 // How much a parameter's latest value can be trusted, per the tile state matrix (first match wins):
 // - unit_offline: no device, or the device itself went quiet. The existing whole-unit treatment covers
 //   it, so parameters are not flagged one by one (D-10).
-// - not_reported: this unit has never sent the parameter at all — no reading and no status for it, as
-//   with firmware older than 0.4.0 and turbidity (D-09). Not a fault, so it never counts as stale.
-// - silent: the unit is online but this parameter stopped (or never started) arriving (D-06).
-// - live: a current reading.
+// - not_reported: the current unit has sent no reading of it since it was assigned, and is known not to
+//   send it at all (its sensors map leaves it out, or its firmware predates it — firmware older than
+//   0.4.0 and turbidity, D-09). Not a fault, so it never counts as stale.
+// - silent: the unit is online and should send this parameter, but it stopped (or never started)
+//   arriving (D-06) — including firmware 0.4.x/0.5.x with an uncalibrated turbidity probe, which sends
+//   no value and no status.
+// - live: a current reading from the current unit.
 export type ParameterSignal =
   "unit_offline" | "not_reported" | "silent" | "live"
 
@@ -53,8 +83,9 @@ export function parameterSignal(
 ): ParameterSignal {
   if (!pond.device || !isDeviceOnline(pond.device.lastSeenAt, now))
     return "unit_offline"
-  const latest = pond.latest[parameterId]
-  if (!latest && !Object.hasOwn(pond.sensorStatus ?? {}, parameterId))
+  const latest = currentUnitLatest(pond, parameterId)
+  const parameter = PARAMETER_BY_ID[parameterId]
+  if (!latest && parameter && unitLacksParameter(pond, parameter))
     return "not_reported"
   if (!latest || now - Date.parse(latest.recordedAt) > STALE_AFTER_MS)
     return "silent"
@@ -68,18 +99,26 @@ export function silentParameters(pond: Pond, now: number): ParameterConfig[] {
 }
 
 export function pondStatus(pond: Pond, now: number): ReadingStatus {
-  const statuses: ReadingStatus[] = latestPondReadings(pond, now).flatMap(
-    ({ reading }) => (reading ? [reading.status] : [])
-  )
-  // A parameter the unit reports a status for but has never delivered a value is silent too (D-06);
-  // one it has never mentioned contributes nothing, so old firmware doesn't pin the pond to the top of
-  // the board (D-09).
+  const statuses: ReadingStatus[] = []
   for (const parameter of PARAMETERS) {
-    if (
-      !pond.latest[parameter.id] &&
-      parameterSignal(pond, parameter.id, now) === "silent"
-    )
+    const signal = parameterSignal(pond, parameter.id, now)
+    // A parameter the current unit doesn't send contributes nothing, so old firmware doesn't pin the
+    // pond to the top of the board (D-09).
+    if (signal === "not_reported") continue
+    // With the unit offline the whole pond is judged on its last readings, whichever unit sent them.
+    const latest =
+      signal === "unit_offline"
+        ? pond.latest[parameter.id]
+        : currentUnitLatest(pond, parameter.id)
+    const threshold = pond.thresholds[parameter.id]
+    if (latest && threshold) {
+      statuses.push(
+        statusFor(threshold, latest.value, Date.parse(latest.recordedAt), now)
+      )
+    } else if (signal === "silent") {
+      // Expected from this unit but never delivered since it was assigned (D-06).
       statuses.push("stale")
+    }
   }
   // A pond that has never reported can't be vouched for, so it reads as stale rather than normal.
   return statuses.length === 0 ? "stale" : worstStatus(statuses)

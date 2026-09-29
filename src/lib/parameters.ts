@@ -22,6 +22,10 @@ export type ParameterConfig = {
   // A display limit only: never a threshold, never passed to severityFor/statusFor.
   sensorCeiling?: number
   ceilingHint?: string
+  // The first firmware version that sends this parameter at all. Absent means every firmware sends it.
+  // A unit on an older firmware is "not reported" for it rather than "silent" (D-09), so it never pins
+  // the pond to stale. Set this on every parameter added after the first firmware release.
+  sinceFirmware?: string
 }
 
 // One parameter's safe/critical band for a particular pond, as `Pond.thresholds` carries it.
@@ -72,6 +76,7 @@ export const PARAMETERS: ParameterConfig[] = [
     sensorCeiling: 3000,
     ceilingHint:
       "Beyond what the sensor can measure. The water is at least this cloudy.",
+    sinceFirmware: "0.4.0",
   },
 ]
 
