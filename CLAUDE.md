@@ -15,8 +15,11 @@ pages `/login`, `/accept-invite`, and `/reset-password`, which share `AuthShell`
   unchecked, it lives in the tab's sessionStorage (`src/lib/session.ts`).
 - `/` — operations board: one `PondCard` per active pond, worst condition first.
 - `/ponds` — pond registry table; admins add, rename, and archive ponds.
-- `/ponds/:pondId` — one pond's device info, a `ParameterTile` (value + 2 h trend) per parameter, and a
-  read-only table of raw readings for the same 2 h window.
+- `/ponds/:pondId` — one pond's device info, a `ParameterTile` (value + 2 h sparkline) per parameter, then a
+  History section whose header holds the range picker and Export, over stacked per-parameter history charts
+  (`PondHistoryCharts`: real units, safe/warning/critical zones, severity-colored line, one shared crosshair),
+  then the read-only reading-history table with its own Filter. The dashboard's selected pond shows the same
+  charts in compact form on the fixed 2 h window.
 - `/devices` — device registry; admins register units, assign them to ponds, disable them, and rotate their
   secrets. Registering or rotating shows the unit's `DEVICE_ID`/`DEVICE_SECRET` once, for the admin to
   enter on the unit's field setup portal (see `firmware/CLAUDE.md`'s "Field provisioning" — there's no
@@ -132,8 +135,6 @@ URLs. The same page, mounted at `/reset-password` with `mode="recovery"`, handle
 
 ## Known follow-ups (not yet built)
 
-- No history range picker on the pond detail page (fixed 2 h window). The backend's `/ponds/:id/series`
-  already takes an arbitrary range and picks its own resolution, so this is a UI-only gap.
 - **`authorizedRequest` doesn't de-duplicate refreshes.** Six polling queries can 401 in the same tick and
   each fire `POST /auth/refresh` with the same token; Supabase rotates refresh tokens on use, so the losers
   of that race get a 400 and sign the user out. Sharing one in-flight promise would fix it.

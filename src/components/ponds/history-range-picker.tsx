@@ -27,7 +27,7 @@ function toDatetimeLocal(iso: string) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
-// Drives both the reading-history table and the combined trend chart on the pond detail page. A preset is a
+// Drives both the reading-history table and the history charts on the pond detail page. A preset is a
 // rolling window that always runs through "now" and keeps the table/chart polling; "Custom" is a frozen
 // snapshot of a past range that doesn't poll (see resolveHistoryRange/usePondReadingsPage).
 export function HistoryRangePicker({

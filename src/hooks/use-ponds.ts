@@ -92,8 +92,8 @@ function seriesPointsToHistoryMap(
   return byParameter
 }
 
-// A pond's history, keyed by parameter id — the shared shape both the per-parameter tile grid and any
-// combined trend chart plot from, so callers never build it two different ways.
+// A pond's history, keyed by parameter id — the shared shape both the per-parameter tile grid and the
+// stacked history charts plot from, so callers never build it two different ways.
 export function usePondHistoryRange(id: string, range: HistoryRangeValue) {
   const { data: series } = usePondSeriesRange(id, range)
   return React.useMemo(

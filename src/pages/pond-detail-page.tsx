@@ -13,10 +13,10 @@ import { Link, useParams } from "react-router"
 import { cn } from "cn"
 import { Badge } from "@/components/ui/badge"
 import { BoardEmptyState } from "@/components/board-empty-state"
-import { CombinedTrendChart } from "@/components/ponds/combined-trend-chart"
 import { ExportReadingsDialog } from "@/components/ponds/export-readings-dialog"
 import { HistoryRangePicker } from "@/components/ponds/history-range-picker"
 import { PondDeviceMeta } from "@/components/ponds/pond-device-meta"
+import { PondHistoryCharts } from "@/components/ponds/pond-history-charts"
 import { PondLiveReadings } from "@/components/ponds/pond-live-readings"
 import { ReadingsFilterDialog } from "@/components/ponds/readings-filter-dialog"
 import { StatusBadge } from "@/components/status-badge"
@@ -219,18 +219,44 @@ export function PondDetailPage() {
 
       <PondLiveReadings pond={pond} now={now} />
 
-      <CombinedTrendChart pond={pond} now={now} range={historyRange} />
-
-      <div className="flex flex-col gap-3">
+      {/* One range governs both the charts and the table below, so its picker (and Export, which works
+          over a range too) sits above both rather than inside the table's header. */}
+      <section
+        aria-labelledby="pond-history-title"
+        className="flex flex-col gap-4 border-t border-board-border pt-6"
+      >
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="font-sans text-xs font-medium tracking-[0.08em] text-board-muted uppercase">
-            Reading history
+          <h2
+            id="pond-history-title"
+            className="font-sans text-xs font-medium tracking-[0.08em] text-board-muted uppercase"
+          >
+            History
           </h2>
           <div className="flex items-center gap-2">
             <HistoryRangePicker
               value={historyRange}
               onChange={setHistoryRange}
             />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setExportOpen(true)}
+            >
+              <Download />
+              Export
+            </Button>
+          </div>
+        </div>
+
+        <PondHistoryCharts pond={pond} now={now} range={historyRange} />
+      </section>
+
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="font-sans text-xs font-medium tracking-[0.08em] text-board-muted uppercase">
+            Reading history
+          </h3>
+          <div className="flex items-center gap-2">
             <Button
               variant={hasActiveFilter ? "secondary" : "outline"}
               size="sm"
@@ -242,14 +268,6 @@ export function PondDetailPage() {
               {hasActiveFilter ? (
                 <span className="tabular-nums">• {activeFilters.length}</span>
               ) : null}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setExportOpen(true)}
-            >
-              <Download />
-              Export
             </Button>
           </div>
         </div>

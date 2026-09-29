@@ -2,12 +2,12 @@ import * as React from "react"
 import { AlertTriangle, Waves } from "lucide-react"
 import { Link } from "react-router"
 import { BoardEmptyState } from "@/components/board-empty-state"
-import { CombinedTrendChart } from "@/components/ponds/combined-trend-chart"
 import {
   PondConnectionStatus,
   PondDeviceIdentity,
 } from "@/components/ponds/pond-device-meta"
 import { ParameterSummary } from "@/components/ponds/parameter-summary"
+import { PondHistoryCharts } from "@/components/ponds/pond-history-charts"
 import { PondSwitcher } from "@/components/ponds/pond-switcher"
 import { StatusBadge } from "@/components/status-badge"
 import { Button } from "@/components/ui/button"
@@ -188,7 +188,7 @@ export function DashboardPage() {
             </div>
 
             <ParameterSummary pond={selectedEntry.pond} now={now} />
-            <CombinedTrendChart pond={selectedEntry.pond} now={now} />
+            <PondHistoryCharts pond={selectedEntry.pond} now={now} compact />
           </div>
         </div>
       ) : null}

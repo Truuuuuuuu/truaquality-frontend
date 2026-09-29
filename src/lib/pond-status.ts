@@ -44,8 +44,8 @@ export function pondStatus(pond: Pond, now: number): ReadingStatus {
 }
 
 // One entry per monitored parameter (same order as PARAMETERS), built from a pond's fetched 2 h
-// history — the shared basis for both the per-parameter tile grid and the dashboard's combined
-// trend chart. A device silent for longer than the history window still has a last known value;
+// history — the shared basis for both the per-parameter tile grid and the stacked per-parameter
+// history charts. A device silent for longer than the history window still has a last known value;
 // that's shown (it reads as stale) rather than claiming the pond has no data at all. `reading` is
 // null only when the parameter has no reading ever (not even the pond's own `latest`).
 export function pondReadingStates(

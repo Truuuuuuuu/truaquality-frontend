@@ -14,9 +14,9 @@ type ParameterSummaryProps = {
 }
 
 // Every monitored parameter as plain values side by side — no card, no border, no per-parameter
-// chart (the combined trend below already covers that). Status reads through color alone: the LED,
-// label, and value tint together, the same signal the tile vocabulary uses, just with no box left
-// to flood.
+// chart (the stacked per-parameter history charts below already cover that). Status reads through
+// color alone: the LED, label, and value tint together, the same signal the tile vocabulary uses,
+// just with no box left to flood.
 export function ParameterSummary({ pond, now }: ParameterSummaryProps) {
   const historyByParameter = usePondHistory(pond.id)
   const readings = pondReadingStates(pond, now, historyByParameter)
