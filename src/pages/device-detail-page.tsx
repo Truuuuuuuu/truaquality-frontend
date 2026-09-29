@@ -2,30 +2,57 @@ import * as React from "react"
 import {
   AlertTriangle,
   ArrowLeft,
+  Box,
+  CheckCircle2,
   Cpu,
+  Download,
+  HeartPulse,
+  History,
   Link2,
+  RotateCcw,
   Settings2,
   ShieldCheck,
   Wifi,
   WifiOff,
+  Wrench,
 } from "lucide-react"
 import { Link, useParams } from "react-router"
 import { cn } from "cn"
 import { BoardEmptyState } from "@/components/board-empty-state"
+import { DeviceUnitView } from "@/components/devices/device-unit-view"
 import { ManageDeviceDialog } from "@/components/devices/manage-device-dialog"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/auth-context"
-import { useDevices } from "@/hooks/use-ponds"
+import { useDeviceDiagnostics, useDevices } from "@/hooks/use-ponds"
 import { useNow } from "@/hooks/use-now"
-import type { Device } from "@/lib/api"
+import type {
+  Device,
+  DeviceDiagnostics,
+  DeviceEvent,
+  DeviceEventKind,
+  DeviceHealth,
+} from "@/lib/api"
+import {
+  completeness,
+  eventDescription,
+  formatBytes,
+  formatDuration,
+  healthFlags,
+  resetReasonLabel,
+  restartedAt,
+  sensorDisplay,
+  sensorHealth,
+  signalQuality,
+  type DeviceState,
+  type EventDescription,
+} from "@/lib/device-health"
 import { formatClock, formatDate, formatRelative } from "@/lib/format-time"
 import { isDeviceOnline } from "@/lib/pond-status"
+import { STALE_AFTER_MS } from "@/lib/parameters"
 import { STATUS_STYLES } from "@/lib/status-styles"
 
 // A unit is exactly one of these, in the same order the Devices page decides it: disabled beats
 // reachability, because a disabled unit's silence is a decision rather than a fault.
-type DeviceState = "ONLINE" | "OFFLINE" | "NEVER" | "DISABLED"
-
 function deviceState(device: Device, now: number): DeviceState {
   if (device.status === "DISABLED") return "DISABLED"
   if (!device.lastSeenAt) return "NEVER"
@@ -51,8 +78,12 @@ export function DeviceDetailPage() {
   const { profile } = useAuth()
   const isAdmin = profile?.systemRole === "ADMIN"
   const { data: devices, error } = useDevices()
+  const diagnostics = useDeviceDiagnostics(deviceId)
   const now = useNow()
   const [manageOpen, setManageOpen] = React.useState(false)
+  const [selectedSensor, setSelectedSensor] = React.useState<string | null>(
+    null
+  )
 
   const device = devices?.find((candidate) => candidate.id === deviceId)
 
@@ -134,6 +165,25 @@ export function DeviceDetailPage() {
           />
         </div>
       </header>
+
+      {diagnostics.error ? (
+        <BoardEmptyState icon={AlertTriangle} tone="error">
+          {`Couldn't load diagnostics: ${diagnostics.error.message}`}
+        </BoardEmptyState>
+      ) : diagnostics.data ? (
+        <DiagnosticsSections
+          device={device}
+          state={state}
+          diagnostics={diagnostics.data}
+          selected={selectedSensor}
+          onSelect={setSelectedSensor}
+          now={now}
+        />
+      ) : (
+        <p className="font-sans text-sm text-board-muted">
+          Loading diagnostics…
+        </p>
+      )}
 
       <div className="grid grid-cols-1 gap-x-12 gap-y-10 md:grid-cols-2">
         <SpecPanel icon={Link2} title="Assignment">
@@ -338,5 +388,448 @@ function SpecRow({
         {children}
       </dd>
     </div>
+  )
+}
+
+function SectionHeading({
+  id,
+  icon: Icon,
+  children,
+}: {
+  id?: string
+  icon: React.ComponentType<{ className?: string }>
+  children: React.ReactNode
+}) {
+  return (
+    <h2
+      id={id}
+      className="flex items-center gap-2 font-sans text-xs font-medium tracking-[0.08em] text-board-muted uppercase"
+    >
+      <Icon className="size-3.5" aria-hidden="true" />
+      {children}
+    </h2>
+  )
+}
+
+// What the unit says about itself and its probes. Every value is either reported by the unit or derived by
+// the server; the plain-language meaning comes from lib/device-health.ts, so this component only lays it out.
+function DiagnosticsSections({
+  device,
+  state,
+  diagnostics,
+  selected,
+  onSelect,
+  now,
+}: {
+  device: Device
+  state: DeviceState
+  diagnostics: DeviceDiagnostics
+  selected: string | null
+  onSelect: (parameter: string | null) => void
+  now: number
+}) {
+  const rowButtons = React.useRef(new Map<string, HTMLButtonElement>())
+  const sensors = diagnostics.sensors.map((sensor) => ({
+    sensor,
+    display: sensorDisplay(sensor.parameter),
+    health: sensorHealth({ sensor, deviceState: state, now }),
+  }))
+
+  // A click on a probe in the model moves keyboard focus to its row, so the list — the accessible
+  // equivalent of the model — is where the user lands.
+  function selectFromModel(parameter: string) {
+    onSelect(parameter)
+    rowButtons.current.get(parameter)?.focus()
+  }
+
+  return (
+    <>
+      <section
+        aria-labelledby="unit-view-heading"
+        className="flex flex-col gap-3"
+      >
+        <SectionHeading id="unit-view-heading" icon={Box}>
+          Unit view
+        </SectionHeading>
+        <div className="grid grid-cols-1 gap-x-12 gap-y-6 lg:grid-cols-[3fr_2fr]">
+          <DeviceUnitView
+            deviceState={state}
+            probes={sensors.map(({ sensor, display, health }) => ({
+              parameter: sensor.parameter,
+              label: display.label,
+              stateLabel: health.label,
+              tone: health.tone,
+            }))}
+            selected={selected}
+            onSelect={selectFromModel}
+          />
+          <div className="flex flex-col gap-2">
+            <h3 className="font-sans text-sm font-semibold text-board-fg">
+              Sensors
+            </h3>
+            {sensors.length === 0 ? (
+              <p className="font-sans text-sm text-board-muted">
+                This unit hasn't reported any sensors yet.
+              </p>
+            ) : (
+              <ul className="board-groove-rows flex flex-col">
+                {sensors.map(({ sensor, display, health }) => {
+                  const Icon = display.icon
+                  const isSelected = selected === sensor.parameter
+                  const fraction = completeness(
+                    sensor.readings24h,
+                    device.createdAt,
+                    now
+                  )
+                  const percent =
+                    fraction === null ? null : Math.round(fraction * 100)
+                  return (
+                    <li
+                      key={sensor.parameter}
+                      className={cn(
+                        "flex flex-col gap-1.5 px-2 py-3 transition-colors",
+                        isSelected && "bg-board-panel-raised/40"
+                      )}
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                        <button
+                          type="button"
+                          ref={(node) => {
+                            if (node)
+                              rowButtons.current.set(sensor.parameter, node)
+                            else rowButtons.current.delete(sensor.parameter)
+                          }}
+                          aria-pressed={isSelected}
+                          onClick={() =>
+                            onSelect(isSelected ? null : sensor.parameter)
+                          }
+                          className="inline-flex items-center gap-2 rounded-sm font-sans text-sm font-medium text-board-fg hover:underline hover:decoration-board-border-strong hover:underline-offset-2"
+                        >
+                          <Icon className="size-4 shrink-0 text-board-muted" />
+                          {display.label}
+                        </button>
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1.5 font-sans text-xs",
+                            health.tone === "ok"
+                              ? "text-board-fg"
+                              : STATUS_STYLES[health.status].label
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              "size-2 shrink-0 rounded-full",
+                              STATUS_STYLES[health.status].led
+                            )}
+                            aria-hidden="true"
+                          />
+                          {health.label}
+                          {health.inferred ? (
+                            <span className="text-board-muted">
+                              (estimated — older firmware)
+                            </span>
+                          ) : null}
+                        </span>
+                      </div>
+                      <p className="pl-6 font-sans text-xs text-board-muted">
+                        {sensor.lastValue !== null &&
+                        sensor.lastReadingAt !== null ? (
+                          <>
+                            <span className="font-heading text-sm text-board-fg tabular-nums">
+                              {sensor.lastValue.toFixed(display.precision)}
+                              {display.unit ? ` ${display.unit}` : ""}
+                            </span>{" "}
+                            ·{" "}
+                            {formatRelative(
+                              Date.parse(sensor.lastReadingAt),
+                              now
+                            )}
+                          </>
+                        ) : (
+                          "No reading yet"
+                        )}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pl-6 font-sans text-xs text-board-muted">
+                        {percent === null ? (
+                          <span>Not enough history</span>
+                        ) : (
+                          <span className="inline-flex items-center gap-2">
+                            <span
+                              role="meter"
+                              aria-valuenow={percent}
+                              aria-valuemin={0}
+                              aria-valuemax={100}
+                              aria-label={`${display.label} readings received in the last 24 hours`}
+                              className="h-1.5 w-20 overflow-hidden rounded-full bg-board-panel-raised"
+                            >
+                              <span
+                                className={cn(
+                                  "block h-full rounded-full",
+                                  percent >= 90
+                                    ? "bg-board-accent"
+                                    : "bg-board-warn"
+                                )}
+                                style={{ width: `${percent}%` }}
+                              />
+                            </span>
+                            <span className="tabular-nums">
+                              {percent}% of expected (24 h)
+                            </span>
+                          </span>
+                        )}
+                        <span>
+                          Longest gap{" "}
+                          <span className="font-heading text-board-fg tabular-nums">
+                            {formatDuration(sensor.longestGapMin24h * 60)}
+                          </span>
+                        </span>
+                      </div>
+                      {health.action ? (
+                        <p
+                          className={cn(
+                            "flex items-start gap-1.5 pl-6 font-sans text-xs",
+                            health.tone === "fault"
+                              ? "text-board-critical"
+                              : "text-board-muted"
+                          )}
+                        >
+                          <Wrench
+                            className="mt-0.5 size-3 shrink-0"
+                            aria-hidden="true"
+                          />
+                          {health.action}
+                        </p>
+                      ) : null}
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <div className="grid grid-cols-1 gap-x-12 gap-y-10 md:grid-cols-2">
+        <HealthPanel
+          health={diagnostics.health}
+          uptime24h={diagnostics.uptime24h}
+          events={diagnostics.events}
+          now={now}
+        />
+        <EventLog events={diagnostics.events} now={now} />
+      </div>
+    </>
+  )
+}
+
+const NOT_REPORTED = "Not reported — needs firmware 0.6.0 or newer"
+
+function HealthPanel({
+  health,
+  uptime24h,
+  events,
+  now,
+}: {
+  health: DeviceHealth
+  uptime24h: number | null
+  events: DeviceEvent[]
+  now: number
+}) {
+  const reported = health.diagnosticsAt !== null
+  const signal = signalQuality(health.rssi)
+  const restart = restartedAt(health)
+  const diagnosticsAt = health.diagnosticsAt
+    ? Date.parse(health.diagnosticsAt)
+    : null
+  const flags = healthFlags({ health, events, now })
+  const missing = <span className="text-board-muted">{NOT_REPORTED}</span>
+
+  return (
+    <SpecPanel icon={HeartPulse} title="Health">
+      <SpecRow label="Signal">
+        {reported && health.rssi !== null && signal ? (
+          <span>
+            <span className="font-heading tabular-nums">{health.rssi} dBm</span>
+            {" · "}
+            <span
+              className={cn(signal.tone === "warning" && "text-board-warn")}
+            >
+              {signal.label}
+            </span>
+          </span>
+        ) : (
+          missing
+        )}
+      </SpecRow>
+      <SpecRow label="Uptime">
+        {reported && health.uptimeS !== null ? (
+          <span className="font-heading tabular-nums">
+            {formatDuration(health.uptimeS)}
+          </span>
+        ) : (
+          missing
+        )}
+      </SpecRow>
+      <SpecRow label="Last restart">
+        {reported && restart !== null ? (
+          <span>
+            <span className="font-heading tabular-nums">
+              {formatDateTime(restart)}
+            </span>
+            {" · "}
+            {resetReasonLabel(health.resetReason)}
+          </span>
+        ) : (
+          missing
+        )}
+      </SpecRow>
+      <SpecRow label="Free memory">
+        {reported && health.freeHeap !== null ? (
+          <span className="font-heading tabular-nums">
+            {formatBytes(health.freeHeap)}
+          </span>
+        ) : (
+          missing
+        )}
+      </SpecRow>
+      <SpecRow label="Queued uploads">
+        {reported && health.queuedSamples !== null ? (
+          <span>
+            <span className="font-heading tabular-nums">
+              {health.queuedSamples}
+            </span>{" "}
+            readings waiting
+          </span>
+        ) : (
+          missing
+        )}
+      </SpecRow>
+      {/* Worked out by the server from its own online/offline record, so it doesn't need new firmware. */}
+      <SpecRow label="24 h availability">
+        {uptime24h !== null ? (
+          <span>
+            <span className="font-heading tabular-nums">
+              {uptime24h.toFixed(1)}%
+            </span>
+            <span className="text-board-muted">
+              {" "}
+              of the last 24 hours online
+            </span>
+          </span>
+        ) : (
+          <span className="text-board-muted">Not enough history</span>
+        )}
+      </SpecRow>
+      <SpecRow label="Diagnostics as of">
+        {diagnosticsAt !== null ? (
+          <span
+            className={cn(
+              "font-heading tabular-nums",
+              now - diagnosticsAt > STALE_AFTER_MS && "text-board-stale"
+            )}
+          >
+            {formatDateTime(diagnosticsAt)}
+            <span className="text-board-muted">
+              {" "}
+              · {formatRelative(diagnosticsAt, now)}
+            </span>
+          </span>
+        ) : (
+          missing
+        )}
+      </SpecRow>
+      {flags.map((flag) => (
+        <div
+          key={flag.id}
+          className="grid grid-cols-[9rem_1fr] items-baseline gap-4 py-2.5 text-board-warn"
+        >
+          <dt className="inline-flex items-center gap-1.5 font-sans text-xs font-medium">
+            <AlertTriangle className="size-3.5 shrink-0" aria-hidden="true" />
+            {flag.label}
+          </dt>
+          <dd className="font-sans text-sm">{flag.detail}</dd>
+        </div>
+      ))}
+    </SpecPanel>
+  )
+}
+
+const EVENT_ICONS: Record<
+  DeviceEventKind,
+  React.ComponentType<{ className?: string }>
+> = {
+  OFFLINE: WifiOff,
+  ONLINE: Wifi,
+  REBOOT: RotateCcw,
+  SENSOR_FAULT: AlertTriangle,
+  SENSOR_RECOVERED: CheckCircle2,
+  FIRMWARE_CHANGED: Download,
+}
+
+const EVENT_TONE_CLASS: Record<EventDescription["tone"], string> = {
+  fault: "text-board-critical",
+  ok: "text-board-accent",
+  stale: "text-board-stale",
+  neutral: "text-board-muted",
+}
+
+function EventLog({ events, now }: { events: DeviceEvent[]; now: number }) {
+  return (
+    <section
+      aria-labelledby="event-log-heading"
+      className="flex flex-col gap-2"
+    >
+      <SectionHeading id="event-log-heading" icon={History}>
+        Event log
+      </SectionHeading>
+      {events.length === 0 ? (
+        <p className="py-2.5 font-sans text-sm text-board-muted">
+          No events recorded yet. Restarts, disconnections and sensor faults
+          will appear here.
+        </p>
+      ) : (
+        <ol className="board-groove-rows flex flex-col">
+          {events.map((event) => {
+            const description = eventDescription(event)
+            const Icon = EVENT_ICONS[event.kind] ?? AlertTriangle
+            const at = Date.parse(event.createdAt)
+            return (
+              <li
+                key={event.id}
+                className="grid grid-cols-[1rem_1fr] gap-x-3 gap-y-0.5 py-2.5"
+              >
+                <Icon
+                  className={cn(
+                    "mt-0.5 size-4",
+                    EVENT_TONE_CLASS[description.tone]
+                  )}
+                  aria-hidden="true"
+                />
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <span className="font-sans text-sm text-board-fg">
+                    {description.title}
+                    {description.detail ? (
+                      <span className="text-board-muted">
+                        {" · "}
+                        {description.detail}
+                      </span>
+                    ) : null}
+                  </span>
+                  <time
+                    dateTime={event.createdAt}
+                    className="font-sans text-xs text-board-muted"
+                  >
+                    {formatRelative(at, now)} ·{" "}
+                    <span className="font-heading tabular-nums">
+                      {formatDateTime(at)}
+                    </span>
+                  </time>
+                </div>
+              </li>
+            )
+          })}
+        </ol>
+      )}
+    </section>
   )
 }

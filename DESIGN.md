@@ -278,6 +278,14 @@ The pond's analysis view, below the tiles: one inline SVG chart per parameter (n
 - **Empty rows:** a parameter with no reading ever, or fewer than two points in the range, gets a compact dashed row ("No readings yet" / "Not enough history in this range") in the stale-tile treatment.
 - **Compact variant:** the dashboard's selected-pond panel uses the same stack with shorter plots on the fixed live 2 h window, so both pages speak one chart language.
 
+### Unit View
+The device detail page's picture of one sensor unit: a 3D model built in code from simple shapes (no downloaded models or textures), so a staff member can see which probe is plugged into which unit and whether it is working. It loads as a separate chunk (three.js never ships with the rest of the app) and sits on the page ground with no plate or card around it — the status readout stays the page's only plate.
+- **Parts:** a weatherproof enclosure with a see-through lid, the ESP32 board with its printed antenna, a status LED, two cable glands, and one cable plus probe per sensor the server returns (a slim steel DS18B20 for temperature, a wider SEN0189-style body with a window for turbidity). No probe is drawn for a sensor the unit doesn't report.
+- **Status rings:** each probe head carries a ring in the sensor's tone — green connected, gray not reporting or unknown, red fault — following the Stale-Is-Not-a-Severity Rule: a silent probe is gray, never amber or red. A faulted cable turns faint red; a silent one fades.
+- **LED:** green and gently pulsing (the same 2.4 s breath as the live sparkline marker) while the unit is online, gray otherwise. Reduced motion stops the pulse and the slow auto-rotate.
+- **Sensors list is the accessible equivalent:** the model and its floating labels are `aria-hidden`; the list beside it (grooved rows, not cards) carries every fact in text. Clicking a probe selects and focuses its row; selecting a row enlarges its probe's ring.
+- **Fallback:** while the 3D chunk loads, when the browser has no WebGL, or if the scene fails, a static SVG schematic of the same parts, in the same token colors, takes its place.
+
 ### Badges / Stamps
 - **Status stamp:** small stroked-border pill in mono type, holding either a formatted clock time (nominal/warning/critical) or a relative time with a wifi-off icon (stale). Border and text color match the tile's state color.
 - **Sample-data badge:** an amber-stroked uppercase pill with a flask icon, used once at the page header while the system runs on mock readings — not a component to reuse once live device data lands.

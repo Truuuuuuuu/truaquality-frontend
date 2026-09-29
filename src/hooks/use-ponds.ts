@@ -9,6 +9,7 @@ import { useAuth } from "@/context/auth-context"
 import {
   createDevice,
   createPond,
+  getDeviceDiagnostics,
   getPond,
   getPondReadingsPage,
   getPondSeries,
@@ -158,6 +159,18 @@ export function useDevices() {
     queryKey: ["devices"],
     queryFn: () => authorizedRequest(listDevices).then((data) => data.devices),
     refetchInterval: POLL_MS,
+  })
+}
+
+// Keyed under ["devices"] so the registry invalidation after any admin device change refreshes it too.
+export function useDeviceDiagnostics(id: string) {
+  const { authorizedRequest } = useAuth()
+  return useQuery({
+    queryKey: ["devices", id, "diagnostics"],
+    queryFn: () =>
+      authorizedRequest((token) => getDeviceDiagnostics(token, id)),
+    refetchInterval: POLL_MS,
+    enabled: id !== "",
   })
 }
 

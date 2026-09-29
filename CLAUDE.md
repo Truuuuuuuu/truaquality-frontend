@@ -25,9 +25,21 @@ pages `/login`, `/accept-invite`, and `/reset-password`, which share `AuthShell`
   enter on the unit's field setup portal (see `firmware/CLAUDE.md`'s "Field provisioning" — there's no
   reflash). Units publish over MQTT to the broker, never to this app or its API.
 - `/devices/:deviceId` — one unit's detail page (linked from each serial on `/devices` and from "View details"
-  in the pond header's device disclosure): a status readout plus Assignment, Connection, Hardware, and
-  Registration panels, and admins get the same Manage dialog. There's no `GET /devices/:id`; the page reads
-  the device out of the cached `useDevices()` list.
+  in the pond header's device disclosure): a status readout, then a **Unit view** (3D model of the unit beside
+  a **Sensors** list), **Health** and **Event log** sections, then Assignment, Connection, Hardware, and
+  Registration panels; admins get the same Manage dialog. There's no `GET /devices/:id`; the page reads the
+  device out of the cached `useDevices()` list. Diagnostics come from `GET /devices/:id/diagnostics` via
+  `useDeviceDiagnostics` (key `["devices", id, "diagnostics"]`, so admin device mutations refresh it; 30 s
+  poll).
+  - The 3D model is lazy: `device-unit-view.tsx` `React.lazy`-imports `device-model-3d.tsx`, which is the only
+    file that touches three.js / `@react-three/*`. **Never import `device-model-3d` statically** or three.js
+    lands in the main bundle. Without WebGL, while loading, or on a render error it shows the SVG
+    `device-schematic.tsx` instead.
+  - `src/lib/device-health.ts` is the single home for plain-language meaning: sensor status tokens → label /
+    tone / on-site action (with an inferred fallback for pre-0.6.0 firmware that sends no status), restart
+    reasons, signal quality, derived maintenance flags, and event wording. `REPORT_INTERVAL_S` mirrors the
+    firmware's default report interval and only estimates the 24 h completeness bar — it never judges a
+    reading.
 - `/notifications` — the signed-in user's alert notifications (all / unread, "load more"). The same feed also
   drives the bell (sidebar header on desktop, top bar on mobile) and toasts.
 - `/audit` — admin-only (same in-page `<Navigate>` guard as `/users`): the `AuditLog` trail of every admin

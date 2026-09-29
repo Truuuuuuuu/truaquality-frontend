@@ -259,6 +259,78 @@ export function listDevices(token: string) {
   return request<{ devices: Device[] }>("/devices", { token })
 }
 
+export type ResetReason =
+  | "power_on"
+  | "software"
+  | "panic"
+  | "int_wdt"
+  | "task_wdt"
+  | "wdt"
+  | "brownout"
+  | "deep_sleep"
+  | "external"
+  | "unknown"
+
+export type SensorStatus =
+  | "ok"
+  | "not_found"
+  | "disconnected"
+  | "power_on_value"
+  | "no_signal"
+  | "uncalibrated"
+  | "over_range"
+
+export type DeviceEventKind =
+  | "OFFLINE"
+  | "ONLINE"
+  | "REBOOT"
+  | "SENSOR_FAULT"
+  | "SENSOR_RECOVERED"
+  | "FIRMWARE_CHANGED"
+
+// Everything the unit reports about itself is null until a firmware >= 0.6.0 unit sends a diagnostics
+// block; `offlineSince` is the backend watchdog's own record, so it works for any firmware.
+export type DeviceHealth = {
+  rssi: number | null
+  uptimeS: number | null
+  resetReason: ResetReason | null
+  freeHeap: number | null
+  queuedSamples: number | null
+  diagnosticsAt: string | null
+  offlineSince: string | null
+}
+
+// `reportedStatus` is null for a unit on firmware older than 0.6.0 (it never says whether a probe is
+// plugged in), so the page has to infer that from reading times instead. `parameter` may be one the
+// frontend has no display metadata for yet (turbidity reports before it lands in PARAMETERS).
+export type SensorDiagnostics = {
+  parameter: string
+  lastReadingAt: string | null
+  lastValue: number | null
+  readings24h: number
+  longestGapMin24h: number
+  reportedStatus: SensorStatus | null
+}
+
+export type DeviceEvent = {
+  id: string
+  kind: DeviceEventKind
+  parameter: string | null
+  detail: string | null
+  createdAt: string
+}
+
+export type DeviceDiagnostics = {
+  health: DeviceHealth
+  sensors: SensorDiagnostics[]
+  uptime24h: number | null
+  events: DeviceEvent[]
+}
+
+export function getDeviceDiagnostics(token: string, id: string) {
+  return request<DeviceDiagnostics>(`/devices/${id}/diagnostics`, { token })
+}
+
 export type CreatePondInput = {
   name: string
   notes?: string
