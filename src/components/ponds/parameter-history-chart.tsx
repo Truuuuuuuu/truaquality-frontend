@@ -189,9 +189,17 @@ export function ParameterHistoryChart({
   // bottom isn't shaved off. While the critical line is pending (D-02) nothing above the safe max is
   // called critical: the warning band runs open-ended to the plot top, and a parameter with no low side
   // (safe floor equals critical floor) gets no low-side bands at all.
+  // With no low side and nothing below the floor, the axis bottom is the safe floor itself (0 NTU, the
+  // clear-water reading the firmware clamps to), so the nominal band overshoots the plot bottom like
+  // every other edge band; ending it exactly there would clip half the stroke of a line lying on it.
   const zones: Record<"nominal" | "warning" | "critical", Band[]> = pending
     ? {
-        nominal: [{ y1: ySafeMax, y2: ySafeMin }],
+        nominal: [
+          {
+            y1: ySafeMax,
+            y2: ySafeMin >= innerHeight ? innerHeight + 10 : ySafeMin,
+          },
+        ],
         warning: [
           { y1: -10, y2: ySafeMax },
           ...(lowSide ? [{ y1: ySafeMin, y2: yCritMin }] : []),
