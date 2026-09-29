@@ -15,6 +15,8 @@ import {
   type ReadingState,
   type Threshold,
 } from "@/lib/parameters"
+import { hasLowSide, pendingScaleDomain, valueTicks } from "@/lib/chart-scale"
+import { formatStatValue } from "@/lib/reading-format"
 import { STATUS_COLOR, STATUS_LABELS, STATUS_STYLES } from "@/lib/status-styles"
 
 type ParameterHistoryChartProps = {
@@ -60,21 +62,6 @@ export function chartHeightFor(compact: boolean, showXAxis: boolean) {
     (compact ? PLOT_HEIGHT_COMPACT : PLOT_HEIGHT) +
     (showXAxis ? AXIS_HEIGHT : 6)
   )
-}
-
-const NICE_STEPS = [1, 2, 2.5, 5, 10]
-
-// Round-number value ticks (24, 26, 28 … rather than 23.7, 25.9 …) so the axis reads like a gauge.
-function valueTicks(min: number, max: number, target: number) {
-  const raw = (max - min) / target
-  const magnitude = 10 ** Math.floor(Math.log10(raw))
-  const step = (NICE_STEPS.find((s) => s * magnitude >= raw) ?? 10) * magnitude
-  const ticks: number[] = []
-  for (let v = Math.ceil(min / step) * step; v <= max; v += step) {
-    ticks.push(Number(v.toFixed(6)))
-  }
-  const decimals = Math.max(0, -Math.floor(Math.log10(step) + 1e-9))
-  return { ticks, decimals: step % 1 === 0 ? 0 : Math.max(decimals, 1) }
 }
 
 export type WindowStats = {
@@ -162,13 +149,26 @@ export function ParameterHistoryChart({
   const toTime = (x: number) =>
     domainStart + (x / plotWidth) * (domainEnd - domainStart)
 
-  // The domain always contains both critical edges, so every zone is visible and a reading's distance
-  // from its limits reads straight off the chart.
-  const dataLo = Math.min(stats.min, threshold.criticalMin, threshold.safeMin)
-  const dataHi = Math.max(stats.max, threshold.criticalMax, threshold.safeMax)
-  const pad = (dataHi - dataLo) * 0.1 || 1
-  const lo = dataLo - pad
-  const hi = dataHi + pad
+  // The domain contains both critical edges, so every zone is visible and a reading's distance from its
+  // limits reads straight off the chart. While the critical line is pending there is no real upper edge to
+  // show, so the axis fits the data instead: the safe line always stays in view and a spike stretches the
+  // axis rather than going off-scale (D-01 supersedes clamping with off-scale markers). A reading at the
+  // sensor's ceiling plots at its value.
+  const pending = threshold.criticalPending === true
+  const lowSide = hasLowSide(threshold)
+  const fitted = pendingScaleDomain(threshold, stats.min, stats.max)
+  let lo: number
+  let hi: number
+  if (fitted) {
+    lo = fitted.lo
+    hi = fitted.hi
+  } else {
+    const dataLo = Math.min(stats.min, threshold.criticalMin, threshold.safeMin)
+    const dataHi = Math.max(stats.max, threshold.criticalMax, threshold.safeMax)
+    const pad = (dataHi - dataLo) * 0.1 || 1
+    lo = dataLo - pad
+    hi = dataHi + pad
+  }
   const toY = (v: number) => innerHeight - ((v - lo) / (hi - lo)) * innerHeight
   const clampY = (y: number) => Math.min(innerHeight, Math.max(0, y))
 
@@ -186,18 +186,29 @@ export function ParameterHistoryChart({
   const yCritMin = toY(threshold.criticalMin)
 
   // Zone bands in plot space. The clip versions overshoot the plot so a round line cap at the very top or
-  // bottom isn't shaved off.
-  const zones: Record<"nominal" | "warning" | "critical", Band[]> = {
-    nominal: [{ y1: ySafeMax, y2: ySafeMin }],
-    warning: [
-      { y1: yCritMax, y2: ySafeMax },
-      { y1: ySafeMin, y2: yCritMin },
-    ],
-    critical: [
-      { y1: -10, y2: yCritMax },
-      { y1: yCritMin, y2: innerHeight + 10 },
-    ],
-  }
+  // bottom isn't shaved off. While the critical line is pending (D-02) nothing above the safe max is
+  // called critical: the warning band runs open-ended to the plot top, and a parameter with no low side
+  // (safe floor equals critical floor) gets no low-side bands at all.
+  const zones: Record<"nominal" | "warning" | "critical", Band[]> = pending
+    ? {
+        nominal: [{ y1: ySafeMax, y2: ySafeMin }],
+        warning: [
+          { y1: -10, y2: ySafeMax },
+          ...(lowSide ? [{ y1: ySafeMin, y2: yCritMin }] : []),
+        ],
+        critical: lowSide ? [{ y1: yCritMin, y2: innerHeight + 10 }] : [],
+      }
+    : {
+        nominal: [{ y1: ySafeMax, y2: ySafeMin }],
+        warning: [
+          { y1: yCritMax, y2: ySafeMax },
+          { y1: ySafeMin, y2: yCritMin },
+        ],
+        critical: [
+          { y1: -10, y2: yCritMax },
+          { y1: yCritMin, y2: innerHeight + 10 },
+        ],
+      }
   const zoneTint = {
     nominal: { color: "var(--board-accent)", opacity: 0.08 },
     warning: { color: "var(--board-warn)", opacity: 0.07 },
@@ -205,6 +216,8 @@ export function ParameterHistoryChart({
   } as const
 
   // Labeled edges, nudged apart where two sit close together so their labels don't print over each other.
+  // A pending critical max has no line or label (its value is a placeholder), and a parameter with no low
+  // side draws no Safe min / Crit min.
   const edges = [
     {
       key: "critMax",
@@ -230,7 +243,13 @@ export function ParameterHistoryChart({
       value: threshold.criticalMin,
       critical: true,
     },
-  ].map((edge) => ({ ...edge, y: toY(edge.value), labelY: toY(edge.value) }))
+  ]
+    .filter((edge) => {
+      if (edge.key === "critMax") return !pending
+      if (edge.key === "safeMin" || edge.key === "critMin") return lowSide
+      return true
+    })
+    .map((edge) => ({ ...edge, y: toY(edge.value), labelY: toY(edge.value) }))
   for (let i = 1; i < edges.length; i++) {
     edges[i].labelY = Math.max(
       edges[i].labelY,
@@ -286,7 +305,7 @@ export function ParameterHistoryChart({
     onActiveTime(toTime(event.clientX - box.left))
   }
 
-  const format = (v: number) => v.toFixed(parameter.precision)
+  const format = (v: number) => formatStatValue(parameter, v)
 
   return (
     <div className="flex flex-col gap-2">
@@ -296,8 +315,15 @@ export function ParameterHistoryChart({
           <h3 className="font-sans text-xs font-medium tracking-[0.08em] text-board-fg uppercase">
             {parameter.label}
           </h3>
-          <span className="font-heading text-xs text-board-muted">
-            {parameter.unit}
+          <span className="inline-flex items-baseline gap-1">
+            <span className="font-heading text-xs text-board-muted">
+              {parameter.unit}
+            </span>
+            {parameter.approximate ? (
+              <span className="font-sans text-xs text-board-muted">
+                approx.
+              </span>
+            ) : null}
           </span>
           <span
             className={cn(
