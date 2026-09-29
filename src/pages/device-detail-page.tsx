@@ -166,19 +166,34 @@ export function DeviceDetailPage() {
         </div>
       </header>
 
-      {diagnostics.error ? (
+      {/* Data wins over error: TanStack keeps the last good response when a background refetch fails, and
+          swapping the sections out for an error panel would tear down the 3D canvas mid-render (drei's Html
+          portals then crash the whole app on removeChild). A failed refresh is reported, not blanked. */}
+      {diagnostics.data ? (
+        <>
+          {diagnostics.error ? (
+            <p
+              role="status"
+              className="flex items-center gap-1.5 font-sans text-xs text-board-warn"
+            >
+              <AlertTriangle className="size-3.5 shrink-0" aria-hidden="true" />
+              Couldn't refresh diagnostics ({diagnostics.error.message}) —
+              showing the last data received.
+            </p>
+          ) : null}
+          <DiagnosticsSections
+            device={device}
+            state={state}
+            diagnostics={diagnostics.data}
+            selected={selectedSensor}
+            onSelect={setSelectedSensor}
+            now={now}
+          />
+        </>
+      ) : diagnostics.error ? (
         <BoardEmptyState icon={AlertTriangle} tone="error">
           {`Couldn't load diagnostics: ${diagnostics.error.message}`}
         </BoardEmptyState>
-      ) : diagnostics.data ? (
-        <DiagnosticsSections
-          device={device}
-          state={state}
-          diagnostics={diagnostics.data}
-          selected={selectedSensor}
-          onSelect={setSelectedSensor}
-          now={now}
-        />
       ) : (
         <p className="font-sans text-sm text-board-muted">
           Loading diagnostics…

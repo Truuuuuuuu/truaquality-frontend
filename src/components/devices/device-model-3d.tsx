@@ -20,6 +20,9 @@ const TRACE_COLOR = "#c9a24b"
 const CABLE_COLOR = "#23262b"
 const PLASTIC_COLOR = "#2b2e34"
 const WINDOW_COLOR = "#a8cfe0"
+// Light-grey ABS, the usual weatherproof junction box. It was the --board-panel-raised token, which is
+// near-black in the dark theme and made the enclosure vanish into the dark board.
+const SHELL_COLOR = "#d4d7db"
 
 const TOKENS = [
   "--board-accent",
@@ -114,7 +117,7 @@ export function DeviceModel3D(props: UnitViewProps) {
   return (
     <Canvas
       dpr={[1, 2]}
-      camera={{ position: [0.9, 0.7, 1.4], fov: 35 }}
+      camera={{ position: [0.55, 0.4, 1.0], fov: 35 }}
       frameloop={reducedMotion ? "demand" : "always"}
       gl={{ alpha: true, antialias: true }}
     >
@@ -123,10 +126,10 @@ export function DeviceModel3D(props: UnitViewProps) {
       <UnitScene {...props} colors={colors} animate={!reducedMotion} />
       <OrbitControls
         makeDefault
-        target={[0, -0.02, 0]}
+        target={[0, 0.02, 0]}
         enablePan={false}
-        minDistance={1.2}
-        maxDistance={3}
+        minDistance={0.85}
+        maxDistance={2.2}
         minPolarAngle={Math.PI * 0.2}
         maxPolarAngle={Math.PI * 0.55}
         autoRotate={!reducedMotion}
@@ -147,7 +150,7 @@ function UnitScene({
 }: UnitViewProps & { colors: TokenColors; animate: boolean }) {
   return (
     <group>
-      <Enclosure colors={colors} />
+      <Enclosure />
       <Board />
       <StatusLed
         online={deviceState === "ONLINE"}
@@ -172,10 +175,10 @@ function UnitScene({
   )
 }
 
-function Enclosure({ colors }: { colors: TokenColors }) {
+function Enclosure() {
   const { width, height, depth, y } = ENCLOSURE
   const wall = 0.008
-  const shell = colors["--board-panel-raised"]
+  const shell = SHELL_COLOR
   // Back plate and four walls rather than one solid box, so the board inside shows through the lid.
   return (
     <group position={[0, y, 0]}>
