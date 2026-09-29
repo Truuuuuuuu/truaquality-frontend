@@ -27,6 +27,7 @@ import {
   type ParameterConfig,
   type ReadingState,
 } from "@/lib/parameters"
+import { formatReading } from "@/lib/reading-format"
 import { pondReadingStates, type PondReadingEntry } from "@/lib/pond-status"
 import { STATUS_COLOR, STATUS_LABELS, STATUS_STYLES } from "@/lib/status-styles"
 
@@ -45,10 +46,6 @@ const TOOLTIP_WIDTH = 208
 const TOOLTIP_OFFSET = 12
 
 type Plottable = PondReadingEntry & { reading: ReadingState }
-
-function formatValue(parameter: ParameterConfig, value: number) {
-  return `${value.toFixed(parameter.precision)} ${parameter.unit}`
-}
 
 // A pond's history as one chart per parameter, stacked on a single time axis. The stack shares one
 // crosshair, one tooltip, and one keyboard focus stop, so reading across parameters at a moment in time
@@ -155,7 +152,7 @@ export function PondHistoryCharts({
           .map(({ parameter, value, severity }) =>
             value === null || severity === null
               ? `${parameter.label}, no reading`
-              : `${parameter.label} ${formatValue(parameter, value)}, ${STATUS_LABELS[severity]}`
+              : `${parameter.label} ${formatReading(parameter, value).spoken}, ${STATUS_LABELS[severity]}`
           )
           .join("; ")}`
 
@@ -223,8 +220,14 @@ export function PondHistoryCharts({
               "rounded-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-board-muted"
           )}
         >
-          {readings.map(({ parameter, reading }) =>
-            reading === null ? (
+          {readings.map(({ parameter, reading, signal }) =>
+            reading === null && signal === "not_reported" ? (
+              <EmptyRow
+                key={parameter.id}
+                parameter={parameter}
+                message="Not reported by this unit"
+              />
+            ) : reading === null ? (
               <EmptyRow
                 key={parameter.id}
                 parameter={parameter}
@@ -282,7 +285,7 @@ export function PondHistoryCharts({
                   {parameter.shortLabel}
                 </span>
                 <span className="ml-auto font-heading text-board-fg tabular-nums">
-                  {value === null ? "—" : formatValue(parameter, value)}
+                  {value === null ? "—" : formatReading(parameter, value).text}
                 </span>
                 <span
                   className={cn(
