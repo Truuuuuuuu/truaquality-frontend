@@ -44,3 +44,16 @@ export function formatDateTimeShort(timestamp: number): string {
   })
   return `${datePart}, ${timePart}`
 }
+
+// "12 min" / "2 h 5 min" / "3 days" — reads after "No reading for", unlike formatRelative's "12m ago".
+export function formatSilentDuration(ms: number): string {
+  const minutes = Math.max(1, Math.floor(ms / 60_000))
+  if (minutes < 60) return `${minutes} min`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) {
+    const rest = minutes % 60
+    return rest === 0 ? `${hours} h` : `${hours} h ${rest} min`
+  }
+  const days = Math.floor(hours / 24)
+  return days === 1 ? "1 day" : `${days} days`
+}
