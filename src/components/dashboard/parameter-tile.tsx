@@ -67,8 +67,7 @@ export function ParameterTile({
         <TrendChart
           points={history}
           status={status}
-          safeMin={threshold.safeMin}
-          safeMax={threshold.safeMax}
+          threshold={threshold}
           precision={parameter.precision}
         />
       </div>

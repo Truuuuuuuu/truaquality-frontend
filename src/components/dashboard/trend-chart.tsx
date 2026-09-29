@@ -1,13 +1,13 @@
 import * as React from "react"
 import { cn } from "cn"
-import type { ReadingPoint, ReadingStatus } from "@/lib/parameters"
+import { pendingScaleDomain } from "@/lib/chart-scale"
+import type { ReadingPoint, ReadingStatus, Threshold } from "@/lib/parameters"
 import { STATUS_COLOR } from "@/lib/status-styles"
 
 type TrendChartProps = {
   points: ReadingPoint[]
   status: ReadingStatus
-  safeMin: number
-  safeMax: number
+  threshold: Threshold
   precision: number
   height?: number
   className?: string
@@ -18,8 +18,7 @@ const VIEW_WIDTH = 320
 export function TrendChart({
   points,
   status,
-  safeMin,
-  safeMax,
+  threshold,
   precision,
   height = 72,
   className,
@@ -40,12 +39,28 @@ export function TrendChart({
     )
   }
 
+  const { safeMin, safeMax } = threshold
   const values = points.map((p) => p.v)
-  const dataMin = Math.min(...values, safeMin)
-  const dataMax = Math.max(...values, safeMax)
-  const pad = (dataMax - dataMin) * 0.15 || 1
-  const min = dataMin - pad
-  const max = dataMax + pad
+  // While the critical line is pending the history charts fit the axis to the data (with Safe max
+  // in view); the sparkline uses the same rule so a 4 NTU pond isn't squashed against a 3000 scale.
+  // Without the pending marker this falls back to the original safe-range-plus-15% domain.
+  const fitted = pendingScaleDomain(
+    threshold,
+    Math.min(...values),
+    Math.max(...values)
+  )
+  let min: number
+  let max: number
+  if (fitted) {
+    min = fitted.lo
+    max = fitted.hi
+  } else {
+    const dataMin = Math.min(...values, safeMin)
+    const dataMax = Math.max(...values, safeMax)
+    const pad = (dataMax - dataMin) * 0.15 || 1
+    min = dataMin - pad
+    max = dataMax + pad
+  }
   const span = max - min || 1
 
   const toX = (i: number) => (i / (points.length - 1)) * VIEW_WIDTH
