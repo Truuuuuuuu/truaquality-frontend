@@ -22,6 +22,7 @@ import { BoardEmptyState } from "@/components/board-empty-state"
 import { DeviceUnitView } from "@/components/devices/device-unit-view"
 import { ManageDeviceDialog } from "@/components/devices/manage-device-dialog"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 import { useAuth } from "@/context/auth-context"
 import { useDeviceDiagnostics, useDevices } from "@/hooks/use-ponds"
 import { useNow } from "@/hooks/use-now"
@@ -110,7 +111,7 @@ export function DeviceDetailPage() {
             This device doesn't exist.
           </BoardEmptyState>
         ) : (
-          <p className="font-sans text-sm text-board-muted">Loading device…</p>
+          <DeviceDetailSkeleton />
         )}
       </div>
     )
@@ -195,9 +196,7 @@ export function DeviceDetailPage() {
           {`Couldn't load diagnostics: ${diagnostics.error.message}`}
         </BoardEmptyState>
       ) : (
-        <p className="font-sans text-sm text-board-muted">
-          Loading diagnostics…
-        </p>
+        <DiagnosticsSkeleton />
       )}
 
       <div className="grid grid-cols-1 gap-x-12 gap-y-10 md:grid-cols-2">
@@ -846,5 +845,81 @@ function EventLog({ events, now }: { events: DeviceEvent[]; now: number }) {
         </ol>
       )}
     </section>
+  )
+}
+
+// Mirrors the loaded page below the back link — split title bar, the unit view, then the two-column
+// spec panels — so the header and panels don't jump when the device list lands.
+function DeviceDetailSkeleton() {
+  return (
+    <div
+      className="flex flex-col gap-8"
+      aria-busy="true"
+      aria-label="Loading device"
+    >
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-8">
+        <div className="flex min-w-0 flex-col gap-2">
+          <Skeleton className="h-7 w-48" />
+          <Skeleton className="h-4 w-40" />
+        </div>
+        <div className="flex flex-col gap-2 lg:items-end">
+          <Skeleton className="h-5 w-24 rounded-md" />
+          <Skeleton className="h-3 w-28" />
+        </div>
+      </div>
+      <UnitViewSkeleton />
+      <div className="grid grid-cols-1 gap-x-12 gap-y-10 md:grid-cols-2">
+        {[0, 1, 2, 3].map((panel) => (
+          <div key={panel} className="flex flex-col gap-2">
+            <Skeleton className="h-3 w-28" />
+            <div className="flex flex-col">
+              {[0, 1, 2].map((row) => (
+                <div
+                  key={row}
+                  className="grid grid-cols-[9rem_1fr] items-center gap-4 py-2.5"
+                >
+                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="h-4 w-32" />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// Sized to DiagnosticsSections' unit view: the model's fixed-height stage beside the Sensors list.
+function DiagnosticsSkeleton() {
+  return (
+    <div aria-busy="true" aria-label="Loading diagnostics">
+      <UnitViewSkeleton />
+    </div>
+  )
+}
+
+function UnitViewSkeleton() {
+  return (
+    <div className="flex flex-col gap-3">
+      <Skeleton className="h-3 w-24" />
+      <div className="grid grid-cols-1 gap-x-12 gap-y-6 lg:grid-cols-[3fr_2fr]">
+        <Skeleton className="h-72 w-full rounded-xl sm:h-80 lg:h-96" />
+        <div className="flex flex-col gap-2">
+          <Skeleton className="h-4 w-16" />
+          <div className="flex flex-col">
+            {[0, 1, 2, 3].map((row) => (
+              <div key={row} className="flex flex-col gap-2 px-2 py-3">
+                <div className="flex items-center justify-between gap-4">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-5 w-16 rounded-md" />
+                </div>
+                <Skeleton className="h-3 w-3/4" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }

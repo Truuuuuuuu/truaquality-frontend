@@ -1,9 +1,11 @@
 import type * as React from "react"
 import { Gauge } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
 import { usePondAnalysisRange } from "@/hooks/use-ponds"
 import type { Pond } from "@/lib/api"
 import type { HistoryRangeValue } from "@/lib/history-range"
 import { PARAMETER_ICONS, PARAMETERS } from "@/lib/parameters"
+import { cn } from "@/lib/utils"
 
 type HistorySummaryProps = {
   pond: Pond
@@ -45,7 +47,9 @@ export function HistorySummary({
         </h2>
         {rangeControl}
       </div>
-      {entries === null ? null : entries.length === 0 ? (
+      {entries === null ? (
+        <SummarySkeleton />
+      ) : entries.length === 0 ? (
         <p className="font-sans text-sm text-board-muted">
           No readings in this range to summarize.
         </p>
@@ -68,5 +72,31 @@ export function HistorySummary({
         </ul>
       )}
     </section>
+  )
+}
+
+const SUMMARY_LINE_WIDTHS = ["w-3/4", "w-2/3", "w-4/5", "w-3/5"]
+
+// One placeholder sentence per parameter, shaped like the loaded list (icon + line), so the section
+// doesn't sit empty and then push the charts down when the analysis lands.
+function SummarySkeleton() {
+  return (
+    <ul
+      className="flex flex-col gap-3"
+      aria-busy="true"
+      aria-label="Loading trend summary"
+    >
+      {PARAMETERS.map((parameter, index) => (
+        <li key={parameter.id} className="flex gap-2.5">
+          <Skeleton className="mt-0.5 size-4 shrink-0" />
+          <Skeleton
+            className={cn(
+              "h-4 max-w-prose",
+              SUMMARY_LINE_WIDTHS[index % SUMMARY_LINE_WIDTHS.length]
+            )}
+          />
+        </li>
+      ))}
+    </ul>
   )
 }

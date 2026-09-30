@@ -25,6 +25,7 @@ import { PondHistoryCharts } from "@/components/ponds/pond-history-charts"
 import { PondLiveReadings } from "@/components/ponds/pond-live-readings"
 import { ReadingsFilterDialog } from "@/components/ponds/readings-filter-dialog"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
   TableBody,
@@ -183,7 +184,7 @@ export function PondDetailPage() {
               : `Couldn't load this pond: ${error.message}`}
           </BoardEmptyState>
         ) : (
-          <p className="font-sans text-sm text-board-muted">Loading pond…</p>
+          <PondDetailSkeleton />
         )}
       </div>
     )
@@ -340,9 +341,7 @@ export function PondDetailPage() {
             {`Couldn't load readings: ${readingsError.message}`}
           </BoardEmptyState>
         ) : !readingsPage ? (
-          <p className="font-sans text-sm text-board-muted">
-            Loading readings…
-          </p>
+          <ReadingsTableSkeleton parameters={visibleParameters} />
         ) : pageReadings.length === 0 && pageIndex === 0 ? (
           <BoardEmptyState icon={Gauge}>
             {hasActiveFilter
@@ -662,6 +661,89 @@ function DeviceDisclosure({ pond, now }: { pond: Pond; now: number }) {
           </Link>
         </dd>
       </dl>
+    </div>
+  )
+}
+
+// Mirrors the loaded page's top — split title bar, then one live-reading tile per parameter — so the
+// header and tiles don't jump when the pond lands. The back link stays real above it.
+function PondDetailSkeleton() {
+  return (
+    <div
+      className="flex flex-col gap-8"
+      aria-busy="true"
+      aria-label="Loading pond"
+    >
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-8">
+        <div className="flex min-w-0 flex-col gap-3">
+          <Skeleton className="h-6 w-48" />
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-3 w-64 max-w-full" />
+        </div>
+        <div className="flex flex-col gap-2 lg:items-end">
+          <Skeleton className="h-5 w-24 rounded-md" />
+          <Skeleton className="h-3 w-28" />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {PARAMETERS.map((parameter) => (
+          <Skeleton key={parameter.id} className="min-h-44 rounded-xl" />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+type ReadingsTableSkeletonProps = { parameters: ParameterConfig[] }
+
+// Same wrapper, real headers and pager strip as the loaded table, so column widths and the table's
+// height hold steady when a page of readings arrives.
+function ReadingsTableSkeleton({ parameters }: ReadingsTableSkeletonProps) {
+  return (
+    <div
+      className="board-groove overflow-hidden rounded-xl border border-board-border bg-board-panel"
+      aria-busy="true"
+      aria-label="Loading readings"
+    >
+      <Table>
+        <TableHeader>
+          <TableRow className="hover:bg-transparent">
+            <TableHead>Time</TableHead>
+            {parameters.map((parameter) => {
+              const Icon = PARAMETER_ICONS[parameter.id] ?? Gauge
+              return (
+                <TableHead key={parameter.id} className="text-right">
+                  <span className="inline-flex items-center justify-end gap-1.5">
+                    <Icon className="size-3 text-board-muted" />
+                    {parameter.label}
+                  </span>
+                </TableHead>
+              )
+            })}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {[0, 1, 2, 3, 4, 5, 6, 7].map((row) => (
+            <TableRow key={row} className="hover:bg-transparent">
+              <TableCell>
+                <Skeleton className="h-3 w-28" />
+              </TableCell>
+              {parameters.map((parameter) => (
+                <TableCell key={parameter.id}>
+                  <Skeleton className="ml-auto h-3 w-14" />
+                </TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+      <div className="board-groove flex items-center justify-between gap-2 px-3 py-2">
+        <Skeleton className="h-3 w-24" />
+        <div className="flex items-center gap-2">
+          <Skeleton className="size-7 rounded-md" />
+          <Skeleton className="size-7 rounded-md" />
+        </div>
+      </div>
     </div>
   )
 }

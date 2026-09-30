@@ -2,12 +2,18 @@ import * as React from "react"
 import { Gauge } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
+  chartHeightFor,
   MARGIN_LEFT,
   ParameterHistoryChart,
   plotWidthFor,
 } from "@/components/ponds/parameter-history-chart"
+import { Skeleton } from "@/components/ui/skeleton"
 import { useElementWidth } from "@/hooks/use-element-width"
-import { usePondAnalysisRange, usePondHistoryRange } from "@/hooks/use-ponds"
+import {
+  usePondAnalysisRange,
+  usePondHistoryRange,
+  usePondSeriesRange,
+} from "@/hooks/use-ponds"
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion"
 import type { Pond } from "@/lib/api"
 import {
@@ -23,6 +29,7 @@ import {
 } from "@/lib/history-range"
 import {
   PARAMETER_ICONS,
+  PARAMETERS,
   severityFor,
   type ParameterConfig,
   type ReadingState,
@@ -57,6 +64,11 @@ export function PondHistoryCharts({
   compact = false,
 }: PondHistoryChartsProps) {
   const historyByParameter = usePondHistoryRange(pond.id, range)
+  // Same query as usePondHistoryRange (deduped by key), read here only for its pending flag: while the
+  // first series request is in flight the history map is empty, and pondReadingStates' latest-reading
+  // fallback would otherwise claim "Not enough history in this range" for every parameter. isPending
+  // (not isFetching) so a background refetch keeps the charts on screen.
+  const { isPending: seriesPending } = usePondSeriesRange(pond.id, range)
   const { data: analysis } = usePondAnalysisRange(pond.id, range)
   // "Last 24h" compares against "prev. 24h"; a custom range just against the period before it.
   const comparisonLabel =
@@ -207,64 +219,68 @@ export function PondHistoryCharts({
       ) : null}
 
       <div ref={containerRef} className="relative w-full min-w-0">
-        <div
-          tabIndex={interactive ? 0 : undefined}
-          role="group"
-          aria-label={
-            interactive
-              ? `History charts for ${plottable.length} parameter${plottable.length === 1 ? "" : "s"}, ${range.label}. Use the left and right arrow keys to step through readings, Shift to move ten at a time, Home and End to jump to the first or last reading, and Escape to clear.`
-              : `History, ${range.label}`
-          }
-          onKeyDown={interactive ? handleKeyDown : undefined}
-          onBlur={() => setActiveTime(null)}
-          onPointerMove={interactive ? handlePointerMove : undefined}
-          onPointerLeave={() => setPointer(null)}
-          className={cn(
-            "flex flex-col",
-            compact ? "gap-4" : "gap-6",
-            interactive &&
-              "rounded-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-board-muted"
-          )}
-        >
-          {readings.map(({ parameter, reading, signal }) =>
-            reading === null && signal === "not_reported" ? (
-              <EmptyRow
-                key={parameter.id}
-                parameter={parameter}
-                message="Not reported by this unit"
-              />
-            ) : reading === null ? (
-              <EmptyRow
-                key={parameter.id}
-                parameter={parameter}
-                message="No readings yet"
-              />
-            ) : reading.history.length < 2 ? (
-              <EmptyRow
-                key={parameter.id}
-                parameter={parameter}
-                message="Not enough history in this range"
-              />
-            ) : (
-              <ParameterHistoryChart
-                key={parameter.id}
-                reading={reading}
-                domainStart={domainStart}
-                domainEnd={domainEnd}
-                width={width}
-                activeTime={activeTime}
-                onActiveTime={handleActiveTime}
-                showXAxis={parameter.id === lastPlottedId}
-                isLive={isLive}
-                reducedMotion={reducedMotion}
-                compact={compact}
-                toleranceMs={toleranceMs}
-                analysis={analysis?.parameters[parameter.id] ?? null}
-                comparisonLabel={comparisonLabel}
-              />
-            )
-          )}
-        </div>
+        {seriesPending ? (
+          <HistoryChartsSkeleton compact={compact} />
+        ) : (
+          <div
+            tabIndex={interactive ? 0 : undefined}
+            role="group"
+            aria-label={
+              interactive
+                ? `History charts for ${plottable.length} parameter${plottable.length === 1 ? "" : "s"}, ${range.label}. Use the left and right arrow keys to step through readings, Shift to move ten at a time, Home and End to jump to the first or last reading, and Escape to clear.`
+                : `History, ${range.label}`
+            }
+            onKeyDown={interactive ? handleKeyDown : undefined}
+            onBlur={() => setActiveTime(null)}
+            onPointerMove={interactive ? handlePointerMove : undefined}
+            onPointerLeave={() => setPointer(null)}
+            className={cn(
+              "flex flex-col",
+              compact ? "gap-4" : "gap-6",
+              interactive &&
+                "rounded-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-board-muted"
+            )}
+          >
+            {readings.map(({ parameter, reading, signal }) =>
+              reading === null && signal === "not_reported" ? (
+                <EmptyRow
+                  key={parameter.id}
+                  parameter={parameter}
+                  message="Not reported by this unit"
+                />
+              ) : reading === null ? (
+                <EmptyRow
+                  key={parameter.id}
+                  parameter={parameter}
+                  message="No readings yet"
+                />
+              ) : reading.history.length < 2 ? (
+                <EmptyRow
+                  key={parameter.id}
+                  parameter={parameter}
+                  message="Not enough history in this range"
+                />
+              ) : (
+                <ParameterHistoryChart
+                  key={parameter.id}
+                  reading={reading}
+                  domainStart={domainStart}
+                  domainEnd={domainEnd}
+                  width={width}
+                  activeTime={activeTime}
+                  onActiveTime={handleActiveTime}
+                  showXAxis={parameter.id === lastPlottedId}
+                  isLive={isLive}
+                  reducedMotion={reducedMotion}
+                  compact={compact}
+                  toleranceMs={toleranceMs}
+                  analysis={analysis?.parameters[parameter.id] ?? null}
+                  comparisonLabel={comparisonLabel}
+                />
+              )
+            )}
+          </div>
+        )}
 
         {tooltipStyle && activeTime !== null ? (
           <div
@@ -352,6 +368,34 @@ function EmptyRow({
         </span>
       </span>
       <span className="font-sans text-xs text-board-muted">{message}</span>
+    </div>
+  )
+}
+
+// One row per parameter, laid out like ParameterHistoryChart (label and stats line over the plot) with
+// the plot at the chart's exact height — the last row carries the x-axis, as the loaded stack's last
+// plotted chart does — so the section keeps its height when the series lands.
+function HistoryChartsSkeleton({ compact }: { compact: boolean }) {
+  return (
+    <div
+      className={cn("flex flex-col", compact ? "gap-4" : "gap-6")}
+      aria-busy="true"
+      aria-label="Loading history"
+    >
+      {PARAMETERS.map((parameter, index) => (
+        <div key={parameter.id} className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-3 w-48" />
+          </div>
+          <Skeleton
+            className="w-full rounded-md"
+            style={{
+              height: chartHeightFor(compact, index === PARAMETERS.length - 1),
+            }}
+          />
+        </div>
+      ))}
     </div>
   )
 }
