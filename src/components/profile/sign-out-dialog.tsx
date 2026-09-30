@@ -37,7 +37,7 @@ export function SignOutDialog({ open, onOpenChange }: SignOutDialogProps) {
             Cancel
           </Button>
           {/* ProtectedRoute redirects to /login once the session is cleared. */}
-          <Button type="button" onClick={logout}>
+          <Button type="button" variant="destructive" onClick={logout}>
             <LogOut />
             Sign out
           </Button>
