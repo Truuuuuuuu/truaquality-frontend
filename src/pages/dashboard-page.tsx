@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button"
 import { usePonds } from "@/hooks/use-ponds"
 import { useNow } from "@/hooks/use-now"
 import { formatRelative } from "@/lib/format-time"
-import { compareStatus, type ReadingStatus } from "@/lib/parameters"
+import { compareStatus, PARAMETERS, type ReadingStatus } from "@/lib/parameters"
 import {
   pondConnectionLabel,
   pondPanelId,
@@ -23,6 +23,7 @@ import {
 } from "@/lib/pond-status"
 import { pondTypeLabel } from "@/lib/pond-types"
 import { STATUS_LABELS } from "@/lib/status-styles"
+import { cn } from "@/lib/utils"
 
 const SUMMARY_ORDER: ReadingStatus[] = ["critical", "warning", "stale"]
 
@@ -83,7 +84,7 @@ export function DashboardPage() {
             Couldn't load ponds: {error.message}
           </BoardEmptyState>
         ) : (
-          <p className="font-sans text-sm text-board-muted">Loading ponds…</p>
+          <DashboardSkeleton />
         )
       ) : board.length === 0 ? (
         <BoardEmptyState
@@ -192,6 +193,57 @@ export function DashboardPage() {
           </div>
         </div>
       ) : null}
+    </div>
+  )
+}
+
+const SKELETON_BLOCK = "rounded bg-board-panel-raised motion-safe:animate-pulse"
+
+// Mirrors the loaded board's shape — switcher, pond header, parameter values, compact charts — so the
+// page doesn't jump when the first poll lands.
+function DashboardSkeleton() {
+  return (
+    <div
+      className="flex flex-col gap-6"
+      aria-busy="true"
+      aria-label="Loading ponds"
+    >
+      <div className="flex gap-5 border-b border-board-border pb-2.5">
+        {[0, 1, 2].map((tab) => (
+          <div key={tab} className={cn(SKELETON_BLOCK, "h-4 w-20")} />
+        ))}
+      </div>
+
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-2">
+          <div className={cn(SKELETON_BLOCK, "h-5 w-44")} />
+          <div className={cn(SKELETON_BLOCK, "h-4 w-32")} />
+          <div className={cn(SKELETON_BLOCK, "h-3 w-56")} />
+        </div>
+        <div className="flex flex-col items-end gap-2">
+          <div className={cn(SKELETON_BLOCK, "h-5 w-20 rounded-md")} />
+          <div className={cn(SKELETON_BLOCK, "h-3 w-24")} />
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-x-8 gap-y-5 md:flex-row md:flex-wrap">
+        {PARAMETERS.map((parameter) => (
+          <div
+            key={parameter.id}
+            className="flex min-w-40 flex-1 flex-col gap-2"
+          >
+            <div className={cn(SKELETON_BLOCK, "h-3 w-24")} />
+            <div className={cn(SKELETON_BLOCK, "h-8 w-28")} />
+          </div>
+        ))}
+      </div>
+
+      <div className="flex flex-col gap-4 border-t border-board-border pt-6">
+        <div className={cn(SKELETON_BLOCK, "h-3 w-36")} />
+        {PARAMETERS.map((parameter) => (
+          <div key={parameter.id} className={cn(SKELETON_BLOCK, "h-24")} />
+        ))}
+      </div>
     </div>
   )
 }
