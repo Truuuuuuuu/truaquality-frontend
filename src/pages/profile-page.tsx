@@ -1,5 +1,5 @@
 import * as React from "react"
-import { LogOut, Monitor, Moon, Sun } from "lucide-react"
+import { Check, LogOut } from "lucide-react"
 import { ChangePasswordDialog } from "@/components/profile/change-password-dialog"
 import { DeleteAccountDialog } from "@/components/profile/delete-account-dialog"
 import { SignOutDialog } from "@/components/profile/sign-out-dialog"
@@ -12,10 +12,23 @@ import { formatDate } from "@/lib/format-time"
 import { cn } from "@/lib/utils"
 
 const THEME_OPTIONS = [
-  { value: "light", label: "Light", icon: Sun },
-  { value: "dark", label: "Dark", icon: Moon },
-  { value: "system", label: "System", icon: Monitor },
+  { value: "light", label: "Light" },
+  { value: "dark", label: "Dark" },
+  { value: "system", label: "System" },
 ] as const
+
+// The thumbnails always show the scheme they stand for, whatever theme is active, so they use the two
+// palettes' literal board colors (index.css) rather than the theme-switching `board-*` tokens.
+const PREVIEW_SCHEMES = {
+  light: {
+    backdrop: "bg-[oklch(0.91_0.006_258)]",
+    window: "bg-[oklch(0.995_0.002_258)] text-[oklch(0.2_0.006_258)]",
+  },
+  dark: {
+    backdrop: "bg-[oklch(0.3_0.012_258)]",
+    window: "bg-[oklch(0.15_0.008_258)] text-[oklch(0.93_0.004_258)]",
+  },
+} as const
 
 // Full-width 40px touch targets on phones; from `sm` they sit at the row's end at one shared width so
 // the three actions line up down the right edge.
@@ -76,12 +89,17 @@ export function ProfilePage() {
           title="Appearance"
           description="How the board is lit on this device."
         >
-          <SettingRow
-            label="Theme"
-            description="System follows your device's light or dark setting."
-          >
+          <div className="flex flex-col gap-4">
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <span className="font-sans text-sm font-medium text-board-fg">
+                Theme
+              </span>
+              <span className="max-w-[48ch] font-sans text-xs leading-relaxed text-board-muted">
+                System follows your device's light or dark setting.
+              </span>
+            </div>
             <ThemeControl />
-          </SettingRow>
+          </div>
         </Section>
 
         <Section
@@ -187,10 +205,9 @@ function ThemeControl() {
     <div
       role="radiogroup"
       aria-label="Theme"
-      className="grid w-full grid-cols-3 gap-0.5 rounded-lg border border-board-border-strong bg-board-panel p-0.5 sm:inline-grid sm:w-auto"
+      className="grid w-full max-w-md grid-cols-3 gap-3"
     >
       {THEME_OPTIONS.map((option, index) => {
-        const Icon = option.icon
         const active = theme === option.value
         return (
           <button
@@ -204,19 +221,76 @@ function ThemeControl() {
             tabIndex={active ? 0 : -1}
             onClick={() => setTheme(option.value)}
             onKeyDown={(event) => handleKeyDown(event, index)}
-            className={cn(
-              "flex h-9 items-center justify-center gap-1.5 rounded-md px-3 font-sans text-xs font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/60 active:translate-y-px sm:h-7",
-              active
-                ? "bg-board-fg text-board-bg"
-                : "text-board-muted hover:bg-board-panel-raised hover:text-board-fg"
-            )}
+            className="group flex flex-col gap-2 rounded-lg text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-4 focus-visible:ring-offset-board-bg"
           >
-            <Icon className="size-3.5" />
-            {option.label}
+            <span
+              className={cn(
+                "relative block aspect-[16/10] overflow-hidden rounded-lg border transition-[border-color,box-shadow] group-active:translate-y-px",
+                active
+                  ? "border-board-fg ring-2 ring-board-fg"
+                  : "border-board-border-strong group-hover:border-board-muted"
+              )}
+            >
+              {option.value === "system" ? (
+                <>
+                  <ThemePreview
+                    scheme="dark"
+                    className="inset-y-0 left-0 w-1/2"
+                  />
+                  <ThemePreview
+                    scheme="light"
+                    className="inset-y-0 right-0 w-1/2"
+                  />
+                </>
+              ) : (
+                <ThemePreview scheme={option.value} className="inset-0" />
+              )}
+              {active ? (
+                <span className="absolute right-1.5 bottom-1.5 flex size-5 items-center justify-center rounded-full bg-board-fg text-board-bg shadow-sm">
+                  <Check className="size-3" strokeWidth={3} />
+                </span>
+              ) : null}
+            </span>
+            <span
+              className={cn(
+                "font-sans text-sm transition-colors",
+                active
+                  ? "font-medium text-board-fg"
+                  : "text-board-muted group-hover:text-board-fg"
+              )}
+            >
+              {option.label}
+            </span>
           </button>
         )
       })}
     </div>
+  )
+}
+
+// A backdrop with an app window tucked into its lower-right corner, the window showing a type sample.
+function ThemePreview({
+  scheme,
+  className,
+}: {
+  scheme: keyof typeof PREVIEW_SCHEMES
+  className: string
+}) {
+  const colors = PREVIEW_SCHEMES[scheme]
+  return (
+    <span
+      aria-hidden="true"
+      className={cn("absolute block", colors.backdrop, className)}
+    >
+      <span
+        className={cn(
+          "absolute top-[28%] right-0 bottom-0 left-[22%] rounded-tl-md px-2 pt-1.5 font-sans text-xs font-semibold",
+          colors.window
+        )}
+      >
+        Aa
+      </span>
+    </span>
   )
 }
 
