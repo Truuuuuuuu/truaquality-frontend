@@ -47,7 +47,6 @@ export function SignOutDialog({ open, onOpenChange }: SignOutDialogProps) {
             className={PROFILE_DIALOG_BUTTON}
             onClick={logout}
           >
-            <LogOut />
             Sign out
           </Button>
         </DialogFooter>
