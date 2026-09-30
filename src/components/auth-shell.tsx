@@ -62,8 +62,9 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
 }
 
 // Pure decoration, drawn only in the hairline border tokens: a water line along the bottom of the page and,
-// beside the statement, a pond ripple spreading from that line. It deliberately carries no numbers, colors
-// or motion that could be read as a reading or a device state, and it is static (see the One Entrance Rule).
+// beside the statement, a pond ripple spreading from that line. It deliberately carries no numbers or signal
+// colors that could be read as a reading or a device state; its one motion, the rings rising like a signal,
+// is the single decorative loop the One Entrance Rule allows.
 function PondBackdrop() {
   return (
     <div aria-hidden="true" className="pointer-events-none absolute inset-0">
@@ -76,16 +77,21 @@ function PondBackdrop() {
             fill="none"
             className="absolute bottom-[3.25rem] left-0 w-[20rem] xl:w-[24rem]"
           >
-            {[40, 80, 120, 160].map((r, index) => (
+            {/* Every ring is the same full-size arc, sized by --tq-ring-scale; the static sizes are the
+                reduced-motion picture, and the animation (index.css, tq-ripple) takes over otherwise. */}
+            {[0.25, 0.5, 0.75, 1].map((scale, index) => (
               <path
-                key={r}
-                d={`M${160 - r} 160 A${r} ${r} 0 0 1 ${160 + r} 160`}
+                key={scale}
+                d="M0 160 A160 160 0 0 1 320 160"
                 strokeWidth="1"
                 vectorEffect="non-scaling-stroke"
-                className={
-                  index < 2
-                    ? "stroke-board-border-strong"
-                    : "stroke-board-border"
+                className="tq-ripple stroke-board-border-strong"
+                style={
+                  {
+                    "--tq-ring-scale": scale,
+                    "--tq-ring-opacity": index < 2 ? 1 : 0.55,
+                    "--tq-ring-index": index,
+                  } as React.CSSProperties
                 }
               />
             ))}
