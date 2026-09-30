@@ -1,6 +1,6 @@
 import * as React from "react"
-import { Canvas, useFrame, type ThreeEvent } from "@react-three/fiber"
-import { Html, OrbitControls } from "@react-three/drei"
+import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber"
+import { OrbitControls } from "@react-three/drei"
 import * as THREE from "three"
 import type {
   UnitViewProbe,
@@ -97,6 +97,12 @@ const GLAND_X = [-0.07, 0.07]
 const GLAND_Y = ENCLOSURE.y - ENCLOSURE.height / 2
 const PROBE_HEAD_Y = -0.2
 
+// Probe labels are plain DOM in the page's own React tree, laid over the canvas; a LabelAnchor inside the
+// scene moves each one to its probe every frame. drei's <Html> was dropped because it gives every label its
+// own React root, and StrictMode's remount raced that root's deferred unmount, which emptied the first
+// probe's (temperature's) label after it had rendered.
+type LabelRefs = React.RefObject<Map<string, HTMLDivElement>>
+
 function probeX(index: number, count: number) {
   if (count === 1) return 0
   return -0.3 + (index * 0.6) / (count - 1)
@@ -106,6 +112,7 @@ export function DeviceModel3D(props: UnitViewProps) {
   const reducedMotion = usePrefersReducedMotion()
   const themeClass = useThemeClass()
   const colors = React.useMemo(() => readTokenColors(themeClass), [themeClass])
+  const labelRefs = React.useRef(new Map<string, HTMLDivElement>())
 
   React.useEffect(
     () => () => {
@@ -115,31 +122,93 @@ export function DeviceModel3D(props: UnitViewProps) {
   )
 
   return (
-    <Canvas
-      dpr={[1, 2]}
-      // Framed so the lowest label (under the long temperature probe) stays inside the canvas through a full
-      // auto-rotation; the nearer probe projects lowest, and the old closer camera clipped whichever that was.
-      camera={{ position: [0.77, 0.47, 1.4], fov: 35 }}
-      frameloop={reducedMotion ? "demand" : "always"}
-      gl={{ alpha: true, antialias: true }}
-    >
-      <ambientLight intensity={0.7} />
-      <directionalLight position={[1.5, 2, 1.8]} intensity={1.6} />
-      <UnitScene {...props} colors={colors} animate={!reducedMotion} />
-      <OrbitControls
-        makeDefault
-        target={[0, -0.06, 0]}
-        enablePan={false}
-        minDistance={1.1}
-        maxDistance={2.4}
-        minPolarAngle={Math.PI * 0.2}
-        maxPolarAngle={Math.PI * 0.55}
-        autoRotate={!reducedMotion}
-        autoRotateSpeed={0.6}
-        enableDamping={!reducedMotion}
-      />
-    </Canvas>
+    <div className="relative h-full w-full">
+      <Canvas
+        dpr={[1, 2]}
+        // Framed so the lowest label (under the long temperature probe) stays inside the canvas through a
+        // full auto-rotation rather than spilling over the caption below it.
+        camera={{ position: [0.77, 0.47, 1.4], fov: 35 }}
+        frameloop={reducedMotion ? "demand" : "always"}
+        gl={{ alpha: true, antialias: true }}
+      >
+        <ambientLight intensity={0.7} />
+        <directionalLight position={[1.5, 2, 1.8]} intensity={1.6} />
+        <UnitScene
+          {...props}
+          colors={colors}
+          animate={!reducedMotion}
+          labelRefs={labelRefs}
+        />
+        <OrbitControls
+          makeDefault
+          target={[0, -0.06, 0]}
+          enablePan={false}
+          minDistance={1.1}
+          maxDistance={2.4}
+          minPolarAngle={Math.PI * 0.2}
+          maxPolarAngle={Math.PI * 0.55}
+          autoRotate={!reducedMotion}
+          autoRotateSpeed={0.6}
+          enableDamping={!reducedMotion}
+        />
+      </Canvas>
+      <div className="pointer-events-none absolute inset-0">
+        {props.probes.map((probe) => (
+          <div
+            key={probe.parameter}
+            ref={(element) => {
+              if (element) labelRefs.current.set(probe.parameter, element)
+              else labelRefs.current.delete(probe.parameter)
+            }}
+            className={cn(
+              "invisible absolute top-0 left-0 rounded bg-board-panel/80 px-1.5 py-0.5 text-center font-sans text-xs whitespace-nowrap text-board-fg",
+              probe.parameter === props.selected && "font-semibold"
+            )}
+          >
+            <div>{probe.label}</div>
+            <div
+              className={cn(
+                probe.tone === "fault"
+                  ? "text-board-critical"
+                  : "text-board-muted"
+              )}
+            >
+              {probe.stateLabel}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   )
+}
+
+const projected = new THREE.Vector3()
+
+function LabelAnchor({
+  parameter,
+  y,
+  labelRefs,
+}: {
+  parameter: string
+  y: number
+  labelRefs: LabelRefs
+}) {
+  const anchor = React.useRef<THREE.Group>(null)
+  const size = useThree((state) => state.size)
+
+  useFrame(({ camera }) => {
+    const element = labelRefs.current.get(parameter)
+    if (!anchor.current || !element) return
+    anchor.current.getWorldPosition(projected).project(camera)
+    const x = ((projected.x + 1) / 2) * size.width
+    const top = ((1 - projected.y) / 2) * size.height
+    element.style.transform = `translate3d(${x}px, ${top}px, 0) translate(-50%, -50%)`
+    // Nearer probes (smaller NDC z) draw over farther ones.
+    element.style.zIndex = String(Math.round((1 - projected.z) * 1000))
+    element.style.visibility = projected.z < 1 ? "visible" : "hidden"
+  })
+
+  return <group ref={anchor} position={[0, y, 0]} />
 }
 
 function UnitScene({
@@ -149,7 +218,12 @@ function UnitScene({
   onSelect,
   colors,
   animate,
-}: UnitViewProps & { colors: TokenColors; animate: boolean }) {
+  labelRefs,
+}: UnitViewProps & {
+  colors: TokenColors
+  animate: boolean
+  labelRefs: LabelRefs
+}) {
   return (
     <group>
       <Enclosure />
@@ -171,6 +245,7 @@ function UnitScene({
           selected={probe.parameter === selected}
           onSelect={onSelect}
           colors={colors}
+          labelRefs={labelRefs}
         />
       ))}
     </group>
@@ -319,6 +394,7 @@ function Probe({
   selected,
   onSelect,
   colors,
+  labelRefs,
 }: {
   probe: UnitViewProbe
   x: number
@@ -326,6 +402,7 @@ function Probe({
   selected: boolean
   onSelect: (parameter: string) => void
   colors: TokenColors
+  labelRefs: LabelRefs
 }) {
   const ringColor = toneColor(probe.tone, colors)
   const isTurbidity = probe.parameter === "turbidity"
@@ -393,31 +470,11 @@ function Probe({
             emissiveIntensity={0.5}
           />
         </mesh>
-        <Html
-          center
-          position={[0, -bodyLength - 0.04, 0]}
-          distanceFactor={1.2}
-          zIndexRange={[10, 0]}
-          style={{ pointerEvents: "none" }}
-        >
-          <div
-            className={cn(
-              "rounded bg-board-panel/80 px-1.5 py-0.5 text-center font-sans text-xs whitespace-nowrap text-board-fg",
-              selected && "font-semibold"
-            )}
-          >
-            <div>{probe.label}</div>
-            <div
-              className={cn(
-                probe.tone === "fault"
-                  ? "text-board-critical"
-                  : "text-board-muted"
-              )}
-            >
-              {probe.stateLabel}
-            </div>
-          </div>
-        </Html>
+        <LabelAnchor
+          parameter={probe.parameter}
+          y={-bodyLength - 0.04}
+          labelRefs={labelRefs}
+        />
       </group>
     </group>
   )
