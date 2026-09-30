@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge"
 import { BoardEmptyState } from "@/components/board-empty-state"
 import { ExportReadingsDialog } from "@/components/ponds/export-readings-dialog"
 import { HistoryRangePicker } from "@/components/ponds/history-range-picker"
+import { HistorySummary } from "@/components/ponds/history-summary"
 import { PondConnectionStatus } from "@/components/ponds/pond-device-meta"
 import { PondHistoryCharts } from "@/components/ponds/pond-history-charts"
 import { PondLiveReadings } from "@/components/ponds/pond-live-readings"
@@ -286,6 +287,7 @@ export function PondDetailPage() {
           </div>
         </div>
 
+        <HistorySummary pond={pond} range={historyRange} />
         <PondHistoryCharts pond={pond} now={now} range={historyRange} />
       </section>
 
