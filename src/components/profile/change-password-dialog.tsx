@@ -12,7 +12,12 @@ import {
 } from "@/components/ui/dialog"
 import { FloatingLabelInput } from "@/components/ui/floating-input"
 import { useAuth } from "@/context/auth-context"
+import { cn } from "@/lib/utils"
 import { createAuthActionClient, supabase } from "@/lib/supabase"
+import {
+  PROFILE_DIALOG_BUTTON,
+  PROFILE_DIALOG_TITLE,
+} from "@/components/profile/dialog-styles"
 
 type ChangePasswordDialogProps = {
   open: boolean
@@ -202,21 +207,24 @@ function ChangePasswordForm({ onDone }: { onDone: () => void }) {
     return (
       <>
         <DialogHeader>
-          <DialogTitle>Check your email</DialogTitle>
+          <DialogTitle
+            className={cn(PROFILE_DIALOG_TITLE, "flex items-center gap-2")}
+          >
+            <Mail className="size-4 shrink-0 text-board-muted" />
+            Check your email
+          </DialogTitle>
           <DialogDescription>
-            Follow the link to set a new password without your current one.
+            We sent a reset link to{" "}
+            <span className="font-medium break-all text-board-fg">
+              {profile?.email}
+            </span>
+            . It can take a few minutes to arrive.
           </DialogDescription>
         </DialogHeader>
-        <div className="flex items-start gap-2 rounded-lg border border-board-border px-3 py-2.5 text-sm text-board-fg">
-          <Mail className="mt-0.5 size-4 shrink-0 text-board-muted" />
-          <span>
-            A link to set a new password is on its way to{" "}
-            <span className="font-medium break-words">{profile?.email}</span>.
-            It can take a few minutes to arrive.
-          </span>
-        </div>
         <DialogFooter>
-          <Button onClick={onDone}>Done</Button>
+          <Button className={PROFILE_DIALOG_BUTTON} onClick={onDone}>
+            Done
+          </Button>
         </DialogFooter>
       </>
     )
@@ -226,17 +234,20 @@ function ChangePasswordForm({ onDone }: { onDone: () => void }) {
     return (
       <>
         <DialogHeader>
-          <DialogTitle>Password updated</DialogTitle>
+          <DialogTitle
+            className={cn(PROFILE_DIALOG_TITLE, "flex items-center gap-2")}
+          >
+            <CheckCircle2 className="size-4 shrink-0 text-board-accent" />
+            Password changed
+          </DialogTitle>
           <DialogDescription>
             Use your new password next time you sign in.
           </DialogDescription>
         </DialogHeader>
-        <div className="flex items-center gap-2 rounded-lg border border-board-accent/30 bg-board-accent-dim px-3 py-2.5 text-sm text-board-accent">
-          <CheckCircle2 className="size-4 shrink-0" />
-          Your password was changed successfully.
-        </div>
         <DialogFooter>
-          <Button onClick={onDone}>Done</Button>
+          <Button className={PROFILE_DIALOG_BUTTON} onClick={onDone}>
+            Done
+          </Button>
         </DialogFooter>
       </>
     )
@@ -249,9 +260,11 @@ function ChangePasswordForm({ onDone }: { onDone: () => void }) {
   return (
     <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-4">
       <DialogHeader>
-        <DialogTitle>Change password</DialogTitle>
+        <DialogTitle className={PROFILE_DIALOG_TITLE}>
+          Change password
+        </DialogTitle>
         <DialogDescription>
-          Confirm your current password, then choose a new one.
+          Enter your current password, then a new one of at least 8 characters.
         </DialogDescription>
       </DialogHeader>
 
@@ -312,8 +325,21 @@ function ChangePasswordForm({ onDone }: { onDone: () => void }) {
       ) : null}
 
       <DialogFooter>
-        <Button type="submit" aria-disabled={isSubmitting || undefined}>
-          {isSubmitting ? "Updating…" : "Update password"}
+        <Button
+          type="button"
+          variant="outline"
+          className={PROFILE_DIALOG_BUTTON}
+          disabled={isSubmitting}
+          onClick={onDone}
+        >
+          Cancel
+        </Button>
+        <Button
+          type="submit"
+          className={PROFILE_DIALOG_BUTTON}
+          aria-disabled={isSubmitting || undefined}
+        >
+          {isSubmitting ? "Changing…" : "Change password"}
         </Button>
       </DialogFooter>
     </form>

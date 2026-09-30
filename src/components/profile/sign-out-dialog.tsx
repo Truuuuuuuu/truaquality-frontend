@@ -9,6 +9,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { useAuth } from "@/context/auth-context"
+import {
+  PROFILE_DIALOG_BUTTON,
+  PROFILE_DIALOG_TITLE,
+} from "@/components/profile/dialog-styles"
 
 type SignOutDialogProps = {
   open: boolean
@@ -22,22 +26,27 @@ export function SignOutDialog({ open, onOpenChange }: SignOutDialogProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>Sign out?</DialogTitle>
+          <DialogTitle className={PROFILE_DIALOG_TITLE}>Sign out?</DialogTitle>
           <DialogDescription>
-            You'll need your email and password to sign back in to TruAquality
-            in this browser.
+            You'll need your password to sign back in on this browser.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button
             type="button"
             variant="outline"
+            className={PROFILE_DIALOG_BUTTON}
             onClick={() => onOpenChange(false)}
           >
             Cancel
           </Button>
           {/* ProtectedRoute redirects to /login once the session is cleared. */}
-          <Button type="button" variant="destructive" onClick={logout}>
+          <Button
+            type="button"
+            variant="destructive"
+            className={PROFILE_DIALOG_BUTTON}
+            onClick={logout}
+          >
             <LogOut />
             Sign out
           </Button>

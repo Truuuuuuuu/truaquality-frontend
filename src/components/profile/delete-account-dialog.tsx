@@ -1,5 +1,4 @@
 import * as React from "react"
-import { TriangleAlert } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -12,12 +11,16 @@ import {
 import { FloatingLabelInput } from "@/components/ui/floating-input"
 import { useAuth } from "@/context/auth-context"
 import { deleteAccount, errorMessage } from "@/lib/api"
+import {
+  PROFILE_DIALOG_BUTTON,
+  PROFILE_DIALOG_TITLE,
+} from "@/components/profile/dialog-styles"
 
 const CONSEQUENCES = [
-  "Your sign-in is removed immediately, on every device.",
-  "Your name, email, and notifications are removed from TruAquality.",
-  "Records of actions you took are kept for BFAR's audit trail.",
-  "This can't be undone. An administrator would have to invite you again.",
+  "Your sign-in is removed on every device.",
+  "Your name, email, and notifications are removed.",
+  "Records of actions you took stay in BFAR's audit trail.",
+  "To come back, an administrator has to invite you again.",
 ]
 
 type DeleteAccountDialogProps = {
@@ -62,18 +65,17 @@ function DeleteAccountForm({ onCancel }: { onCancel: () => void }) {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <DialogHeader>
-        <DialogTitle>Delete your account</DialogTitle>
+        <DialogTitle className={PROFILE_DIALOG_TITLE}>
+          Delete your account?
+        </DialogTitle>
         <DialogDescription>
-          Enter your password to confirm it's you.
+          This can't be undone. Enter your password to confirm.
         </DialogDescription>
       </DialogHeader>
 
-      <ul className="flex flex-col gap-2 rounded-lg border border-board-border px-3 py-2.5">
+      <ul className="flex list-disc flex-col gap-1.5 pl-5 text-sm text-board-fg marker:text-board-critical">
         {CONSEQUENCES.map((line) => (
-          <li key={line} className="flex gap-2 text-sm text-board-warn">
-            <TriangleAlert className="mt-0.5 size-4 shrink-0" />
-            <span>{line}</span>
-          </li>
+          <li key={line}>{line}</li>
         ))}
       </ul>
 
@@ -84,11 +86,20 @@ function DeleteAccountForm({ onCancel }: { onCancel: () => void }) {
         autoComplete="current-password"
         required
         value={password}
-        onChange={(event) => setPassword(event.target.value)}
+        onChange={(event) => {
+          setPassword(event.target.value)
+          if (error) setError(null)
+        }}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? "delete-account-error" : undefined}
       />
 
       {error ? (
-        <p role="alert" className="text-sm text-destructive">
+        <p
+          id="delete-account-error"
+          role="alert"
+          className="text-sm text-destructive"
+        >
           {error}
         </p>
       ) : null}
@@ -97,6 +108,7 @@ function DeleteAccountForm({ onCancel }: { onCancel: () => void }) {
         <Button
           type="button"
           variant="outline"
+          className={PROFILE_DIALOG_BUTTON}
           disabled={isSubmitting}
           onClick={onCancel}
         >
@@ -105,9 +117,10 @@ function DeleteAccountForm({ onCancel }: { onCancel: () => void }) {
         <Button
           type="submit"
           variant="destructive"
+          className={PROFILE_DIALOG_BUTTON}
           disabled={isSubmitting || password.length === 0}
         >
-          {isSubmitting ? "Deleting…" : "Delete my account"}
+          {isSubmitting ? "Deleting…" : "Delete account"}
         </Button>
       </DialogFooter>
     </form>
