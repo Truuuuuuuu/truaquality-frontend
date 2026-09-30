@@ -4,6 +4,7 @@ import { Navigate } from "react-router"
 import { BoardEmptyState } from "@/components/board-empty-state"
 import { BoardPager } from "@/components/board-pager"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
   TableBody,
@@ -156,7 +157,7 @@ export function UsersPage() {
             Couldn't load users: {error.message}
           </BoardEmptyState>
         ) : (
-          <p className="font-sans text-sm text-board-muted">Loading users…</p>
+          <UsersTableSkeleton />
         )
       ) : all.length === 0 ? (
         <BoardEmptyState icon={UsersIcon}>
@@ -378,6 +379,75 @@ export function UsersPage() {
         isSelf={manageUser?.id === profile?.id}
         isTargetAdmin={manageUser?.systemRole === "ADMIN"}
       />
+    </div>
+  )
+}
+
+// Mirrors the loaded roster — toolbar, table (cards below sm), pager — so nothing shifts when the list lands.
+function UsersTableSkeleton() {
+  return (
+    <div
+      className="flex flex-col gap-6"
+      aria-busy="true"
+      aria-label="Loading users"
+    >
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <Skeleton className="h-8 w-full rounded-lg sm:w-100" />
+        <Skeleton className="h-8 w-72 max-w-full rounded-lg" />
+        <Skeleton className="h-8 w-36 rounded-lg sm:ml-auto" />
+      </div>
+      <div className="hidden sm:block">
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead>Name</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Role</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Invited</TableHead>
+              <TableHead>
+                <span className="sr-only">Actions</span>
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {[0, 1, 2, 3, 4, 5].map((row) => (
+              <TableRow key={row} className="hover:bg-transparent">
+                <TableCell>
+                  <Skeleton className="h-4 w-32" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-3 w-40" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-5 w-14 rounded-md" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-5 w-16 rounded-md" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-3 w-20" />
+                </TableCell>
+                <TableCell className="text-right">
+                  <Skeleton className="ml-auto h-7 w-12 rounded-md" />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+      <div className="flex flex-col gap-3 sm:hidden">
+        {[0, 1, 2].map((card) => (
+          <Skeleton key={card} className="h-28 rounded-xl" />
+        ))}
+      </div>
+      <div className="flex items-center justify-between gap-3">
+        <Skeleton className="h-3 w-32" />
+        <div className="flex items-center gap-1">
+          <Skeleton className="size-7 rounded-md" />
+          <Skeleton className="size-7 rounded-md" />
+        </div>
+      </div>
     </div>
   )
 }

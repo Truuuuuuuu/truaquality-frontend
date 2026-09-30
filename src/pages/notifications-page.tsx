@@ -4,6 +4,7 @@ import { cn } from "cn"
 import { BoardEmptyState } from "@/components/board-empty-state"
 import { NotificationListItem } from "@/components/notifications/notification-list-item"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   useMarkAllNotificationsRead,
   useMarkNotificationRead,
@@ -86,9 +87,7 @@ export function NotificationsPage() {
             Couldn't load notifications: {error.message}
           </BoardEmptyState>
         ) : (
-          <p className="font-sans text-sm text-board-muted">
-            Loading notifications…
-          </p>
+          <NotificationsListSkeleton />
         )
       ) : notifications.length === 0 ? (
         <BoardEmptyState icon={BellOff}>
@@ -123,5 +122,33 @@ export function NotificationsPage() {
         </div>
       )}
     </div>
+  )
+}
+
+// Mirrors the loaded divided list of NotificationListItem rows (status dot, title + timestamp,
+// pond · reading). Duplicated from the bell's skeleton rather than shared, since a component file
+// may only export components.
+function NotificationsListSkeleton() {
+  return (
+    <ul
+      className="-mx-3 flex flex-col divide-y divide-board-border"
+      aria-busy="true"
+      aria-label="Loading notifications"
+    >
+      {[0, 1, 2, 3, 4].map((row) => (
+        <li key={row} className="py-1">
+          <div className="flex items-start gap-3 px-3 py-2.5">
+            <Skeleton className="mt-1.5 size-2 shrink-0 rounded-full" />
+            <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+              <div className="flex items-center justify-between gap-3">
+                <Skeleton className="h-3.5 w-3/4" />
+                <Skeleton className="h-3 w-16" />
+              </div>
+              <Skeleton className="h-3 w-1/2" />
+            </div>
+          </div>
+        </li>
+      ))}
+    </ul>
   )
 }

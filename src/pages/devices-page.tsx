@@ -9,6 +9,7 @@ import { ManageDeviceDialog } from "@/components/devices/manage-device-dialog"
 import { RegisterDeviceDialog } from "@/components/devices/register-device-dialog"
 import { StatusBadge } from "@/components/status-badge"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
   TableBody,
@@ -154,7 +155,7 @@ export function DevicesPage() {
             Couldn't load devices: {error.message}
           </BoardEmptyState>
         ) : (
-          <p className="font-sans text-sm text-board-muted">Loading devices…</p>
+          <DevicesTableSkeleton isAdmin={isAdmin} />
         )
       ) : devices.length === 0 ? (
         <BoardEmptyState icon={Cpu}>
@@ -556,6 +557,86 @@ export function DevicesPage() {
           />
         </>
       ) : null}
+    </div>
+  )
+}
+
+// Mirrors the loaded registry — toolbar, table (cards below sm), pager — so nothing shifts when the list lands.
+function DevicesTableSkeleton({ isAdmin }: { isAdmin: boolean }) {
+  return (
+    <div
+      className="flex flex-col gap-6"
+      aria-busy="true"
+      aria-label="Loading devices"
+    >
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <Skeleton className="h-8 w-full rounded-lg sm:w-100" />
+        <Skeleton className="h-8 w-72 max-w-full rounded-lg" />
+        <Skeleton className="h-8 w-36 rounded-lg sm:ml-auto" />
+      </div>
+      <div className="hidden sm:block">
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead>Device</TableHead>
+              <TableHead>Pond</TableHead>
+              <TableHead>Last seen</TableHead>
+              <TableHead>Firmware</TableHead>
+              <TableHead>WiFi</TableHead>
+              <TableHead>Status</TableHead>
+              {isAdmin ? (
+                <TableHead>
+                  <span className="sr-only">Actions</span>
+                </TableHead>
+              ) : null}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {[0, 1, 2, 3, 4, 5].map((row) => (
+              <TableRow key={row} className="hover:bg-transparent">
+                <TableCell>
+                  <div className="flex flex-col gap-1">
+                    <Skeleton className="h-3 w-24" />
+                    <Skeleton className="h-3 w-20" />
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-4 w-24" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-3 w-16" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-3 w-10" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-3 w-20" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-5 w-16 rounded-md" />
+                </TableCell>
+                {isAdmin ? (
+                  <TableCell className="text-right">
+                    <Skeleton className="ml-auto h-7 w-12 rounded-md" />
+                  </TableCell>
+                ) : null}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+      <div className="flex flex-col gap-3 sm:hidden">
+        {[0, 1, 2].map((card) => (
+          <Skeleton key={card} className="h-28 rounded-xl" />
+        ))}
+      </div>
+      <div className="flex items-center justify-between gap-3">
+        <Skeleton className="h-3 w-32" />
+        <div className="flex items-center gap-1">
+          <Skeleton className="size-7 rounded-md" />
+          <Skeleton className="size-7 rounded-md" />
+        </div>
+      </div>
     </div>
   )
 }

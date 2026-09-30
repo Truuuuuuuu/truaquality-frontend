@@ -4,6 +4,7 @@ import { Navigate } from "react-router"
 import { BoardEmptyState } from "@/components/board-empty-state"
 import { BoardPager } from "@/components/board-pager"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Select,
   SelectContent,
@@ -128,9 +129,7 @@ export function AuditPage() {
             Couldn't load the audit log: {error.message}
           </BoardEmptyState>
         ) : (
-          <p className="font-sans text-sm text-board-muted">
-            Loading audit log…
-          </p>
+          <AuditLogSkeleton />
         )
       ) : entries.length === 0 ? (
         hasFilters ? (
@@ -289,5 +288,63 @@ function AuditCard({ entry, now }: { entry: AuditEntry; now: number }) {
         <MetadataCell entry={entry} />
       </div>
     </li>
+  )
+}
+
+// Mirrors the loaded trail below the filters — table (cards below sm) and pager — so the rows don't
+// jump in when the first page lands.
+function AuditLogSkeleton() {
+  return (
+    <div
+      className="flex flex-col gap-4"
+      aria-busy="true"
+      aria-label="Loading audit log"
+    >
+      <div className="hidden sm:block">
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead>When</TableHead>
+              <TableHead>Action</TableHead>
+              <TableHead>By</TableHead>
+              <TableHead>Details</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {[0, 1, 2, 3, 4, 5, 6, 7].map((row) => (
+              <TableRow key={row} className="hover:bg-transparent">
+                <TableCell>
+                  <div className="flex flex-col gap-1">
+                    <Skeleton className="h-3 w-28" />
+                    <Skeleton className="h-3 w-16" />
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-4 w-32" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-3 w-24" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-3 w-48" />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+      <div className="flex flex-col gap-3 sm:hidden">
+        {[0, 1, 2].map((card) => (
+          <Skeleton key={card} className="h-24 rounded-xl" />
+        ))}
+      </div>
+      <div className="flex items-center justify-between gap-3">
+        <Skeleton className="h-3 w-32" />
+        <div className="flex items-center gap-1">
+          <Skeleton className="size-7 rounded-md" />
+          <Skeleton className="size-7 rounded-md" />
+        </div>
+      </div>
+    </div>
   )
 }
