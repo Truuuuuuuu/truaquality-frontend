@@ -218,6 +218,7 @@ export function PondsPage() {
               onChange: changeLifecycle,
               options: LIFECYCLE_OPTIONS,
             }}
+            resultCount={filtered.length}
           />
 
           {filtered.length === 0 ? (

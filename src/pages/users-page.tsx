@@ -181,6 +181,7 @@ export function UsersPage() {
               onChange: changeRole,
               options: ROLE_OPTIONS,
             }}
+            resultCount={filtered.length}
           />
 
           {rows.length === 0 ? (

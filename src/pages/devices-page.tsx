@@ -181,6 +181,7 @@ export function DevicesPage() {
               onChange: changeAssignment,
               options: ASSIGNMENT_OPTIONS,
             }}
+            resultCount={filtered.length}
           />
 
           {filtered.length === 0 ? (
