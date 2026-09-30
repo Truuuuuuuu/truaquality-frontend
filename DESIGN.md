@@ -206,7 +206,7 @@ The palette is a narrow, deliberately desaturated slate family for structure, wi
 Signed-out surface roles (Inter unless noted):
 - **Rail headline** (600 weight, 30px stepping to 36px at `xl`, line-height 1.15, tracking -0.025em, balanced wrap): the one product statement on the auth rail. It is the largest Inter setting in the app and appears nowhere on the board.
 - **Panel title** (600 weight, 24px, line-height tight, tracking -0.02em, balanced wrap): the auth panel heading. It owns its row outright — nothing sits beside it — which is what lets it run two steps above body text without crowding.
-- **Field label and body** (500 weight / 400 weight, 14px): field labels, panel descriptions, the invite note; field input text is 16px so mobile browsers never zoom on focus.
+- **Field label and body** (500 weight / 400 weight, 14px): field labels, panel descriptions; field input text is 16px so mobile browsers never zoom on focus.
 - **Range value** (Geist Mono, 12px, tabular-nums): the safe range beside each range bar ("20–30 °C"). It is a real threshold, so it takes mono; parameter names beside it stay Inter.
 
 ### Named Rules
@@ -304,7 +304,7 @@ The one raised plate on the signed-out board ground: `panel-slate` fill, hairlin
 - **No status instrumentation on the plate.** An earlier iteration carried a four-state access LED (idle / working / error / done) beside the title and a mono PHT station-time clock at the right. Both were retired: the LED duplicated signals the form already gives more precisely (the submit button's spinner and present-participle label for progress, the marked fields and named alert for failure), and the clock applied the Stamped-Value Rule to a page that has no reading to stamp — it decorated the plate rather than reporting anything. The Stamped-Value Rule governs readings; a sign-in form is not one. Don't reintroduce either as a way to make the panel feel more instrument-like.
 - **Error marking (the one exception to the Whole-Tile Flood Rule):** the panel plate is a form someone has to keep reading and re-typing into, not a reading to be alarmed about, so a failure is marked rather than flooded. The plate's border and fill stay neutral; the implicated fields take a critical border (200ms), and the failure is named in one inline alert (a 16px alert-circle icon plus 14px critical text) placed directly above the submit button. The marking recedes the moment the visitor edits a field.
 - **View swaps:** when a visitor's action replaces the panel (sign in → reset request → "Check your email"), the new panel settles in (see Entrance Motion) and focus moves to its heading. No settle on first load.
-- **Divider:** a 2px engraved groove rule with 24px above and below, separating the form from secondary content (the invite note, "Back to sign in").
+- **Divider:** a 2px engraved groove rule with 24px above and below, separating the form from a secondary action ("Back to sign in"). The sign-in panel has none: the invite fact lives in its description, not in a footnote under a rule.
 
 ### Inputs / Fields (Recessed Well)
 - **Style:** 44px tall, 10px radius, `board-slate` fill (darker than the plate in both themes), a border in muted text color at 60%, the recessed-well inset shadow, 14px horizontal padding, 16px text, `telemetry-green` caret. The label sits above in 14px medium ink, 8px gap; an optional 12px muted hint sits below.

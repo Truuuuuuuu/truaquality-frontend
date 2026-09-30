@@ -94,8 +94,8 @@ function SignInPanel({
       setError({
         field: "email",
         message: trimmedEmail
-          ? "Enter an email address like name@example.com."
-          : "Enter the email address for your account.",
+          ? "Enter a full email address, like name@example.com."
+          : "Enter your email address.",
       })
       document.getElementById("email")?.focus()
       return
@@ -128,7 +128,7 @@ function SignInPanel({
   return (
     <AuthPanel
       title="Sign in"
-      description="Use the email address your invite was sent to."
+      description="Use the email address your invite was sent to. Set your password from that invite before signing in for the first time."
       focusOnMount={focusOnMount}
     >
       <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-5">
@@ -181,31 +181,24 @@ function SignInPanel({
           Sign in
         </AuthSubmit>
       </form>
-
-      <AuthDivider />
-
-      <p className="text-sm leading-relaxed text-pretty text-board-muted">
-        Accounts are created by your BFAR Sorsogon administrator. New here? Open
-        the invite link in your email to set a password first.
-      </p>
     </AuthPanel>
   )
 }
 
 function signInErrorMessage(err: unknown) {
   if (!(err instanceof ApiError)) {
-    return "Can't reach TruAquality. Check your internet connection and try again."
+    return "Couldn't reach the server. Check your connection."
   }
   if (err.status === 429) {
-    return "Too many sign-in attempts from this network. Wait 15 minutes, then try again."
+    return "Too many sign-in attempts from this network. Wait 15 minutes."
   }
   if (err.status === 403 || /banned/i.test(err.message)) {
-    return "This account can't sign in right now. Contact your BFAR Sorsogon administrator."
+    return "This account can't sign in. Ask your BFAR Sorsogon administrator."
   }
   if (err.status === 400 || err.status === 401) {
-    return "That email and password don't match. Check both and try again, or reset your password."
+    return "Incorrect email or password."
   }
-  return "Sign-in isn't available right now. Try again in a moment."
+  return "Sign-in is unavailable right now. Try again shortly."
 }
 
 function ResetPanel({
@@ -227,8 +220,8 @@ function ResetPanel({
     if (!EMAIL_PATTERN.test(trimmedEmail)) {
       setError(
         trimmedEmail
-          ? "Enter an email address like name@example.com."
-          : "Enter the email address for your account."
+          ? "Enter a full email address, like name@example.com."
+          : "Enter your email address."
       )
       document.getElementById("reset-email")?.focus()
       return
@@ -255,9 +248,9 @@ function ResetPanel({
     return (
       <AuthPanel key="sent" title="Check your email" focusOnMount>
         <p className="text-sm leading-relaxed text-pretty text-board-fg">
-          If <span className="font-medium break-words">{email.trim()}</span>{" "}
-          belongs to a TruAquality account, a link to set a new password is on
-          its way. It can take a few minutes to arrive.
+          If <span className="font-medium break-words">{email.trim()}</span> has
+          a TruAquality account, it will get a link to set a new password.
+          Delivery can take a few minutes.
         </p>
         <AuthDivider />
         <AuthBackAction onClick={onBack} />
@@ -268,7 +261,7 @@ function ResetPanel({
   return (
     <AuthPanel
       title="Reset your password"
-      description="Enter the email address for your account. You'll get a link to set a new password."
+      description="We'll email a link for setting a new password."
       focusOnMount={focusOnMount}
     >
       <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-5">
@@ -301,10 +294,10 @@ function ResetPanel({
 
 function resetErrorMessage(err: unknown) {
   if (isAuthError(err) && err.status === 429) {
-    return "Too many reset emails were requested. Wait a few minutes, then try again."
+    return "Too many reset emails requested. Wait a few minutes."
   }
   if (isAuthError(err) && err.status && err.status >= 400) {
-    return "The reset email couldn't be sent. Try again in a moment."
+    return "The reset email couldn't be sent. Try again shortly."
   }
-  return "Can't reach the password reset service. Check your internet connection and try again."
+  return "Couldn't reach the server. Check your connection."
 }
