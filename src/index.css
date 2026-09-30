@@ -228,18 +228,13 @@
         0 0 0 4px color-mix(in oklch, var(--board-accent) 22%, transparent);
 }
 
-/* Signed-out pages (AuthShell): one orchestrated entrance, where the panel rises while the range
-   key's bars trace in left to right, plus a quick settle when the panel swaps views. Everything is
-   fully visible without the animation, and none of it runs under reduced motion. */
+/* Signed-out pages (AuthShell): the page's statement and panel rise in, plus a quick settle when the
+   panel swaps views. Everything is fully visible without the animation, and none of it runs under
+   reduced motion. */
 @keyframes tq-rise {
     from {
         opacity: 0;
         translate: 0 10px;
-    }
-}
-@keyframes tq-trace {
-    from {
-        clip-path: inset(0 100% 0 0);
     }
 }
 @keyframes tq-swap {
@@ -251,9 +246,6 @@
 @media (prefers-reduced-motion: no-preference) {
     .tq-rise {
         animation: tq-rise 700ms cubic-bezier(0.16, 1, 0.3, 1) var(--tq-delay, 0ms) both;
-    }
-    .tq-trace {
-        animation: tq-trace 1100ms cubic-bezier(0.16, 1, 0.3, 1) var(--tq-delay, 0ms) both;
     }
     .tq-swap {
         animation: tq-swap 260ms cubic-bezier(0.16, 1, 0.3, 1) both;

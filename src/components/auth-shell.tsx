@@ -10,72 +10,52 @@ import {
 import { Link } from "react-router"
 import { cn } from "cn"
 import { ModeToggle } from "@/components/mode-toggle"
-import { hasLowSide } from "@/lib/chart-scale"
-import {
-  PARAMETER_ICONS,
-  PARAMETERS,
-  SIGNED_OUT_THRESHOLDS,
-  type Threshold,
-} from "@/lib/parameters"
-import { STATUS_LABELS, STATUS_STYLES } from "@/lib/status-styles"
 
-// Shared frame for the signed-out pages (sign in, password reset, accept invite). On wide screens a rail
-// introduces the product and the board's color language before anyone reaches the board itself; the
-// page's own panel sits on the board ground beside it.
+// Shared frame for the signed-out pages (sign in, password reset, accept invite): a header, a product
+// statement beside the page's panel, and a footer. These pages used to carry a threshold range key, but a
+// signed-out visitor has no pond, so any range shown could only be illustrative rather than a real pond's —
+// and staff could mistake it for real. The frame now shows no numbers at all.
 export function AuthShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="tq-board-scope min-h-svh bg-board-bg text-board-fg lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-      <main className="flex min-h-svh flex-col px-4 py-4 sm:px-6 lg:px-10">
-        <header className="flex items-center gap-4">
-          <Wordmark showOrg className="lg:hidden" />
+    <div className="tq-board-scope flex min-h-svh flex-col bg-board-bg text-board-fg">
+      <header className="board-groove border-b border-board-border px-4 sm:px-6 lg:px-10">
+        <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-4">
+          <Wordmark />
           <ModeToggle className="ml-auto border-board-border bg-transparent text-board-muted hover:bg-board-panel-raised hover:text-board-fg dark:border-board-border dark:bg-transparent dark:hover:bg-board-panel-raised" />
-        </header>
+        </div>
+      </header>
+
+      <main className="flex-1 px-4 sm:px-6 lg:px-10">
         {/* Top-anchored rather than centered, so an error message growing the panel never shifts the
             fields someone is typing into. */}
-        <div className="flex flex-1 items-start justify-center pt-10 pb-14 sm:pt-[max(3.5rem,14vh)]">
+        <div className="mx-auto grid w-full max-w-6xl items-start gap-10 pt-10 pb-14 sm:pt-[max(3.5rem,14vh)] lg:grid-cols-[minmax(0,1fr)_26rem] lg:gap-16 xl:gap-24">
+          {/* pt-7 matches the panel's own padding, so the headline's cap line sits level with the panel title. */}
+          <div className="tq-rise hidden max-w-[34rem] flex-col gap-4 pt-7 lg:flex">
+            <h2 className="text-3xl leading-[1.15] font-semibold tracking-[-0.025em] text-balance xl:text-4xl">
+              Water quality monitoring for BFAR Sorsogon fishponds
+            </h2>
+            <p className="max-w-[46ch] text-base leading-relaxed text-pretty text-board-muted">
+              A sensor unit at each pond reports its water temperature and
+              turbidity. Once you sign in, the board shows every pond's latest
+              reading and flags any that leave their safe range.
+            </p>
+          </div>
           <div
-            className="tq-rise flex w-full max-w-[26rem] flex-col gap-10"
+            className="tq-rise w-full max-w-[26rem] justify-self-center lg:justify-self-end"
             style={delay(120)}
           >
             {children}
-            {/* Below lg there is no rail, so the color key follows the panel for staff on phones. */}
-            <div className="flex flex-col gap-4 px-1 lg:hidden">
-              <p className="text-sm leading-relaxed text-pretty text-board-muted">
-                The board flags any reading that leaves its safe range.
-              </p>
-              <RangeKey />
-            </div>
           </div>
         </div>
       </main>
 
-      <aside className="hidden flex-col border-r border-board-border bg-board-rail lg:order-first lg:flex">
-        <div className="px-10 pt-9 xl:px-14">
-          <Wordmark />
-        </div>
-        <div className="my-auto px-10 py-12 xl:px-14">
-          <div className="flex max-w-[30rem] flex-col gap-10">
-            <div className="tq-rise flex flex-col gap-4">
-              <h2 className="text-3xl leading-[1.15] font-semibold tracking-[-0.025em] text-balance xl:text-4xl">
-                Water quality monitoring for BFAR Sorsogon fishponds
-              </h2>
-              <p className="max-w-[46ch] text-base leading-relaxed text-pretty text-board-muted">
-                A sensor unit at each pond reports its water temperature and
-                turbidity. The board flags any reading that leaves its safe
-                range.
-              </p>
-            </div>
-            <RangeKey />
-          </div>
-        </div>
-        {/* The same engraved footer the dashboard sidebar ends with, carrying the fixed org line. */}
-        <footer className="board-groove border-t border-board-border px-10 py-5 xl:px-14">
-          <p className="text-sm font-medium">BFAR Sorsogon</p>
-          <p className="mt-0.5 text-xs text-board-muted">
-            Bureau of Fisheries and Aquatic Resources
+      <footer className="board-groove border-t border-board-border px-4 sm:px-6 lg:px-10">
+        <div className="mx-auto w-full max-w-6xl py-5">
+          <p className="text-xs text-board-muted">
+            Bureau of Fisheries and Aquatic Resources · Sorsogon
           </p>
-        </footer>
-      </aside>
+        </div>
+      </footer>
     </div>
   )
 }
@@ -84,132 +64,14 @@ function delay(ms: number) {
   return { "--tq-delay": `${ms}ms` } as React.CSSProperties
 }
 
-// The rail carries the org line in its footer, so only the mobile header repeats it under the name.
-function Wordmark({
-  showOrg = false,
-  className,
-}: {
-  showOrg?: boolean
-  className?: string
-}) {
+// With no rail footer to carry it, the org name always sits inline beside the product name.
+function Wordmark() {
   return (
-    <div className={cn("flex flex-col gap-0.5", className)}>
+    <div className="flex items-center gap-3">
       <span className="text-sm font-semibold tracking-tight">TruAquality</span>
-      {showOrg ? (
-        <span className="text-xs text-board-muted">BFAR Sorsogon</span>
-      ) : null}
+      <span aria-hidden="true" className="h-4 w-px bg-board-border-strong" />
+      <span className="text-sm text-board-muted">BFAR Sorsogon</span>
     </div>
-  )
-}
-
-// The safe/warning/critical bands drawn as one segmented bar per parameter, so the colors on the
-// board mean something before anyone signs in. A signed-out page has no pond to ask, so these are
-// the unclassified-pond bands (SIGNED_OUT_THRESHOLDS) rather than any real pond's — once signed in,
-// each pond is judged against the thresholds the server resolves for its type.
-function RangeKey() {
-  return (
-    <div className="flex flex-col gap-4">
-      <ul
-        aria-label="Safe range for each parameter"
-        className="board-groove-rows grid grid-cols-[auto_minmax(3rem,1fr)_auto]"
-      >
-        {PARAMETERS.map((parameter, index) => {
-          const Icon = PARAMETER_ICONS[parameter.id]
-          const threshold = SIGNED_OUT_THRESHOLDS[parameter.id]
-          if (!threshold) return null
-          return (
-            <li
-              key={parameter.id}
-              className="col-span-3 grid grid-cols-subgrid items-center gap-x-4 py-3.5 sm:gap-x-5"
-            >
-              <span className="flex items-center gap-2.5 text-sm font-medium">
-                {Icon ? (
-                  <Icon className="size-4 shrink-0 text-board-muted" />
-                ) : null}
-                <span className="flex items-baseline gap-1">
-                  {parameter.label}
-                  {parameter.approximate ? (
-                    <span className="text-xs font-normal text-board-muted">
-                      approx.
-                    </span>
-                  ) : null}
-                </span>
-              </span>
-              <RangeBar
-                threshold={threshold}
-                style={delay(260 + index * 110)}
-              />
-              <span className="text-right font-heading text-xs text-board-fg tabular-nums">
-                <span className="sr-only">Safe range </span>
-                {threshold.safeMin}–{threshold.safeMax} {parameter.unit}
-              </span>
-            </li>
-          )
-        })}
-      </ul>
-      <ul
-        aria-label="Status colors"
-        className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-board-muted"
-      >
-        {(["nominal", "warning", "critical"] as const).map((status) => (
-          <li key={status} className="flex items-center gap-2">
-            <span
-              aria-hidden="true"
-              className={cn("size-2 rounded-full", STATUS_STYLES[status].led)}
-            />
-            {STATUS_LABELS[status]}
-          </li>
-        ))}
-      </ul>
-    </div>
-  )
-}
-
-function RangeBar({
-  threshold,
-  style,
-}: {
-  threshold: Threshold
-  style: React.CSSProperties
-}) {
-  const { criticalMin, safeMin, safeMax, criticalMax } = threshold
-  const pending = threshold.criticalPending === true
-  // Extends past the critical limits so the critical zones read as open-ended bands, not slivers.
-  // While BFAR's critical line is pending, criticalMax is a placeholder, so nothing is sized from it.
-  const pad = ((pending ? safeMax : criticalMax) - criticalMin) * 0.25
-  // Built side by side: a parameter whose safe and critical minimums coincide has no low side, and
-  // while the critical line is pending (D-02) there is no high critical band and the warning segment
-  // is open-ended rather than running to the placeholder. Zero-size segments are left out entirely,
-  // because an empty span would still leave a visible 3px gap.
-  const bands = [
-    ...(hasLowSide(threshold)
-      ? [
-          { size: pad, className: "bg-board-critical/75" },
-          { size: safeMin - criticalMin, className: "bg-board-warn/75" },
-        ]
-      : []),
-    { size: safeMax - safeMin, className: "bg-board-accent" },
-    {
-      size: pending ? safeMax - safeMin : criticalMax - safeMax,
-      className: "bg-board-warn/75",
-    },
-    ...(pending ? [] : [{ size: pad, className: "bg-board-critical/75" }]),
-  ].filter((band) => band.size > 0)
-
-  return (
-    <span
-      aria-hidden="true"
-      className="tq-trace flex h-1.5 gap-[3px]"
-      style={style}
-    >
-      {bands.map((band, index) => (
-        <span
-          key={index}
-          className={cn("rounded-full", band.className)}
-          style={{ flex: `${band.size} 1 0%` }}
-        />
-      ))}
-    </span>
   )
 }
 

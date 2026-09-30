@@ -80,22 +80,6 @@ export const PARAMETERS: ParameterConfig[] = [
   },
 ]
 
-// Illustrative bands for the signed-out range key on the auth pages (components/auth-shell.tsx).
-// Those pages have no pond in context and no token to fetch one with, so they can't use the real
-// per-pond thresholds. These mirror the backend's UNSET profile — what it applies to a pond nobody
-// has classified yet — which is the honest reading for "some pond, type unknown". Nothing that
-// judges an actual reading may use these; live surfaces read `pond.thresholds`.
-export const SIGNED_OUT_THRESHOLDS: Record<string, Threshold> = {
-  temperature: { safeMin: 20, safeMax: 30, criticalMin: 15, criticalMax: 35.5 },
-  turbidity: {
-    safeMin: 0,
-    safeMax: 25,
-    criticalMin: 0,
-    criticalMax: 3000,
-    criticalPending: true,
-  },
-}
-
 export const PARAMETER_ICONS: Record<
   string,
   ComponentType<{ className?: string }>

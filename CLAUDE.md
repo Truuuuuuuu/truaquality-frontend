@@ -126,9 +126,6 @@ URLs. The same page, mounted at `/reset-password` with `mode="recovery"`, handle
   here — stale beats range checks — but the *ranges* are not: they depend on a pond's `pondType`, so the
   server resolves them and sends `pond.thresholds` alongside `pond.latest`. Pass that band into
   `statusFor`/`severityFor`; never hardcode one.
-  - `SIGNED_OUT_THRESHOLDS` is the single exception: illustrative bands for the range key on the signed-out
-    auth pages, which have no pond to ask and no token to ask with. Nothing that judges a real reading may
-    use it.
 - `src/lib/pond-status.ts` — derives a pond's per-parameter readings and overall (worst) status from the
   `latest` map the API returns. `parameterSignal` scopes that pond-wide map to the current unit (readings
   before `device.assignedAt` are ignored) and calls a parameter "not reported" (never stale) only when the unit
