@@ -1,3 +1,4 @@
+import type * as React from "react"
 import { Gauge } from "lucide-react"
 import { usePondAnalysisRange } from "@/hooks/use-ponds"
 import type { Pond } from "@/lib/api"
@@ -7,34 +8,44 @@ import { PARAMETER_ICONS, PARAMETERS } from "@/lib/parameters"
 type HistorySummaryProps = {
   pond: Pond
   range: HistoryRangeValue
+  // The page's range picker, shown right of the heading: it sits above everything it governs (this summary,
+  // the history charts and the reading table below).
+  rangeControl?: React.ReactNode
 }
 
 // The history analysis in plain sentences, for staff who'd rather read "falling by about 0.3 °C per day"
 // than decode the stats row. The server writes the sentences (`summary`); this only lays them out. Shares the
 // charts' analysis query (same key), so it costs no extra request.
-export function HistorySummary({ pond, range }: HistorySummaryProps) {
+export function HistorySummary({
+  pond,
+  range,
+  rangeControl,
+}: HistorySummaryProps) {
   const { data: analysis } = usePondAnalysisRange(pond.id, range)
-  if (!analysis) return null
+  const entries = analysis
+    ? PARAMETERS.flatMap((parameter) => {
+        const result = analysis.parameters[parameter.id]
+        return result ? [{ parameter, result }] : []
+      })
+    : null
 
-  const entries = PARAMETERS.flatMap((parameter) => {
-    const result = analysis.parameters[parameter.id]
-    return result ? [{ parameter, result }] : []
-  })
-
+  // The section always renders, even while the analysis loads: the range picker lives in its header, and a
+  // picker that vanished on every range change couldn't be used.
   return (
-    // Its own section between the live cards and History; it still follows the range picked in the History
-    // header, and every paragraph names that period, so it reads correctly above the picker.
     <section
       aria-labelledby="pond-summary-title"
       className="flex flex-col gap-3 border-t border-board-border pt-6"
     >
-      <h2
-        id="pond-summary-title"
-        className="font-sans text-xs font-medium tracking-[0.08em] text-board-muted uppercase"
-      >
-        Summary
-      </h2>
-      {entries.length === 0 ? (
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2
+          id="pond-summary-title"
+          className="font-sans text-xs font-medium tracking-[0.08em] text-board-muted uppercase"
+        >
+          Summary
+        </h2>
+        {rangeControl}
+      </div>
+      {entries === null ? null : entries.length === 0 ? (
         <p className="font-sans text-sm text-board-muted">
           No readings in this range to summarize.
         </p>

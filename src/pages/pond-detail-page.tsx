@@ -258,10 +258,16 @@ export function PondDetailPage() {
 
       <PondLiveReadings pond={pond} now={now} />
 
-      <HistorySummary pond={pond} range={historyRange} />
+      {/* One range governs the summary, the charts and the table below, so its picker sits at the top of
+          them all, in the Summary header. Export stays with History, next to the data it exports. */}
+      <HistorySummary
+        pond={pond}
+        range={historyRange}
+        rangeControl={
+          <HistoryRangePicker value={historyRange} onChange={setHistoryRange} />
+        }
+      />
 
-      {/* One range governs both the charts and the table below, so its picker (and Export, which works
-          over a range too) sits above both rather than inside the table's header. */}
       <section
         aria-labelledby="pond-history-title"
         className="flex flex-col gap-4 border-t border-board-border pt-6"
@@ -273,20 +279,14 @@ export function PondDetailPage() {
           >
             History
           </h2>
-          <div className="flex items-center gap-2">
-            <HistoryRangePicker
-              value={historyRange}
-              onChange={setHistoryRange}
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setExportOpen(true)}
-            >
-              <Download />
-              Export
-            </Button>
-          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setExportOpen(true)}
+          >
+            <Download />
+            Export
+          </Button>
         </div>
 
         <PondHistoryCharts pond={pond} now={now} range={historyRange} />
