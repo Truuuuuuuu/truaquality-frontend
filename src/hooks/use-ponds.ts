@@ -12,6 +12,7 @@ import {
   getDeviceDiagnostics,
   getPond,
   getPondReadingsPage,
+  getPondAnalysis,
   getPondSeries,
   listDevices,
   listPonds,
@@ -28,7 +29,6 @@ import {
   HISTORY_RANGE_PRESETS,
   historyRangeKey,
   resolveHistoryRange,
-  resolvePreviousHistoryRange,
   type HistoryRangeValue,
 } from "@/lib/history-range"
 import type { ReadingPoint } from "@/lib/parameters"
@@ -104,28 +104,20 @@ export function usePondHistoryRange(id: string, range: HistoryRangeValue) {
   )
 }
 
-// The same-length period just before `range`, keyed per parameter like `usePondHistoryRange`, so each
-// history chart can compare its average against the one before it. Like the range itself, a rolling
-// window is resolved inside `queryFn` and keeps polling; a fixed one is a snapshot.
-export function usePondPreviousHistoryRange(
-  id: string,
-  range: HistoryRangeValue
-) {
+// Min/max/avg, out-of-range share, trend and previous-period comparison for a history range, computed by
+// the server. Keyed and polled like `usePondSeriesRange`, under ["ponds"] so mutations refresh it too.
+export function usePondAnalysisRange(id: string, range: HistoryRangeValue) {
   const { authorizedRequest } = useAuth()
-  const { data: series } = useQuery({
-    queryKey: ["ponds", id, "series", "previous", historyRangeKey(range)],
+  return useQuery({
+    queryKey: ["ponds", id, "analysis", historyRangeKey(range)],
     queryFn: () => {
-      const { from, to } = resolvePreviousHistoryRange(range, Date.now())
+      const { from, to } = resolveHistoryRange(range, Date.now())
       return authorizedRequest((token) =>
-        getPondSeries(token, id, { from, to })
+        getPondAnalysis(token, id, { from, to })
       )
     },
     refetchInterval: range.kind === "rolling" ? POLL_MS : false,
   })
-  return React.useMemo(
-    () => seriesPointsToHistoryMap(series?.points ?? []),
-    [series]
-  )
 }
 
 export function usePondHistory(id: string) {

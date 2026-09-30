@@ -171,6 +171,32 @@ export type SeriesPoint = {
   max: number
 }
 
+// Server-computed analysis of one parameter over a range (GET /ponds/:id/analysis). The backend judges it
+// against the pond's own thresholds; this app only renders it.
+export type TrendDirection = "rising" | "falling" | "stable"
+export type ParameterAnalysis = {
+  min: number
+  max: number
+  avg: number
+  outOfRangeShare: number
+  worst: "nominal" | "warning" | "critical"
+  // null when the readings cover too little of the range to call a trend.
+  trend: {
+    direction: TrendDirection
+    rate: number
+    rateUnit: "hr" | "day"
+  } | null
+  // Average over the equal-length period just before the range; null when that period has no data.
+  previousAvg: number | null
+}
+export type PondAnalysis = {
+  from: string
+  to: string
+  previousFrom: string
+  previousTo: string
+  parameters: Record<string, ParameterAnalysis>
+}
+
 export function listPonds(token: string) {
   return request<{ ponds: Pond[] }>("/ponds", { token })
 }
@@ -222,6 +248,19 @@ export function getPondSeries(
     `/ponds/${id}/series?${query}`,
     { token }
   )
+}
+
+export function getPondAnalysis(
+  token: string,
+  id: string,
+  params: { from: string; to?: string }
+) {
+  const query = new URLSearchParams(
+    Object.entries(params).filter(
+      (entry): entry is [string, string] => entry[1] !== undefined
+    )
+  )
+  return request<PondAnalysis>(`/ponds/${id}/analysis?${query}`, { token })
 }
 
 // Downloads an .xlsx workbook of a pond's readings for the given range. Returns the blob and the filename

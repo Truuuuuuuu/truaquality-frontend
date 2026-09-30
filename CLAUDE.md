@@ -17,7 +17,9 @@ pages `/login`, `/accept-invite`, and `/reset-password`, which share `AuthShell`
 - `/ponds` — pond registry table; admins add, rename, and archive ponds.
 - `/ponds/:pondId` — one pond's device info, a `ParameterTile` (value + 2 h sparkline) per parameter, then a
   History section whose header holds the range picker and Export, over stacked per-parameter history charts
-  (`PondHistoryCharts`: real units, safe/warning/critical zones, severity-colored line, one shared crosshair),
+  (`PondHistoryCharts`: real units, safe/warning/critical zones, severity-colored line, one shared crosshair; each
+  chart's stats row — min/max/avg, trend, "vs prev." and out-of-range share — is rendered from the server's
+  `GET /ponds/:id/analysis` via `usePondAnalysisRange`, never computed here),
   then the read-only reading-history table with its own Filter. The dashboard's selected pond shows the same
   charts in compact form on the fixed 2 h window.
 - `/devices` — device registry; admins register units, assign them to ponds, disable them, and rotate their

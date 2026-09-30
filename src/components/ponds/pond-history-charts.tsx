@@ -7,10 +7,7 @@ import {
   plotWidthFor,
 } from "@/components/ponds/parameter-history-chart"
 import { useElementWidth } from "@/hooks/use-element-width"
-import {
-  usePondHistoryRange,
-  usePondPreviousHistoryRange,
-} from "@/hooks/use-ponds"
+import { usePondAnalysisRange, usePondHistoryRange } from "@/hooks/use-ponds"
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion"
 import type { Pond } from "@/lib/api"
 import {
@@ -60,7 +57,7 @@ export function PondHistoryCharts({
   compact = false,
 }: PondHistoryChartsProps) {
   const historyByParameter = usePondHistoryRange(pond.id, range)
-  const previousByParameter = usePondPreviousHistoryRange(pond.id, range)
+  const { data: analysis } = usePondAnalysisRange(pond.id, range)
   // "Last 24h" compares against "prev. 24h"; a custom range just against the period before it.
   const comparisonLabel =
     range.kind === "rolling"
@@ -262,7 +259,7 @@ export function PondHistoryCharts({
                 reducedMotion={reducedMotion}
                 compact={compact}
                 toleranceMs={toleranceMs}
-                previousAvg={averageOf(previousByParameter.get(parameter.id))}
+                analysis={analysis?.parameters[parameter.id] ?? null}
                 comparisonLabel={comparisonLabel}
               />
             )
@@ -357,10 +354,4 @@ function EmptyRow({
       <span className="font-sans text-xs text-board-muted">{message}</span>
     </div>
   )
-}
-
-// Mean of the plotted points — the same definition the chart's own Avg uses, so the two compare directly.
-function averageOf(points: { v: number }[] | undefined): number | null {
-  if (!points || points.length === 0) return null
-  return points.reduce((sum, { v }) => sum + v, 0) / points.length
 }

@@ -2,6 +2,7 @@
 import * as React from "react"
 import { Gauge, MoveRight, TrendingDown, TrendingUp } from "lucide-react"
 import { cn } from "@/lib/utils"
+import type { ParameterAnalysis } from "@/lib/api"
 import {
   formatTick,
   nearestPoint,
@@ -11,14 +12,11 @@ import {
 import {
   PARAMETER_ICONS,
   severityFor,
-  type ReadingPoint,
   type ReadingState,
-  type Threshold,
 } from "@/lib/parameters"
 import { hasLowSide, pendingScaleDomain, valueTicks } from "@/lib/chart-scale"
 import { formatStatValue } from "@/lib/reading-format"
 import { STATUS_COLOR, STATUS_LABELS, STATUS_STYLES } from "@/lib/status-styles"
-import { trendFor, type Trend } from "@/lib/trend"
 
 type ParameterHistoryChartProps = {
   reading: ReadingState
@@ -34,8 +32,8 @@ type ParameterHistoryChartProps = {
   compact?: boolean
   // Shared across the stack, so a stretch reads as "no data" on every chart or on none.
   toleranceMs: number
-  // Average over the equal-length period before this range; null when that period has no data.
-  previousAvg: number | null
+  // Server-computed analysis of this range; null until it loads (or when the server has none).
+  analysis: ParameterAnalysis | null
   comparisonLabel: string
 }
 
@@ -68,47 +66,6 @@ export function chartHeightFor(compact: boolean, showXAxis: boolean) {
   )
 }
 
-export type WindowStats = {
-  min: number
-  max: number
-  avg: number
-  outOfRangeShare: number
-  worst: "nominal" | "warning" | "critical"
-  trend: Trend | null
-}
-
-// Summary of the selected window. "Out of range" counts plotted points, so on long ranges (hourly
-// rollups) it's the share of hours whose average left the safe band — close to, but not exactly, the
-// share of raw readings.
-export function windowStats(
-  history: ReadingPoint[],
-  threshold: Threshold,
-  spanMs: number
-): WindowStats {
-  let min = Infinity
-  let max = -Infinity
-  let sum = 0
-  let out = 0
-  let worst: WindowStats["worst"] = "nominal"
-  for (const { v } of history) {
-    min = Math.min(min, v)
-    max = Math.max(max, v)
-    sum += v
-    const severity = severityFor(threshold, v)
-    if (severity !== "nominal") out++
-    if (severity === "critical") worst = "critical"
-    else if (severity === "warning" && worst === "nominal") worst = "warning"
-  }
-  return {
-    min,
-    max,
-    avg: sum / history.length,
-    outOfRangeShare: out / history.length,
-    worst,
-    trend: trendFor(history, spanMs, threshold),
-  }
-}
-
 export function formatShare(share: number) {
   if (share === 0) return "0%"
   if (share < 0.01) return "<1%"
@@ -133,7 +90,7 @@ export function ParameterHistoryChart({
   reducedMotion,
   compact = false,
   toleranceMs,
-  previousAvg,
+  analysis,
   comparisonLabel,
 }: ParameterHistoryChartProps) {
   const { parameter, threshold, history } = reading
@@ -146,7 +103,9 @@ export function ParameterHistoryChart({
     critical: `${baseId}-crit`,
   }
 
-  const stats = windowStats(history, threshold, domainEnd - domainStart)
+  // The axis fits the plotted points themselves — rendering, not analysis.
+  const dataMin = Math.min(...history.map((p) => p.v))
+  const dataMax = Math.max(...history.map((p) => p.v))
   const narrow = width < NARROW_BELOW
   const plotWidth = plotWidthFor(width)
   const innerHeight = compact ? PLOT_HEIGHT_COMPACT : PLOT_HEIGHT
@@ -166,15 +125,15 @@ export function ParameterHistoryChart({
   // sensor's ceiling plots at its value.
   const pending = threshold.criticalPending === true
   const lowSide = hasLowSide(threshold)
-  const fitted = pendingScaleDomain(threshold, stats.min, stats.max)
+  const fitted = pendingScaleDomain(threshold, dataMin, dataMax)
   let lo: number
   let hi: number
   if (fitted) {
     lo = fitted.lo
     hi = fitted.hi
   } else {
-    const dataLo = Math.min(stats.min, threshold.criticalMin, threshold.safeMin)
-    const dataHi = Math.max(stats.max, threshold.criticalMax, threshold.safeMax)
+    const dataLo = Math.min(dataMin, threshold.criticalMin, threshold.safeMin)
+    const dataHi = Math.max(dataMax, threshold.criticalMax, threshold.safeMax)
     const pad = (dataHi - dataLo) * 0.1 || 1
     lo = dataLo - pad
     hi = dataHi + pad
@@ -338,9 +297,9 @@ export function ParameterHistoryChart({
     return `${v > 0 ? "+" : "−"}${text}`
   }
   const TrendIcon =
-    stats.trend?.direction === "rising"
+    analysis?.trend?.direction === "rising"
       ? TrendingUp
-      : stats.trend?.direction === "falling"
+      : analysis?.trend?.direction === "falling"
         ? TrendingDown
         : MoveRight
 
@@ -378,59 +337,61 @@ export function ParameterHistoryChart({
             {STATUS_LABELS[reading.status]}
           </span>
         </div>
-        <dl className="flex flex-wrap gap-x-3 gap-y-0.5 font-sans text-xs text-board-muted">
-          {[
-            { label: "Min", value: format(stats.min) },
-            { label: "Max", value: format(stats.max) },
-            { label: "Avg", value: format(stats.avg) },
-          ].map(({ label, value }) => (
-            <div key={label} className="flex items-baseline gap-1">
-              <dt>{label}</dt>
-              <dd className="font-heading text-board-fg tabular-nums">
-                {value}
-              </dd>
-            </div>
-          ))}
-          {previousAvg !== null ? (
+        {analysis ? (
+          <dl className="flex flex-wrap gap-x-3 gap-y-0.5 font-sans text-xs text-board-muted">
+            {[
+              { label: "Min", value: format(analysis.min) },
+              { label: "Max", value: format(analysis.max) },
+              { label: "Avg", value: format(analysis.avg) },
+            ].map(({ label, value }) => (
+              <div key={label} className="flex items-baseline gap-1">
+                <dt>{label}</dt>
+                <dd className="font-heading text-board-fg tabular-nums">
+                  {value}
+                </dd>
+              </div>
+            ))}
+            {analysis.previousAvg !== null ? (
+              <div className="flex items-baseline gap-1">
+                {/* Visually "+0.6 vs prev. 24h"; the term still precedes its value for assistive tech. */}
+                <dt className="order-last">vs {comparisonLabel}</dt>
+                <dd className="font-heading text-board-fg tabular-nums">
+                  {signed(analysis.avg - analysis.previousAvg)}
+                </dd>
+              </div>
+            ) : null}
             <div className="flex items-baseline gap-1">
-              {/* Visually "+0.6 vs prev. 24h"; the term still precedes its value for assistive tech. */}
-              <dt className="order-last">vs {comparisonLabel}</dt>
-              <dd className="font-heading text-board-fg tabular-nums">
-                {signed(stats.avg - previousAvg)}
+              <dt>Trend</dt>
+              {analysis.trend ? (
+                <dd className="flex items-center gap-1 text-board-fg">
+                  <TrendIcon
+                    aria-hidden="true"
+                    className="size-3.5 self-center"
+                  />
+                  <span className="capitalize">{analysis.trend.direction}</span>
+                  <span className="font-heading tabular-nums">
+                    {signed(analysis.trend.rate)} {parameter.unit}/
+                    {analysis.trend.rateUnit}
+                  </span>
+                </dd>
+              ) : (
+                <dd>not enough data</dd>
+              )}
+            </div>
+            <div className="flex items-baseline gap-1">
+              {/* Visually "4% out of range", but the term still precedes its value for assistive tech. */}
+              <dt className="order-last">out of range</dt>
+              <dd
+                className={cn(
+                  "font-heading tabular-nums",
+                  STATUS_STYLES[analysis.worst].value
+                )}
+              >
+                {formatShare(analysis.outOfRangeShare)}
               </dd>
             </div>
-          ) : null}
-          <div className="flex items-baseline gap-1">
-            <dt>Trend</dt>
-            {stats.trend ? (
-              <dd className="flex items-center gap-1 text-board-fg">
-                <TrendIcon
-                  aria-hidden="true"
-                  className="size-3.5 self-center"
-                />
-                <span className="capitalize">{stats.trend.direction}</span>
-                <span className="font-heading tabular-nums">
-                  {signed(stats.trend.rate)} {parameter.unit}/
-                  {stats.trend.rateUnit}
-                </span>
-              </dd>
-            ) : (
-              <dd>not enough data</dd>
-            )}
-          </div>
-          <div className="flex items-baseline gap-1">
-            {/* Visually "4% out of range", but the term still precedes its value for assistive tech. */}
-            <dt className="order-last">out of range</dt>
-            <dd
-              className={cn(
-                "font-heading tabular-nums",
-                STATUS_STYLES[stats.worst].value
-              )}
-            >
-              {formatShare(stats.outOfRangeShare)}
-            </dd>
-          </div>
-        </dl>
+          </dl>
+        ) : null}
       </div>
 
       {width === 0 ? (
