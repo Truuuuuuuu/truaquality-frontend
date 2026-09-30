@@ -101,7 +101,9 @@ export function AuthPanel({
     <section
       aria-labelledby={headingId}
       className={cn(
-        "board-groove rounded-xl border border-board-border bg-board-panel p-5 sm:p-7",
+        // Flat on phones: the plate's outline would only box the form in against a narrow screen edge. The groove
+        // is repeated as an sm: utility because the unlayered .board-groove class can't be switched off by breakpoint.
+        "sm:rounded-xl sm:border sm:border-board-border sm:bg-board-panel sm:p-7 sm:shadow-[inset_0_1px_0_0_var(--board-groove-hi),inset_0_-1px_0_0_var(--board-groove-lo)]",
         focusOnMount && "tq-swap"
       )}
     >
