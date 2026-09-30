@@ -117,7 +117,9 @@ export function DeviceModel3D(props: UnitViewProps) {
   return (
     <Canvas
       dpr={[1, 2]}
-      camera={{ position: [0.55, 0.4, 1.0], fov: 35 }}
+      // Framed so the lowest label (under the long temperature probe) stays inside the canvas through a full
+      // auto-rotation; the nearer probe projects lowest, and the old closer camera clipped whichever that was.
+      camera={{ position: [0.77, 0.47, 1.4], fov: 35 }}
       frameloop={reducedMotion ? "demand" : "always"}
       gl={{ alpha: true, antialias: true }}
     >
@@ -126,10 +128,10 @@ export function DeviceModel3D(props: UnitViewProps) {
       <UnitScene {...props} colors={colors} animate={!reducedMotion} />
       <OrbitControls
         makeDefault
-        target={[0, 0.02, 0]}
+        target={[0, -0.06, 0]}
         enablePan={false}
-        minDistance={0.85}
-        maxDistance={2.2}
+        minDistance={1.1}
+        maxDistance={2.4}
         minPolarAngle={Math.PI * 0.2}
         maxPolarAngle={Math.PI * 0.55}
         autoRotate={!reducedMotion}
@@ -393,7 +395,7 @@ function Probe({
         </mesh>
         <Html
           center
-          position={[0, -bodyLength - 0.06, 0]}
+          position={[0, -bodyLength - 0.04, 0]}
           distanceFactor={1.2}
           zIndexRange={[10, 0]}
           style={{ pointerEvents: "none" }}
