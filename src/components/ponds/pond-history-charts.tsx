@@ -42,7 +42,7 @@ type PondHistoryChartsProps = {
 
 // Fixed so the tooltip can be kept inside the stack arithmetically, with no measuring pass — at phone
 // width a free-sized tooltip would push the page into horizontal scroll.
-const TOOLTIP_WIDTH = 280
+const TOOLTIP_WIDTH = 300
 const TOOLTIP_OFFSET = 12
 
 type Plottable = PondReadingEntry & { reading: ReadingState }
@@ -289,8 +289,8 @@ export function PondHistoryCharts({
                         : STATUS_COLOR[severity],
                   }}
                 />
-                <span className="min-w-0 truncate text-board-muted">
-                  {parameter.shortLabel}
+                <span className="shrink-0 whitespace-nowrap text-board-muted">
+                  {parameter.label}
                 </span>
                 <span className="ml-auto shrink-0 font-heading whitespace-nowrap text-board-fg tabular-nums">
                   {value === null ? "—" : formatReading(parameter, value).text}
