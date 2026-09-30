@@ -84,7 +84,11 @@ export function ProfilePage() {
           <SectionHeader
             icon={IdCard}
             label="Personal information"
-            aside="Set by your administrator"
+            aside={
+              profile.systemRole === "ADMIN"
+                ? "Set when your account was created"
+                : "Set by your administrator"
+            }
           />
           <div className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-3">
             <Field label="Full name" value={profile.fullName} />
