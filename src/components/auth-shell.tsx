@@ -25,10 +25,11 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className="flex-1 px-4 sm:px-6 lg:px-10">
+      <main className="relative flex-1 overflow-hidden px-4 sm:px-6 lg:px-10">
+        <PondBackdrop />
         {/* Top-anchored rather than centered, so an error message growing the panel never shifts the
-            fields someone is typing into. */}
-        <div className="mx-auto grid w-full max-w-6xl items-start gap-10 pt-10 pb-14 sm:pt-[max(3.5rem,14vh)] lg:grid-cols-[minmax(0,1fr)_26rem] lg:gap-16 xl:gap-24">
+            fields someone is typing into. pb-24 keeps the form clear of the backdrop's water line. */}
+        <div className="relative mx-auto grid w-full max-w-6xl items-start gap-10 pt-10 pb-24 sm:pt-[max(3.5rem,14vh)] lg:grid-cols-[minmax(0,1fr)_26rem] lg:gap-16 xl:gap-24">
           {/* pt-7 matches the panel's own padding, so the headline's cap line sits level with the panel title. */}
           <div className="tq-rise hidden max-w-[34rem] flex-col gap-4 pt-7 lg:flex">
             <h2 className="text-3xl leading-[1.15] font-semibold tracking-[-0.025em] text-balance xl:text-4xl">
@@ -56,6 +57,54 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
           </p>
         </div>
       </footer>
+    </div>
+  )
+}
+
+// Pure decoration, drawn only in the hairline border tokens: a water line along the bottom of the page and,
+// beside the statement, a pond ripple spreading from that line. It deliberately carries no numbers, colors
+// or motion that could be read as a reading or a device state, and it is static (see the One Entrance Rule).
+function PondBackdrop() {
+  return (
+    <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+      {/* Same padding and max width as the content grid, so the ripple shares the statement's left edge.
+          Its baseline sits on the water line's centre (bottom-10 plus half the line's h-6). */}
+      <div className="absolute inset-0 hidden px-10 lg:block">
+        <div className="relative mx-auto h-full max-w-6xl">
+          <svg
+            viewBox="0 0 320 160"
+            fill="none"
+            className="absolute bottom-[3.25rem] left-0 w-[20rem] xl:w-[24rem]"
+          >
+            {[40, 80, 120, 160].map((r, index) => (
+              <path
+                key={r}
+                d={`M${160 - r} 160 A${r} ${r} 0 0 1 ${160 + r} 160`}
+                strokeWidth="1"
+                vectorEffect="non-scaling-stroke"
+                className={
+                  index < 2
+                    ? "stroke-board-border-strong"
+                    : "stroke-board-border"
+                }
+              />
+            ))}
+          </svg>
+        </div>
+      </div>
+      <svg
+        viewBox="0 0 1200 24"
+        preserveAspectRatio="xMidYMid slice"
+        fill="none"
+        className="absolute inset-x-0 bottom-10 h-6 w-full"
+      >
+        <path
+          d="M0 12 Q75 2 150 12 T300 12 T450 12 T600 12 T750 12 T900 12 T1050 12 T1200 12"
+          strokeWidth="1"
+          vectorEffect="non-scaling-stroke"
+          className="stroke-board-border-strong"
+        />
+      </svg>
     </div>
   )
 }
