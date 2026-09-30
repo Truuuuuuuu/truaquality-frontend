@@ -14,6 +14,7 @@ import {
 import { cn } from "cn"
 import { ChangePasswordDialog } from "@/components/profile/change-password-dialog"
 import { DeleteAccountDialog } from "@/components/profile/delete-account-dialog"
+import { SignOutDialog } from "@/components/profile/sign-out-dialog"
 import { RoleBadge, UserStatusBadge } from "@/components/users/user-badges"
 import { Button } from "@/components/ui/button"
 import { useTheme } from "@/components/theme-provider"
@@ -28,10 +29,11 @@ const THEME_OPTIONS = [
 ] as const
 
 export function ProfilePage() {
-  const { profile, logout } = useAuth()
+  const { profile } = useAuth()
   const { theme, setTheme } = useTheme()
   const [changePasswordOpen, setChangePasswordOpen] = React.useState(false)
   const [deleteAccountOpen, setDeleteAccountOpen] = React.useState(false)
+  const [signOutOpen, setSignOutOpen] = React.useState(false)
 
   if (!profile) {
     return (
@@ -169,7 +171,7 @@ export function ProfilePage() {
                 variant="outline"
                 size="lg"
                 className="w-full sm:hidden"
-                onClick={logout}
+                onClick={() => setSignOutOpen(true)}
               >
                 <LogOut />
                 Sign out
@@ -179,7 +181,7 @@ export function ProfilePage() {
                 variant="outline"
                 size="xs"
                 className="hidden w-fit sm:inline-flex"
-                onClick={logout}
+                onClick={() => setSignOutOpen(true)}
               >
                 <LogOut />
                 Sign out
@@ -227,6 +229,7 @@ export function ProfilePage() {
         open={changePasswordOpen}
         onOpenChange={setChangePasswordOpen}
       />
+      <SignOutDialog open={signOutOpen} onOpenChange={setSignOutOpen} />
       {canDeleteAccount ? (
         <DeleteAccountDialog
           open={deleteAccountOpen}
