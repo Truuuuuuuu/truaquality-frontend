@@ -22,10 +22,18 @@ export function HistorySummary({ pond, range }: HistorySummaryProps) {
   })
 
   return (
-    <div className="flex flex-col gap-3">
-      <h3 className="font-sans text-xs font-medium tracking-[0.08em] text-board-muted uppercase">
+    // Its own section between the live cards and History; it still follows the range picked in the History
+    // header, and every paragraph names that period, so it reads correctly above the picker.
+    <section
+      aria-labelledby="pond-summary-title"
+      className="flex flex-col gap-3 border-t border-board-border pt-6"
+    >
+      <h2
+        id="pond-summary-title"
+        className="font-sans text-xs font-medium tracking-[0.08em] text-board-muted uppercase"
+      >
         Summary
-      </h3>
+      </h2>
       {entries.length === 0 ? (
         <p className="font-sans text-sm text-board-muted">
           No readings in this range to summarize.
@@ -48,6 +56,6 @@ export function HistorySummary({ pond, range }: HistorySummaryProps) {
           })}
         </ul>
       )}
-    </div>
+    </section>
   )
 }

@@ -258,6 +258,8 @@ export function PondDetailPage() {
 
       <PondLiveReadings pond={pond} now={now} />
 
+      <HistorySummary pond={pond} range={historyRange} />
+
       {/* One range governs both the charts and the table below, so its picker (and Export, which works
           over a range too) sits above both rather than inside the table's header. */}
       <section
@@ -287,7 +289,6 @@ export function PondDetailPage() {
           </div>
         </div>
 
-        <HistorySummary pond={pond} range={historyRange} />
         <PondHistoryCharts pond={pond} now={now} range={historyRange} />
       </section>
 
