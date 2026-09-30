@@ -11,6 +11,7 @@ import { PondHistoryCharts } from "@/components/ponds/pond-history-charts"
 import { PondSwitcher } from "@/components/ponds/pond-switcher"
 import { StatusBadge } from "@/components/status-badge"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 import { usePonds } from "@/hooks/use-ponds"
 import { useNow } from "@/hooks/use-now"
 import { formatRelative } from "@/lib/format-time"
@@ -23,7 +24,6 @@ import {
 } from "@/lib/pond-status"
 import { pondTypeLabel } from "@/lib/pond-types"
 import { STATUS_LABELS } from "@/lib/status-styles"
-import { cn } from "@/lib/utils"
 
 const SUMMARY_ORDER: ReadingStatus[] = ["critical", "warning", "stale"]
 
@@ -197,8 +197,6 @@ export function DashboardPage() {
   )
 }
 
-const SKELETON_BLOCK = "rounded bg-board-panel-raised motion-safe:animate-pulse"
-
 // Mirrors the loaded board's shape — switcher, pond header, parameter values, compact charts — so the
 // page doesn't jump when the first poll lands.
 function DashboardSkeleton() {
@@ -210,19 +208,19 @@ function DashboardSkeleton() {
     >
       <div className="flex gap-5 border-b border-board-border pb-2.5">
         {[0, 1, 2].map((tab) => (
-          <div key={tab} className={cn(SKELETON_BLOCK, "h-4 w-20")} />
+          <Skeleton key={tab} className="h-4 w-20" />
         ))}
       </div>
 
       <div className="flex items-start justify-between gap-3">
         <div className="flex flex-col gap-2">
-          <div className={cn(SKELETON_BLOCK, "h-5 w-44")} />
-          <div className={cn(SKELETON_BLOCK, "h-4 w-32")} />
-          <div className={cn(SKELETON_BLOCK, "h-3 w-56")} />
+          <Skeleton className="h-5 w-44" />
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-3 w-56" />
         </div>
         <div className="flex flex-col items-end gap-2">
-          <div className={cn(SKELETON_BLOCK, "h-5 w-20 rounded-md")} />
-          <div className={cn(SKELETON_BLOCK, "h-3 w-24")} />
+          <Skeleton className="h-5 w-20 rounded-md" />
+          <Skeleton className="h-3 w-24" />
         </div>
       </div>
 
@@ -232,16 +230,16 @@ function DashboardSkeleton() {
             key={parameter.id}
             className="flex min-w-40 flex-1 flex-col gap-2"
           >
-            <div className={cn(SKELETON_BLOCK, "h-3 w-24")} />
-            <div className={cn(SKELETON_BLOCK, "h-8 w-28")} />
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-8 w-28" />
           </div>
         ))}
       </div>
 
       <div className="flex flex-col gap-4 border-t border-board-border pt-6">
-        <div className={cn(SKELETON_BLOCK, "h-3 w-36")} />
+        <Skeleton className="h-3 w-36" />
         {PARAMETERS.map((parameter) => (
-          <div key={parameter.id} className={cn(SKELETON_BLOCK, "h-24")} />
+          <Skeleton key={parameter.id} className="h-24" />
         ))}
       </div>
     </div>

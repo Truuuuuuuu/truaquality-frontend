@@ -5,6 +5,7 @@ import { DeleteAccountDialog } from "@/components/profile/delete-account-dialog"
 import { SignOutDialog } from "@/components/profile/sign-out-dialog"
 import { RoleBadge, UserStatusBadge } from "@/components/users/user-badges"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 import { useTheme } from "@/components/theme-provider"
 import { useAuth } from "@/context/auth-context"
 import { formatDate } from "@/lib/format-time"
@@ -293,13 +294,10 @@ function ProfileSkeleton() {
     >
       <PageHeader />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[15rem_1fr] lg:gap-10">
-        <div className="h-4 w-40 rounded bg-board-panel-raised motion-safe:animate-pulse" />
+        <Skeleton className="h-4 w-40" />
         <div className="flex flex-col gap-4">
           {[0, 1, 2, 3, 4].map((row) => (
-            <div
-              key={row}
-              className="h-5 rounded bg-board-panel-raised motion-safe:animate-pulse"
-            />
+            <Skeleton key={row} className="h-5" />
           ))}
         </div>
       </div>

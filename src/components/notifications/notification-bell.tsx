@@ -10,6 +10,7 @@ import {
   PopoverTitle,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   useMarkAllNotificationsRead,
   useMarkNotificationRead,
@@ -111,11 +112,13 @@ export function NotificationBell({
 
         <div className="max-h-[min(26rem,65vh)] overflow-y-auto p-1.5">
           {!data ? (
-            <p className="px-3 py-6 text-center font-sans text-xs text-board-muted">
-              {error
-                ? `Couldn't load notifications: ${error.message}`
-                : "Loading notifications…"}
-            </p>
+            error ? (
+              <p className="px-3 py-6 text-center font-sans text-xs text-board-muted">
+                {`Couldn't load notifications: ${error.message}`}
+              </p>
+            ) : (
+              <NotificationListSkeleton />
+            )
           ) : notifications.length === 0 ? (
             <p className="px-3 py-8 text-center font-sans text-xs text-board-muted">
               No notifications yet. You'll be alerted here when a pond reading
@@ -144,5 +147,30 @@ export function NotificationBell({
         </div>
       </PopoverContent>
     </Popover>
+  )
+}
+
+// Mirrors NotificationListItem (status dot, title + timestamp, pond · reading) so the popover keeps its
+// height when the feed lands.
+function NotificationListSkeleton() {
+  return (
+    <div
+      className="flex flex-col"
+      aria-busy="true"
+      aria-label="Loading notifications"
+    >
+      {[0, 1, 2, 3].map((row) => (
+        <div key={row} className="flex items-start gap-3 px-3 py-2.5">
+          <Skeleton className="mt-1.5 size-2 shrink-0 rounded-full" />
+          <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+            <div className="flex items-center justify-between gap-3">
+              <Skeleton className="h-3.5 w-3/4" />
+              <Skeleton className="h-3 w-16" />
+            </div>
+            <Skeleton className="h-3 w-1/2" />
+          </div>
+        </div>
+      ))}
+    </div>
   )
 }
