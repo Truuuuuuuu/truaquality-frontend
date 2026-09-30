@@ -16,11 +16,11 @@ pages `/login`, `/accept-invite`, and `/reset-password`, which share `AuthShell`
 - `/` — operations board: one `PondCard` per active pond, worst condition first.
 - `/ponds` — pond registry table; admins add, rename, and archive ponds.
 - `/ponds/:pondId` — one pond's device info, a `ParameterTile` (value + 2 h sparkline) per parameter, then a
-  History section whose header holds Export, over stacked per-parameter history charts
+  "Historical trends" section whose header holds Export, over stacked per-parameter history charts
   (`PondHistoryCharts`: real units, safe/warning/critical zones, severity-colored line, one shared crosshair; each
   chart's stats row — min/max/avg, trend, "vs prev." and out-of-range share — is rendered from the server's
-  `GET /ponds/:id/analysis` via `usePondAnalysisRange`, never computed here; a `HistorySummary` section
-  between the cards and History holds the range picker (it governs the summary, charts and reading table) and
+  `GET /ponds/:id/analysis` via `usePondAnalysisRange`, never computed here; a `HistorySummary` ("Trend summary") section
+  between the cards and Historical trends holds the range picker (it governs the summary, charts and reading table) and
   shows the server-written `summary` sentences, one paragraph per parameter),
   then the read-only reading-history table with its own Filter. The dashboard's selected pond shows the same
   charts in compact form on the fixed 2 h window.

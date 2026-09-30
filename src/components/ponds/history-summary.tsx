@@ -41,7 +41,7 @@ export function HistorySummary({
           id="pond-summary-title"
           className="font-sans text-xs font-medium tracking-[0.08em] text-board-muted uppercase"
         >
-          Summary
+          Trend summary
         </h2>
         {rangeControl}
       </div>

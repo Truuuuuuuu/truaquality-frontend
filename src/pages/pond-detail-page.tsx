@@ -277,7 +277,7 @@ export function PondDetailPage() {
             id="pond-history-title"
             className="font-sans text-xs font-medium tracking-[0.08em] text-board-muted uppercase"
           >
-            History
+            Historical trends
           </h2>
           <Button
             variant="outline"

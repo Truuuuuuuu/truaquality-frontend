@@ -198,7 +198,7 @@ export function PondHistoryCharts({
             id={titleId}
             className="font-sans text-xs font-medium tracking-[0.08em] text-board-muted uppercase"
           >
-            History
+            Historical trends
           </h2>
           <span className="rounded-md border border-board-border-strong px-1.5 py-0.5 font-heading text-[0.65rem] tracking-[0.02em] text-board-muted">
             {range.label}
