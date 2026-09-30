@@ -634,25 +634,33 @@ export function ParameterHistoryChart({
               />
             </g>
 
-            {/* Shared crosshair */}
+            {/* Shared crosshair. Positioned by CSS transform rather than x1/cx so the move between readings
+                can transition — Safari doesn't animate SVG geometry attributes as CSS properties. Kept short
+                so the dot still feels attached to the pointer. */}
             {activeX !== null ? (
               <g pointerEvents="none">
                 <line
-                  x1={activeX}
-                  x2={activeX}
+                  x1={0}
+                  x2={0}
                   y1={0}
                   y2={innerHeight}
                   stroke="var(--board-muted)"
                   strokeWidth={1}
+                  style={{ transform: `translateX(${activeX}px)` }}
+                  className="motion-safe:transition-transform motion-safe:duration-150 motion-safe:ease-out"
                 />
                 {showActivePoint && activePoint ? (
                   <circle
-                    cx={toX(activePoint.t)}
-                    cy={toY(activePoint.v)}
+                    cx={0}
+                    cy={0}
                     r={4.5}
                     fill={STATUS_COLOR[severityFor(threshold, activePoint.v)]}
                     stroke="var(--board-bg)"
                     strokeWidth={2}
+                    style={{
+                      transform: `translate(${toX(activePoint.t)}px, ${toY(activePoint.v)}px)`,
+                    }}
+                    className="motion-safe:transition-[transform,fill] motion-safe:duration-150 motion-safe:ease-out"
                   />
                 ) : null}
               </g>
