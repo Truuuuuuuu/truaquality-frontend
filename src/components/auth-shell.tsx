@@ -65,21 +65,24 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
 // beside the statement, a pond ripple spreading from that line. It deliberately carries no numbers or signal
 // colors that could be read as a reading or a device state; its one motion, the rings rising like a signal,
 // is the single decorative loop the One Entrance Rule allows.
+const RING_SCALES = [1 / 6, 2 / 6, 3 / 6, 4 / 6, 5 / 6, 1]
+
 function PondBackdrop() {
   return (
     <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-      {/* Same padding and max width as the content grid, so the ripple shares the statement's left edge.
-          Its baseline sits on the water line's centre (bottom-10 plus half the line's h-6). */}
-      <div className="absolute inset-0 hidden px-10 lg:block">
+      {/* Same padding and max width as the content grid: centred under the form below lg, and on the
+          statement's left edge from lg up. Its baseline sits on the water line's centre (bottom-10 plus half
+          the line's h-6). Widths keep the rings clear of the panel column at every breakpoint. */}
+      <div className="absolute inset-0 px-4 sm:px-6 lg:px-10">
         <div className="relative mx-auto h-full max-w-6xl">
           <svg
             viewBox="0 0 320 160"
             fill="none"
-            className="absolute bottom-[3.25rem] left-0 w-[20rem] xl:w-[24rem]"
+            className="absolute bottom-[3.25rem] left-1/2 w-[18rem] -translate-x-1/2 sm:w-[24rem] lg:left-0 lg:w-[30rem] lg:translate-x-0 xl:w-[40rem]"
           >
             {/* Every ring is the same full-size arc, sized by --tq-ring-scale; the static sizes are the
                 reduced-motion picture, and the animation (index.css, tq-ripple) takes over otherwise. */}
-            {[0.25, 0.5, 0.75, 1].map((scale, index) => (
+            {RING_SCALES.map((scale, index) => (
               <path
                 key={scale}
                 d="M0 160 A160 160 0 0 1 320 160"
@@ -89,8 +92,10 @@ function PondBackdrop() {
                 style={
                   {
                     "--tq-ring-scale": scale,
-                    "--tq-ring-opacity": index < 2 ? 1 : 0.55,
+                    "--tq-ring-opacity":
+                      index < RING_SCALES.length / 2 ? 1 : 0.55,
                     "--tq-ring-index": index,
+                    "--tq-ring-count": RING_SCALES.length,
                   } as React.CSSProperties
                 }
               />

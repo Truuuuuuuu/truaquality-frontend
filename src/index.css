@@ -253,7 +253,7 @@
 }
 
 /* Signed-out pond backdrop (AuthShell): each ripple ring grows up out of the water line and fades before it
-   reaches full size, a quarter-cycle apart, so the rings read as a signal leaving the pond. Under reduced
+   reaches full size, evenly staggered across the cycle, so the rings read as a signal leaving the pond. Under reduced
    motion the rings hold still at their static sizes. */
 .tq-ripple {
     transform-box: view-box;
@@ -276,7 +276,7 @@
 }
 @media (prefers-reduced-motion: no-preference) {
     .tq-ripple {
-        animation: tq-ripple 8s linear calc(var(--tq-ring-index) * -2s) infinite;
+        animation: tq-ripple 10s linear calc(var(--tq-ring-index) * -10s / var(--tq-ring-count)) infinite;
     }
 }
 
