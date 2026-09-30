@@ -1,7 +1,6 @@
 import { Gauge } from "lucide-react"
 import { usePondAnalysisRange } from "@/hooks/use-ponds"
 import type { Pond } from "@/lib/api"
-import { describeAnalysis } from "@/lib/analysis-summary"
 import type { HistoryRangeValue } from "@/lib/history-range"
 import { PARAMETER_ICONS, PARAMETERS } from "@/lib/parameters"
 
@@ -11,7 +10,8 @@ type HistorySummaryProps = {
 }
 
 // The history analysis in plain sentences, for staff who'd rather read "falling by about 0.3 °C per day"
-// than decode the stats row. Shares the charts' analysis query (same key), so it costs no extra request.
+// than decode the stats row. The server writes the sentences (`summary`); this only lays them out. Shares the
+// charts' analysis query (same key), so it costs no extra request.
 export function HistorySummary({ pond, range }: HistorySummaryProps) {
   const { data: analysis } = usePondAnalysisRange(pond.id, range)
   if (!analysis) return null
@@ -41,12 +41,7 @@ export function HistorySummary({ pond, range }: HistorySummaryProps) {
                   className="mt-0.5 size-4 shrink-0 text-board-muted"
                 />
                 <p className="max-w-prose font-sans text-sm leading-relaxed text-board-fg">
-                  {describeAnalysis(
-                    parameter,
-                    result,
-                    pond.thresholds[parameter.id],
-                    range
-                  ).join(" ")}
+                  {result.summary}
                 </p>
               </li>
             )

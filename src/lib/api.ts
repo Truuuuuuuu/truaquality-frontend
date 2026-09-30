@@ -188,6 +188,8 @@ export type ParameterAnalysis = {
   } | null
   // Average over the equal-length period just before the range; null when that period has no data.
   previousAvg: number | null
+  // The same analysis worded as plain sentences by the server, shown verbatim in the History summary.
+  summary: string
 }
 export type PondAnalysis = {
   from: string
