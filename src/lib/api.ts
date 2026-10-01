@@ -65,8 +65,8 @@ export type Profile = {
   createdAt: string
 }
 
+// The backend returns only the session tokens; it no longer forwards Supabase's user object.
 type LoginResponse = {
-  user: unknown
   session: {
     access_token: string
     refresh_token: string
