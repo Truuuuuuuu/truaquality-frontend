@@ -121,8 +121,10 @@ export function DeviceModel3D(props: UnitViewProps) {
     []
   )
 
+  // `isolate` scopes the labels' depth-sorted zIndex (up to 1000) to this view; without it they outrank the
+  // page's dialogs (z-50) and draw on top of the Manage device modal.
   return (
-    <div className="relative h-full w-full">
+    <div className="relative isolate h-full w-full">
       <Canvas
         dpr={[1, 2]}
         // Framed so the lowest label (under the long temperature probe) stays inside the canvas through a
