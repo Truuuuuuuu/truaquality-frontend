@@ -9,7 +9,10 @@ Radix). It talks to `../backend` (a separate Express/Prisma/Supabase project —
 
 The system monitors **multiple fishponds**. Each pond has at most one ESP32 sensor device, and each device
 reports its own readings. Routes (`src/App.tsx`, all behind `ProtectedRoute` → `AppShell` except the signed-out
-pages `/login`, `/accept-invite`, and `/reset-password`, which share `AuthShell` in `src/components/auth-shell.tsx`):
+pages `/login`, `/accept-invite`, and `/reset-password`, which share `AuthShell` in `src/components/auth-shell.tsx`).
+**Every page except `LoginPage` is lazy-loaded** (`React.lazy` in `App.tsx`, each route element wrapped by
+`page(...)`, a per-route `Suspense` with a skeleton fallback so the shell stays put). Add new pages the same way —
+a static `@/pages/*` import in `App.tsx` pulls the page back into the main chunk:
 - `/login` — sign in, plus an in-place "Forgot password?" view that calls `supabase.auth.resetPasswordForEmail`
   with `redirectTo: <origin>/reset-password`. "Keep me signed in" stores the session in localStorage;
   unchecked, it lives in the tab's sessionStorage (`src/lib/session.ts`).
@@ -89,6 +92,11 @@ URLs. The same page, mounted at `/reset-password` with `mode="recovery"`, handle
 ### Tooling
 
 - **Vite** (`vite.config.ts`) — `@vitejs/plugin-react` + `@tailwindcss/vite`. Path alias `@` → `./src`.
+  A build-only plugin (`truaquality-csp`) injects a Content-Security-Policy `<meta>` into `dist/index.html`;
+  `connect-src` is derived from `VITE_API_URL`/`VITE_SUPABASE_URL`, and the build fails if either is missing or
+  not a URL. **Any new external origin the app talks to (or loads fonts/images/scripts from) must be added to
+  that plugin**, or the browser will block it in production only (the dev server has no CSP). See root
+  `SECURITY_PERFORMANCE_AUDIT.md` S3 and `DEPLOYMENT.md` for the matching host headers.
 - **TypeScript** — project-references split: `tsconfig.json` is the root pointing at `tsconfig.app.json`
   (app source) and `tsconfig.node.json` (Vite config itself).
 - **ESLint** flat config (`eslint.config.js`) — `typescript-eslint` recommended + `react-hooks` +
@@ -117,7 +125,9 @@ URLs. The same page, mounted at `/reset-password` with `mode="recovery"`, handle
   token first. Call them through `useAuth().authorizedRequest` (`src/context/auth-context.tsx`), which
   refreshes and retries once on a 401.
 - **TanStack Query** (`QueryClientProvider` in `src/main.tsx`) — `src/hooks/use-ponds.ts` holds every pond,
-  reading, and device query and mutation. Queries poll every 30 s (there's no push channel); mutations
+  reading, and device query and mutation. Queries poll every 30 s (there's no push channel), except
+  `usePondAnalysisRange`, which polls every 5 min (`ANALYSIS_POLL_MS`: it's a whole-range summary the backend
+  computes by loading the series twice); mutations
   invalidate both `["ponds"]` and `["devices"]` because each list embeds the other. The cache is cleared on
   sign-out (`ClearQueryCacheOnSignOut` in `App.tsx`). `src/hooks/use-notifications.ts` polls faster, every
   15 s, since that's how a new alert reaches someone (see "Notifications" below).
