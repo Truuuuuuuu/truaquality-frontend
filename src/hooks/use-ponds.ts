@@ -35,6 +35,10 @@ import type { ReadingPoint } from "@/lib/parameters"
 
 // Devices report about once a minute; polling a few times per report keeps tiles current without a push channel.
 const POLL_MS = 30_000
+// The analysis is a summary of the whole selected range, and the backend builds it by loading that range's series
+// twice (the range and the equal-length period before it). One new reading a minute barely moves it, so polling it
+// every 30 s only repeated the heaviest query on the page; every 5 minutes keeps a rolling summary honest.
+const ANALYSIS_POLL_MS = 5 * 60_000
 export const HISTORY_WINDOW_MS = HISTORY_RANGE_PRESETS[0].windowMs
 
 export function usePonds() {
@@ -116,7 +120,7 @@ export function usePondAnalysisRange(id: string, range: HistoryRangeValue) {
         getPondAnalysis(token, id, { from, to })
       )
     },
-    refetchInterval: range.kind === "rolling" ? POLL_MS : false,
+    refetchInterval: range.kind === "rolling" ? ANALYSIS_POLL_MS : false,
   })
 }
 
