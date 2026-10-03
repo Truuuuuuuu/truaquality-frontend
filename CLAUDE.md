@@ -131,7 +131,8 @@ URLs. The same page, mounted at `/reset-password` with `mode="recovery"`, handle
   invalidate both `["ponds"]` and `["devices"]` because each list embeds the other. The cache is cleared on
   sign-out (`ClearQueryCacheOnSignOut` in `App.tsx`). `src/hooks/use-notifications.ts` polls faster, every
   15 s, since that's how a new alert reaches someone (see "Notifications" below).
-- `src/lib/parameters.ts` — `PARAMETERS` (**display metadata only**: label, unit, precision), `statusFor`,
+- `src/lib/parameters.ts` — `PARAMETERS` (**display metadata only**, no ranges:
+  label, shortLabel, unit, precision, approximate, approximateHint, sensorCeiling, ceilingHint, sinceFirmware), `statusFor`,
   and `STALE_AFTER_MS` (5 min). Parameter ids must match the backend's `PARAMETER_BOUNDS`. Status is computed
   here — stale beats range checks — but the *ranges* are not: they depend on a pond's `pondType`, so the
   server resolves them and sends `pond.thresholds` alongside `pond.latest`. Pass that band into
@@ -143,6 +144,26 @@ URLs. The same page, mounted at `/reset-password` with `mode="recovery"`, handle
   parameter's `sinceFirmware` in `PARAMETERS` (turbidity: 0.4.0). Set `sinceFirmware` on any parameter added
   after the first firmware release; otherwise a unit that lacks it pins its pond to stale. `src/lib/status-styles.ts` — shared status colors/labels for tiles, cards, and
   `StatusBadge`.
+- **Turbidity surfaces** — the NTU numbers are vendor-curve estimates, so every surface says so and none
+  invents a range. (1) **"≈" approximate label:** every surface formats through `formatReading` /
+  `formatStatValue` in `src/lib/reading-format.ts` (prefix "≈", spoken "approximately …", chart header
+  "approx."); never format a turbidity number by hand. (2) **`sensorCeiling`** (3000) shows "≥ 3000 NTU": a
+  display limit only, never a threshold, never passed to `statusFor`/`severityFor`; it lives in the frontend
+  because no endpoint carries display metadata. (3) **No critical band while the backend marks the threshold
+  `criticalPending`:** `pendingScaleDomain()` in `src/lib/chart-scale.ts` drops the red zone and the "Crit max"
+  line (`components/ponds/parameter-history-chart.tsx`); when BFAR supplies a figure and the backend drops
+  `criticalPending`, the band returns with no frontend edit. (4) **"No reading" plus the reason:**
+  `parameterSignal()` calls a parameter silent only when its latest reading is older than `STALE_AFTER_MS`
+  (5 min) while the unit is online — the sensor status token does not make a tile silent, so after an unplug the
+  tile keeps the last value for up to 5 min; then `SilentParameterTile`
+  (`components/dashboard/parameter-tile.tsx`) shows "No reading for {duration}" (or "No reading received yet")
+  with the reason from `src/lib/device-health.ts` (`no_signal` → "No signal",
+  `uncalibrated` → "Needs calibration", `over_range` → "Reading out of sensor range"), and the pond label is
+  "No turbidity reading";
+  the device page Sensors list shows the token at the next poll. (5) **`sinceFirmware`** (turbidity 0.4.0):
+  see the `pond-status.ts` bullet above — "not reported" never counts as stale. (6) **Export header** "Turbidity
+  (NTU, approx.)" is backend-owned (`exportHeader` in `backend/src/lib/parameters.ts`); the frontend only calls
+  `GET /ponds/:id/readings/export` and sets no header — change it in the backend.
 - **Notifications** are raised by the backend when a reading goes out of range (see `backend/CLAUDE.md`,
   "Alerts and notifications") or a device goes offline/recovers (`backend/CLAUDE.md`, "Device-offline
   watchdog") — the frontend never decides what's abnormal for them, it just renders what the server sends.
