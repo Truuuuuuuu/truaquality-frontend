@@ -142,7 +142,12 @@ URLs. The same page, mounted at `/reset-password` with `mode="recovery"`, handle
   before `device.assignedAt` are ignored) and calls a parameter "not reported" (never stale) only when the unit
   is known not to send it: its `sensorStatus` map omits it, or its `firmwareVersion` is older than the
   parameter's `sinceFirmware` in `PARAMETERS` (turbidity: 0.4.0). Set `sinceFirmware` on any parameter added
-  after the first firmware release; otherwise a unit that lacks it pins its pond to stale. `src/lib/status-styles.ts` — shared status colors/labels for tiles, cards, and
+  after the first firmware release; otherwise a unit that lacks it pins its pond to stale. Current status (pond
+  badge, board filter, dashboard, tiles) goes through `judgedStatus`, which renders the server's
+  `pond.heldSeverity` (the backend's hold rule: turbidity needs several consecutive out-of-range readings before
+  it counts), with staleness checked first, an in-range value always nominal, and a fallback to the per-reading
+  status when the field (or the parameter's key) is absent. Never add a hold count or a band here.
+  `src/lib/status-styles.ts` — shared status colors/labels for tiles, cards, and
   `StatusBadge`.
 - **Turbidity surfaces** — the NTU numbers are vendor-curve estimates, so every surface says so and none
   invents a range. (1) **"≈" approximate label:** every surface formats through `formatReading` /
@@ -163,7 +168,10 @@ URLs. The same page, mounted at `/reset-password` with `mode="recovery"`, handle
   the device page Sensors list shows the token at the next poll. (5) **`sinceFirmware`** (turbidity 0.4.0):
   see the `pond-status.ts` bullet above — "not reported" never counts as stale. (6) **Export header** "Turbidity
   (NTU, approx.)" is backend-owned (`exportHeader` in `backend/src/lib/parameters.ts`); the frontend only calls
-  `GET /ponds/:id/readings/export` and sets no header — change it in the backend.
+  `GET /ponds/:id/readings/export` and sets no header — change it in the backend. (7) **Held status vs. raw
+  points:** a single clean-water spike shows as an amber point on the chart and an amber row in the
+  reading-history table (each reading judged on its own value by `severityFor`) while the tile and pond stay
+  green until the backend holds it (`judgedStatus` above); this difference is intended.
 - **Notifications** are raised by the backend when a reading goes out of range (see `backend/CLAUDE.md`,
   "Alerts and notifications") or a device goes offline/recovers (`backend/CLAUDE.md`, "Device-offline
   watchdog") — the frontend never decides what's abnormal for them, it just renders what the server sends.
