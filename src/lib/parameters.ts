@@ -149,12 +149,15 @@ export function compareStatus(a: ReadingStatus, b: ReadingStatus) {
 
 // Builds a tile's state from a parameter's history (oldest first). Returns null when there is nothing to show.
 // `threshold` travels with the state so every consumer draws its safe band from the same numbers that
-// decided the status.
+// decided the status. `status`, when given, is the tile's current status already judged by the caller
+// (pond-status.ts's judgedStatus, which renders the server's held verdict); without it the last point is
+// judged on its own value.
 export function toReadingState(
   parameter: ParameterConfig,
   threshold: Threshold,
   history: ReadingPoint[],
-  now: number
+  now: number,
+  status?: ReadingStatus
 ): ReadingState | null {
   const last = history.at(-1)
   if (!last) return null
@@ -164,6 +167,6 @@ export function toReadingState(
     current: last.v,
     history,
     updatedAt: last.t,
-    status: statusFor(threshold, last.v, last.t, now),
+    status: status ?? statusFor(threshold, last.v, last.t, now),
   }
 }

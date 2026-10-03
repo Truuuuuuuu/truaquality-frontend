@@ -153,6 +153,11 @@ export type Pond = {
   // A sensor absent from the map was never reported by this unit. Optional so an older backend
   // degrades to "No reason reported" instead of breaking the board.
   sensorStatus?: Record<string, string>
+  // The server's status for each parameter's newest reading after its hold: a parameter can need several
+  // consecutive out-of-range readings before it counts, so the board agrees with the alerts instead of
+  // flashing on a single spike. null = in range, or out of range but not yet held. Optional so an older
+  // backend that doesn't send it still works (the board falls back to the per-reading status).
+  heldSeverity?: Record<string, "WARNING" | "CRITICAL" | null>
 }
 
 export type ApiReading = {

@@ -3,14 +3,45 @@ import {
   PARAMETER_BY_ID,
   PARAMETERS,
   STALE_AFTER_MS,
-  statusFor,
+  severityFor,
   toReadingState,
   worstStatus,
   type ParameterConfig,
   type ReadingPoint,
   type ReadingState,
   type ReadingStatus,
+  type Threshold,
 } from "@/lib/parameters"
+
+const HELD_STATUS = {
+  WARNING: "warning",
+  CRITICAL: "critical",
+} as const
+
+// A parameter's current status as the board shows it. The server owns both the band and the hold (a
+// parameter may need several consecutive out-of-range readings before it counts as abnormal), so this
+// renders `pond.heldSeverity` rather than judging the newest value alone; the frontend never knows the
+// hold count. Staleness still wins, because a held verdict on a reading nobody is refreshing can't be
+// trusted as current. With no verdict for the parameter (an older backend, or a parameter the server
+// didn't judge) it falls back to the per-reading status, so a missing field can never hide an
+// out-of-range reading. An in-range value is always nominal: the server can't hold an in-range newest
+// reading as abnormal, and this also covers a history point newer than the last pond poll.
+export function judgedStatus(
+  pond: Pond,
+  parameterId: string,
+  threshold: Threshold,
+  value: number,
+  recordedAtMs: number,
+  now: number
+): ReadingStatus {
+  if (now - recordedAtMs > STALE_AFTER_MS) return "stale"
+  const raw = severityFor(threshold, value)
+  const held = pond.heldSeverity
+  if (!held || !Object.hasOwn(held, parameterId)) return raw
+  if (raw === "nominal") return "nominal"
+  const verdict = held[parameterId]
+  return verdict ? HELD_STATUS[verdict] : "nominal"
+}
 
 export function pondTabId(pondId: string) {
   return `pond-tab-${pondId}`
@@ -113,7 +144,14 @@ export function pondStatus(pond: Pond, now: number): ReadingStatus {
     const threshold = pond.thresholds[parameter.id]
     if (latest && threshold) {
       statuses.push(
-        statusFor(threshold, latest.value, Date.parse(latest.recordedAt), now)
+        judgedStatus(
+          pond,
+          parameter.id,
+          threshold,
+          latest.value,
+          Date.parse(latest.recordedAt),
+          now
+        )
       )
     } else if (signal === "silent") {
       // Expected from this unit but never delivered since it was assigned (D-06).
@@ -149,11 +187,18 @@ export function pondReadingStates(
     if (history.length === 0 && latest) {
       history = [{ t: Date.parse(latest.recordedAt), v: latest.value }]
     }
+    // The tile shows the server's held verdict on its last point; the history points themselves (charts,
+    // sparkline) keep their own per-value coloring as an honest record of any spike.
+    const last = history.at(-1)
+    const status =
+      last && threshold
+        ? judgedStatus(pond, parameter.id, threshold, last.v, last.t, now)
+        : undefined
     // No threshold means the server doesn't know this parameter, so there's nothing to judge it by.
     return {
       parameter,
       reading: threshold
-        ? toReadingState(parameter, threshold, history, now)
+        ? toReadingState(parameter, threshold, history, now, status)
         : null,
       signal: parameterSignal(pond, parameter.id, now),
       sensorStatus: pond.sensorStatus?.[parameter.id] ?? null,
