@@ -7,7 +7,12 @@ import {
   formatRelative,
   formatSilentDuration,
 } from "@/lib/format-time"
-import type { ParameterConfig, ReadingState } from "@/lib/parameters"
+import type {
+  ParameterConfig,
+  ReadingState,
+  ReadingStatus,
+} from "@/lib/parameters"
+import { unconfirmedLabel, type UnconfirmedSpike } from "@/lib/pond-status"
 import { formatReading } from "@/lib/reading-format"
 import { STATUS_LABELS, STATUS_STYLES } from "@/lib/status-styles"
 import { SignalPathStrip } from "./signal-path-strip"
@@ -18,6 +23,9 @@ type ParameterTileProps = {
   reading: ReadingState
   now: number
   icon: ComponentType<{ className?: string }>
+  // The number's own colour (its per-value severity); the tile shell keeps `reading.status`.
+  valueStatus?: ReadingStatus
+  unconfirmed?: UnconfirmedSpike | null
 }
 
 // Live and unit-offline tiles. An offline unit keeps the stale shell and WifiOff stamp with no
@@ -26,9 +34,12 @@ export function ParameterTile({
   reading,
   now,
   icon: Icon,
+  valueStatus,
+  unconfirmed,
 }: ParameterTileProps) {
   const { parameter, threshold, current, history, status, updatedAt } = reading
   const styles = STATUS_STYLES[status]
+  const spike = unconfirmed ? unconfirmedLabel(unconfirmed) : null
   const shown = formatReading(parameter, current)
   const hintId = React.useId()
   const hint = parameter.approximate
@@ -41,7 +52,7 @@ export function ParameterTile({
     <div
       tabIndex={0}
       role="group"
-      aria-label={`${parameter.label}: ${shown.spoken}, ${STATUS_LABELS[status]}, updated ${formatRelative(updatedAt, now)}`}
+      aria-label={`${parameter.label}: ${shown.spoken}, ${STATUS_LABELS[status]}${spike ? `, ${spike.spoken}` : ""}, updated ${formatRelative(updatedAt, now)}`}
       aria-describedby={hint ? hintId : undefined}
       className={cn(
         "board-groove flex flex-col gap-4 rounded-xl border p-5 transition-colors duration-500",
@@ -79,7 +90,7 @@ export function ParameterTile({
         <span
           className={cn(
             "font-heading text-4xl font-medium tracking-tight tabular-nums",
-            styles.value
+            STATUS_STYLES[valueStatus ?? status].value
           )}
         >
           {shown.number}
@@ -88,6 +99,17 @@ export function ParameterTile({
           {parameter.unit}
         </span>
       </div>
+
+      {spike && unconfirmed ? (
+        <p
+          className={cn(
+            "-mt-3 font-sans text-xs",
+            STATUS_STYLES[unconfirmed.severity].label
+          )}
+        >
+          {spike.text}
+        </p>
+      ) : null}
 
       <div className="h-16">
         <TrendChart

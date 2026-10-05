@@ -43,6 +43,45 @@ export function judgedStatus(
   return verdict ? HELD_STATUS[verdict] : "nominal"
 }
 
+// A fresh reading that is out of range while the server has not (yet) held it as abnormal. The card
+// keeps the server's held verdict so a spike shorter than the hold doesn't flicker it, but the number
+// and this line stay honest about what the probe just read. Null when the reading is stale (stale still
+// wins), when there is no held verdict for the parameter (an older backend: `judgedStatus` already shows
+// the raw status, so nothing is unconfirmed), when the value is in range, or when the server already
+// holds it. The direction comes only from the server's threshold; no hold count or range lives here.
+export type UnconfirmedSpike = {
+  severity: "warning" | "critical"
+  direction: "above" | "below"
+}
+
+export function unconfirmedSpike(
+  pond: Pond,
+  parameterId: string,
+  threshold: Threshold,
+  value: number,
+  recordedAtMs: number,
+  now: number
+): UnconfirmedSpike | null {
+  if (now - recordedAtMs > STALE_AFTER_MS) return null
+  const held = pond.heldSeverity
+  if (!held || !Object.hasOwn(held, parameterId)) return null
+  const raw = severityFor(threshold, value)
+  if (raw === "nominal" || held[parameterId]) return null
+  return {
+    severity: raw,
+    direction: value > threshold.safeMax ? "above" : "below",
+  }
+}
+
+// Shared wording so the tile and the dashboard summary say exactly the same thing.
+export function unconfirmedLabel(spike: UnconfirmedSpike) {
+  const above = spike.direction === "above"
+  return {
+    text: `${above ? "Above" : "Below"} range · unconfirmed`,
+    spoken: `${spike.direction} range, unconfirmed`,
+  }
+}
+
 export function pondTabId(pondId: string) {
   return `pond-tab-${pondId}`
 }
@@ -168,6 +207,10 @@ export type PondReadingEntry = {
   signal: ParameterSignal
   // The unit's own last status token for this sensor, or null when it never sent one.
   sensorStatus: string | null
+  // The colour of the number itself: the last point judged on its own value ("stale" when old), so a
+  // spike shows on the number even while the card keeps the held verdict. Undefined with no reading.
+  valueStatus: ReadingStatus | undefined
+  unconfirmed: UnconfirmedSpike | null
 }
 
 // One entry per monitored parameter (same order as PARAMETERS), built from a pond's fetched 2 h
@@ -194,6 +237,16 @@ export function pondReadingStates(
       last && threshold
         ? judgedStatus(pond, parameter.id, threshold, last.v, last.t, now)
         : undefined
+    const valueStatus =
+      last && threshold
+        ? now - last.t > STALE_AFTER_MS
+          ? "stale"
+          : severityFor(threshold, last.v)
+        : undefined
+    const unconfirmed =
+      last && threshold
+        ? unconfirmedSpike(pond, parameter.id, threshold, last.v, last.t, now)
+        : null
     // No threshold means the server doesn't know this parameter, so there's nothing to judge it by.
     return {
       parameter,
@@ -202,6 +255,8 @@ export function pondReadingStates(
         : null,
       signal: parameterSignal(pond, parameter.id, now),
       sensorStatus: pond.sensorStatus?.[parameter.id] ?? null,
+      valueStatus,
+      unconfirmed,
     }
   })
 }

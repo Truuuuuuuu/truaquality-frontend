@@ -7,7 +7,7 @@ import type { Pond } from "@/lib/api"
 import { silentReason } from "@/lib/device-health"
 import { formatRelative, formatSilentDuration } from "@/lib/format-time"
 import { PARAMETER_ICONS } from "@/lib/parameters"
-import { pondReadingStates } from "@/lib/pond-status"
+import { pondReadingStates, unconfirmedLabel } from "@/lib/pond-status"
 import { formatReading } from "@/lib/reading-format"
 import { STATUS_LABELS, STATUS_STYLES } from "@/lib/status-styles"
 
@@ -26,7 +26,9 @@ export function ParameterSummary({ pond, now }: ParameterSummaryProps) {
 
   return (
     <div className="flex flex-col gap-x-8 gap-y-5 md:flex-row md:flex-wrap">
-      {readings.map(({ parameter, reading, signal, sensorStatus }) => {
+      {readings.map((entry) => {
+        const { parameter, reading, signal, sensorStatus } = entry
+        const { valueStatus, unconfirmed } = entry
         const Icon = PARAMETER_ICONS[parameter.id] ?? Gauge
 
         // The unit's firmware never sends this parameter (D-09): muted, no LED, not the stale look.
@@ -126,13 +128,14 @@ export function ParameterSummary({ pond, now }: ParameterSummaryProps) {
 
         const styles = STATUS_STYLES[reading.status]
         const shown = formatReading(parameter, reading.current)
+        const spike = unconfirmed ? unconfirmedLabel(unconfirmed) : null
 
         return (
           <div
             key={parameter.id}
             tabIndex={0}
             role="group"
-            aria-label={`${parameter.label}: ${shown.spoken}, ${STATUS_LABELS[reading.status]}, updated ${formatRelative(reading.updatedAt, now)}`}
+            aria-label={`${parameter.label}: ${shown.spoken}, ${STATUS_LABELS[reading.status]}${spike ? `, ${spike.spoken}` : ""}, updated ${formatRelative(reading.updatedAt, now)}`}
             className="min-w-40 flex-1"
           >
             <div className="flex items-center justify-between gap-3">
@@ -166,7 +169,7 @@ export function ParameterSummary({ pond, now }: ParameterSummaryProps) {
               <span
                 className={cn(
                   "font-heading text-3xl font-medium tracking-tight tabular-nums",
-                  styles.value
+                  STATUS_STYLES[valueStatus ?? reading.status].value
                 )}
               >
                 {shown.number}
@@ -175,6 +178,16 @@ export function ParameterSummary({ pond, now }: ParameterSummaryProps) {
                 {parameter.unit}
               </span>
             </div>
+            {spike && unconfirmed ? (
+              <p
+                className={cn(
+                  "mt-1 font-sans text-xs",
+                  STATUS_STYLES[unconfirmed.severity].label
+                )}
+              >
+                {spike.text}
+              </p>
+            ) : null}
           </div>
         )
       })}

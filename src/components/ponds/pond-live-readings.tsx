@@ -24,7 +24,9 @@ export function PondLiveReadings({ pond, now }: PondLiveReadingsProps) {
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {readings.map(({ parameter, reading, signal, sensorStatus }) => {
+      {readings.map((entry) => {
+        const { parameter, reading, signal, sensorStatus } = entry
+        const { valueStatus, unconfirmed } = entry
         const icon = PARAMETER_ICONS[parameter.id] ?? Gauge
         if (signal === "not_reported")
           return <NotReportedTile key={parameter.id} parameter={parameter} />
@@ -46,6 +48,8 @@ export function PondLiveReadings({ pond, now }: PondLiveReadingsProps) {
             reading={reading}
             now={now}
             icon={icon}
+            valueStatus={valueStatus}
+            unconfirmed={unconfirmed}
           />
         ) : (
           <NoDataTile key={parameter.id} parameter={parameter} />
