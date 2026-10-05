@@ -6,6 +6,7 @@ import { BoardEmptyState } from "@/components/board-empty-state"
 import { BoardPager } from "@/components/board-pager"
 import { RegistryToolbar } from "@/components/registry-toolbar"
 import { PondFormDialog } from "@/components/ponds/pond-form-dialog"
+import { OpenAlertsChip } from "@/components/open-alerts-chip"
 import { StatusBadge } from "@/components/status-badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -25,6 +26,7 @@ import { formatRelative } from "@/lib/format-time"
 import { POND_TYPES } from "@/lib/pond-types"
 import {
   lastReadingAt,
+  openAlertSummary,
   pondConnectionLabel,
   pondStatus,
 } from "@/lib/pond-status"
@@ -257,10 +259,15 @@ export function PondsPage() {
                       const archived = pond.status === "ARCHIVED"
                       const deviceLabel = `Device: ${pond.device?.serial ?? "Unassigned"}`
                       const lastReadingLabel = `Last reading: ${lastAt === null ? "Never" : formatRelative(lastAt, now)}`
-                      const statusLabel = archived
-                        ? "Archived"
-                        : (pondConnectionLabel(pond, now) ??
-                          STATUS_LABELS[pondStatus(pond, now)])
+                      const statusLabel = [
+                        archived
+                          ? "Archived"
+                          : (pondConnectionLabel(pond, now) ??
+                            STATUS_LABELS[pondStatus(pond, now)]),
+                        openAlertSummary(pond)?.spoken,
+                      ]
+                        .filter(Boolean)
+                        .join(", ")
                       return (
                         <TableRow
                           key={pond.id}
@@ -307,9 +314,12 @@ export function PondsPage() {
                             {archived ? (
                               <StatusBadge status="stale">Archived</StatusBadge>
                             ) : (
-                              <StatusBadge status={pondStatus(pond, now)}>
-                                {pondConnectionLabel(pond, now)}
-                              </StatusBadge>
+                              <span className="inline-flex flex-wrap items-center gap-1.5">
+                                <StatusBadge status={pondStatus(pond, now)}>
+                                  {pondConnectionLabel(pond, now)}
+                                </StatusBadge>
+                                <OpenAlertsChip pond={pond} />
+                              </span>
                             )}
                           </TableCell>
                           {isAdmin ? (
@@ -336,10 +346,15 @@ export function PondsPage() {
                   const lastAt = lastReadingAt(pond)
                   const archived = pond.status === "ARCHIVED"
                   const cardStatus = archived ? "stale" : pondStatus(pond, now)
-                  const statusLabel = archived
-                    ? "Archived"
-                    : (pondConnectionLabel(pond, now) ??
-                      STATUS_LABELS[cardStatus])
+                  const statusLabel = [
+                    archived
+                      ? "Archived"
+                      : (pondConnectionLabel(pond, now) ??
+                        STATUS_LABELS[cardStatus]),
+                    openAlertSummary(pond)?.spoken,
+                  ]
+                    .filter(Boolean)
+                    .join(", ")
                   const lastReadingLabel =
                     lastAt === null ? "Never" : formatRelative(lastAt, now)
                   return (
@@ -391,9 +406,12 @@ export function PondsPage() {
                           {archived ? (
                             <StatusBadge status="stale">Archived</StatusBadge>
                           ) : (
-                            <StatusBadge status={pondStatus(pond, now)}>
-                              {pondConnectionLabel(pond, now)}
-                            </StatusBadge>
+                            <span className="inline-flex flex-wrap items-center gap-1.5">
+                              <StatusBadge status={pondStatus(pond, now)}>
+                                {pondConnectionLabel(pond, now)}
+                              </StatusBadge>
+                              <OpenAlertsChip pond={pond} />
+                            </span>
                           )}
                         </div>
                         <div

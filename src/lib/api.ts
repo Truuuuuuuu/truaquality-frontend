@@ -158,6 +158,10 @@ export type Pond = {
   // flashing on a single spike. null = in range, or out of range but not yet held. Optional so an older
   // backend that doesn't send it still works (the board falls back to the per-reading status).
   heldSeverity?: Record<string, "WARNING" | "CRITICAL" | null>
+  // Parameters with an unresolved alert episode, by the episode's severity. The card colour still
+  // follows heldSeverity; this only says an episode is open (it can outlast a short run of readings
+  // back under the hold). Optional so an older backend that doesn't send it still works.
+  openAlerts?: Record<string, "WARNING" | "CRITICAL">
 }
 
 export type ApiReading = {

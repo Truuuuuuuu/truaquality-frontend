@@ -286,3 +286,41 @@ export function pondConnectionLabel(pond: Pond, now: number): string | null {
   if (silent.length > 1) return `No reading from ${silent.length} sensors`
   return null
 }
+
+// Lower-cases a parameter label for use mid-sentence, except a mixed-case one such as "pH".
+function inSentence(label: string) {
+  return /[A-Z]/.test(label.slice(1)) ? label : label.toLowerCase()
+}
+
+export type OpenAlertSummary = {
+  status: "warning" | "critical"
+  text: string
+  spoken: string
+}
+
+// The open alert episodes for a pond as a chip next to its status. The card keeps the held verdict, so
+// an episode the backend hasn't resolved yet can sit behind a green card; this makes it visible. Never
+// for an archived pond (nothing is monitored there), and null when nothing is open.
+export function openAlertSummary(pond: Pond): OpenAlertSummary | null {
+  if (pond.status === "ARCHIVED") return null
+  const open = pond.openAlerts ?? {}
+  const ids = Object.keys(open)
+  if (ids.length === 0) return null
+  const known = PARAMETERS.map((parameter) => parameter.id).filter((id) =>
+    Object.hasOwn(open, id)
+  )
+  const ordered = [...known, ...ids.filter((id) => !PARAMETER_BY_ID[id])]
+  const labels = ordered.map((id) => PARAMETER_BY_ID[id]?.label ?? id)
+  const status = ordered.some((id) => open[id] === "CRITICAL")
+    ? "critical"
+    : "warning"
+  if (labels.length === 1) {
+    const text = `${labels[0]} alert open`
+    return { status, text, spoken: text }
+  }
+  return {
+    status,
+    text: `${labels.length} alerts open`,
+    spoken: `alerts open for ${labels.map(inSentence).join(", ")}`,
+  }
+}

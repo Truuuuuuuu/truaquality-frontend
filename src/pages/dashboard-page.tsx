@@ -9,6 +9,7 @@ import {
 import { ParameterSummary } from "@/components/ponds/parameter-summary"
 import { PondHistoryCharts } from "@/components/ponds/pond-history-charts"
 import { PondSwitcher } from "@/components/ponds/pond-switcher"
+import { OpenAlertsChip } from "@/components/open-alerts-chip"
 import { StatusBadge } from "@/components/status-badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -17,6 +18,7 @@ import { useNow } from "@/hooks/use-now"
 import { formatRelative } from "@/lib/format-time"
 import { compareStatus, PARAMETERS, type ReadingStatus } from "@/lib/parameters"
 import {
+  openAlertSummary,
   pondConnectionLabel,
   pondPanelId,
   pondStatus,
@@ -167,6 +169,7 @@ export function DashboardPage() {
                 aria-label={[
                   pondConnectionLabel(selectedEntry.pond, now) ??
                     STATUS_LABELS[selectedEntry.status],
+                  openAlertSummary(selectedEntry.pond)?.spoken,
                   selectedEntry.pond.device
                     ? selectedEntry.pond.device.lastSeenAt
                       ? `last seen ${formatRelative(Date.parse(selectedEntry.pond.device.lastSeenAt), now)}`
@@ -177,9 +180,12 @@ export function DashboardPage() {
                   .join(", ")}
                 className="flex shrink-0 flex-col items-end gap-1"
               >
-                <StatusBadge status={selectedEntry.status}>
-                  {pondConnectionLabel(selectedEntry.pond, now)}
-                </StatusBadge>
+                <div className="flex flex-wrap items-center justify-end gap-1.5">
+                  <OpenAlertsChip pond={selectedEntry.pond} />
+                  <StatusBadge status={selectedEntry.status}>
+                    {pondConnectionLabel(selectedEntry.pond, now)}
+                  </StatusBadge>
+                </div>
                 {selectedEntry.pond.device ? (
                   <p className="font-sans text-xs text-board-muted">
                     <PondConnectionStatus pond={selectedEntry.pond} now={now} />
