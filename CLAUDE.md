@@ -44,7 +44,12 @@ a static `@/pages/*` import in `App.tsx` pulls the page back into the main chunk
     `device-schematic.tsx` instead.
   - `src/lib/device-health.ts` is the single home for plain-language meaning: sensor status tokens → label /
     tone / on-site action (with an inferred fallback for pre-0.6.0 firmware that sends no status), restart
-    reasons, signal quality, derived maintenance flags, and event wording. `REPORT_INTERVAL_S` mirrors the
+    reasons, signal quality, derived maintenance flags, and event wording. Sensor-status wording is looked up per reporting
+    parameter first (`SENSOR_STATUS_OVERRIDES`, pH today — "Needs calibration" there means the 6.86 / 9.18
+    buffers, not clear water), then in the shared token table, so `silentReason(parameter, token)` takes the
+    parameter (both lookups are own-key only). `unitSensors(sensors, firmwareVersion)` picks which probes the
+    Sensors list, 3D model and schematic draw, in the order temperature, turbidity, pH (unknown ids last), using
+    the same `unitLacksSensor` rule as `pond-status.ts` — a 0.6.1 unit shows two probes. `REPORT_INTERVAL_S` mirrors the
     firmware's default report interval and only estimates the 24 h completeness bar — it never judges a
     reading.
 - `/notifications` — the signed-in user's alert notifications (all / unread, "load more"). The same feed also
@@ -132,8 +137,10 @@ URLs. The same page, mounted at `/reset-password` with `mode="recovery"`, handle
   sign-out (`ClearQueryCacheOnSignOut` in `App.tsx`). `src/hooks/use-notifications.ts` polls faster, every
   15 s, since that's how a new alert reaches someone (see "Notifications" below).
 - `src/lib/parameters.ts` — `PARAMETERS` (**display metadata only**, no ranges:
-  label, shortLabel, unit, precision, approximate, approximateHint, sensorCeiling, ceilingHint, sinceFirmware), `statusFor`,
-  and `STALE_AFTER_MS` (5 min). Parameter ids must match the backend's `PARAMETER_BOUNDS`. Status is computed
+  label, shortLabel, unit, precision, approximate, approximateHint, sensorCeiling, ceilingHint, sinceFirmware,
+  directionWords), `statusFor`,
+  and `STALE_AFTER_MS` (5 min). `directionWords` (pH: acidic / alkaline) is appended as "(acidic)" / "(alkaline)"
+  to alert notification titles and to the unconfirmed-spike chip. Parameter ids must match the backend's `PARAMETER_BOUNDS`. Status is computed
   here — stale beats range checks — but the *ranges* are not: they depend on a pond's `pondType`, so the
   server resolves them and sends `pond.thresholds` alongside `pond.latest`. Pass that band into
   `statusFor`/`severityFor`; never hardcode one.
@@ -141,8 +148,11 @@ URLs. The same page, mounted at `/reset-password` with `mode="recovery"`, handle
   `latest` map the API returns. `parameterSignal` scopes that pond-wide map to the current unit (readings
   before `device.assignedAt` are ignored) and calls a parameter "not reported" (never stale) only when the unit
   is known not to send it: its `sensorStatus` map omits it, or its `firmwareVersion` is older than the
-  parameter's `sinceFirmware` in `PARAMETERS` (turbidity: 0.4.0). Set `sinceFirmware` on any parameter added
-  after the first firmware release; otherwise a unit that lacks it pins its pond to stale. Current status (pond
+  parameter's `sinceFirmware` in `PARAMETERS` (turbidity: 0.4.0, pH: 0.7.0). That rule is the exported
+  `unitLacksSensor`, which also feeds the device page through `unitSensors` in `device-health.ts`. Set
+  `sinceFirmware` on any parameter added after the first firmware release; otherwise a unit that lacks it pins
+  its pond to stale. `keepsCase(label)` / `inSentence(name)` (exported here) keep a mixed-case label such as "pH"
+  from being uppercased in eyebrow labels or lowercased mid-sentence. Current status (pond
   badge, board filter, dashboard, tiles) goes through `judgedStatus`, which renders the server's
   `pond.heldSeverity` (the backend's hold rule: turbidity needs several consecutive out-of-range readings before
   it counts), with staleness checked first, an in-range value always nominal, and a fallback to the per-reading
@@ -162,7 +172,7 @@ URLs. The same page, mounted at `/reset-password` with `mode="recovery"`, handle
   (5 min) while the unit is online — the sensor status token does not make a tile silent, so after an unplug the
   tile keeps the last value for up to 5 min; then `SilentParameterTile`
   (`components/dashboard/parameter-tile.tsx`) shows "No reading for {duration}" (or "No reading received yet")
-  with the reason from `src/lib/device-health.ts` (`no_signal` → "No signal",
+  with the reason from `silentReason("turbidity", token)` in `src/lib/device-health.ts` (`no_signal` → "No signal",
   `uncalibrated` → "Needs calibration", `over_range` → "Reading out of sensor range"), and the pond label is
   "No turbidity reading";
   the device page Sensors list shows the token at the next poll. (5) **`sinceFirmware`** (turbidity 0.4.0):
@@ -172,6 +182,15 @@ URLs. The same page, mounted at `/reset-password` with `mode="recovery"`, handle
   points:** a single clean-water spike shows as an amber point on the chart and an amber row in the
   reading-history table (each reading judged on its own value by `severityFor`) while the tile and pond stay
   green until the backend holds it (`judgedStatus` above); this difference is intended.
+- **pH surfaces** — pH is unitless: the value is a bare 1-decimal number ("7.4") with no empty unit element, and
+  the label stays "pH" everywhere (`keepsCase` / `inSentence`; pond label "No pH reading"). No "≈": the probe is
+  calibrated against buffers, so `approximate` is off. The chart uses the two-sided branch of
+  `pendingScaleDomain()`: both safe lines plus a margin of a sixth of the safe band on each side, stretched to
+  fit the data, with 0.5 ticks on the detail chart (1.0 on the compact one) and no "Crit min"/"Crit max" line or
+  red band while the backend marks the threshold `criticalPending`. Fault wording is per sensor (see
+  `SENSOR_STATUS_OVERRIDES` above) and identical in the Signal Path, Sensors list and Event log. The pH probe
+  (glass electrode, own gland, signal board) is drawn only for units that send pH (`unitSensors`). The export
+  header ("pH", 2 decimals) is backend-owned. Ranges come from `pond.thresholds` like every other parameter.
 - **Notifications** are raised by the backend when a reading goes out of range (see `backend/CLAUDE.md`,
   "Alerts and notifications") or a device goes offline/recovers (`backend/CLAUDE.md`, "Device-offline
   watchdog") — the frontend never decides what's abnormal for them, it just renders what the server sends.
