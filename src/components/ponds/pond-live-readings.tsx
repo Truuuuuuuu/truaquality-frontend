@@ -6,7 +6,8 @@ import {
 import { usePondHistory } from "@/hooks/use-ponds"
 import type { Pond } from "@/lib/api"
 import { PARAMETER_ICONS, type ParameterConfig } from "@/lib/parameters"
-import { pondReadingStates } from "@/lib/pond-status"
+import { inSentence, keepsCase, pondReadingStates } from "@/lib/pond-status"
+import { cn } from "@/lib/utils"
 
 type PondLiveReadingsProps = {
   pond: Pond
@@ -70,7 +71,12 @@ function NoDataTile({ parameter }: { parameter: ParameterConfig }) {
     >
       <div className="flex items-center gap-2 text-board-stale">
         <Icon className="size-4" />
-        <span className="font-sans text-xs font-medium tracking-[0.08em] uppercase">
+        <span
+          className={cn(
+            "font-sans text-xs font-medium tracking-[0.08em]",
+            keepsCase(parameter.label) ? null : "uppercase"
+          )}
+        >
           {parameter.label}
         </span>
       </div>
@@ -92,7 +98,12 @@ function NotReportedTile({ parameter }: { parameter: ParameterConfig }) {
     >
       <div className="flex items-center gap-2 text-board-stale">
         <Icon className="size-4" />
-        <span className="font-sans text-xs font-medium tracking-[0.08em] uppercase">
+        <span
+          className={cn(
+            "font-sans text-xs font-medium tracking-[0.08em]",
+            keepsCase(parameter.label) ? null : "uppercase"
+          )}
+        >
           {parameter.label}
         </span>
       </div>
@@ -102,8 +113,8 @@ function NotReportedTile({ parameter }: { parameter: ParameterConfig }) {
         </p>
         <p className="font-sans text-xs text-board-muted">
           This unit&apos;s firmware doesn&apos;t send{" "}
-          {parameter.label.toLowerCase()}. An administrator can update it to
-          start monitoring.
+          {inSentence(parameter.label)}. An administrator can update it to start
+          monitoring.
         </p>
       </div>
     </div>

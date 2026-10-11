@@ -7,7 +7,11 @@ import type { Pond } from "@/lib/api"
 import { silentReason } from "@/lib/device-health"
 import { formatRelative, formatSilentDuration } from "@/lib/format-time"
 import { PARAMETER_ICONS } from "@/lib/parameters"
-import { pondReadingStates, unconfirmedLabel } from "@/lib/pond-status"
+import {
+  keepsCase,
+  pondReadingStates,
+  unconfirmedLabel,
+} from "@/lib/pond-status"
 import { formatReading } from "@/lib/reading-format"
 import { STATUS_LABELS, STATUS_STYLES } from "@/lib/status-styles"
 
@@ -43,7 +47,12 @@ export function ParameterSummary({ pond, now }: ParameterSummaryProps) {
             >
               <div className="flex items-center gap-2 text-board-stale">
                 <Icon className="size-4 shrink-0" />
-                <span className="font-sans text-xs font-medium tracking-[0.08em] uppercase">
+                <span
+                  className={cn(
+                    "font-sans text-xs font-medium tracking-[0.08em]",
+                    keepsCase(parameter.label) ? null : "uppercase"
+                  )}
+                >
                   {parameter.label}
                 </span>
               </div>
@@ -77,7 +86,12 @@ export function ParameterSummary({ pond, now }: ParameterSummaryProps) {
                     aria-hidden="true"
                   />
                   <Icon className="size-4 shrink-0" />
-                  <span className="font-sans text-xs font-medium tracking-[0.08em] uppercase">
+                  <span
+                    className={cn(
+                      "font-sans text-xs font-medium tracking-[0.08em]",
+                      keepsCase(parameter.label) ? null : "uppercase"
+                    )}
+                  >
                     {parameter.label}
                   </span>
                 </div>
@@ -115,7 +129,12 @@ export function ParameterSummary({ pond, now }: ParameterSummaryProps) {
             >
               <div className="flex items-center gap-2 text-board-stale">
                 <Icon className="size-4" />
-                <span className="font-sans text-xs font-medium tracking-[0.08em] uppercase">
+                <span
+                  className={cn(
+                    "font-sans text-xs font-medium tracking-[0.08em]",
+                    keepsCase(parameter.label) ? null : "uppercase"
+                  )}
+                >
                   {parameter.label}
                 </span>
               </div>
@@ -145,7 +164,12 @@ export function ParameterSummary({ pond, now }: ParameterSummaryProps) {
                   aria-hidden="true"
                 />
                 <Icon className="size-4 shrink-0" />
-                <span className="font-sans text-xs font-medium tracking-[0.08em] uppercase">
+                <span
+                  className={cn(
+                    "font-sans text-xs font-medium tracking-[0.08em]",
+                    keepsCase(parameter.label) ? null : "uppercase"
+                  )}
+                >
                   {parameter.label}
                 </span>
               </div>
@@ -174,9 +198,11 @@ export function ParameterSummary({ pond, now }: ParameterSummaryProps) {
               >
                 {shown.number}
               </span>
-              <span className="font-heading text-sm text-board-muted">
-                {parameter.unit}
-              </span>
+              {parameter.unit ? (
+                <span className="font-heading text-sm text-board-muted">
+                  {parameter.unit}
+                </span>
+              ) : null}
             </div>
             {spike && unconfirmed ? (
               <p

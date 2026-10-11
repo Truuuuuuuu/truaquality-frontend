@@ -482,7 +482,7 @@ function PivotedRow({
               </>
             ) : (
               <>
-                {shown.number} {shown.unit}
+                {shown.text}
                 <span className="sr-only"> — {STATUS_LABELS[severity]}</span>
               </>
             )}

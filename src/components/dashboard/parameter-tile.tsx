@@ -12,7 +12,11 @@ import type {
   ReadingState,
   ReadingStatus,
 } from "@/lib/parameters"
-import { unconfirmedLabel, type UnconfirmedSpike } from "@/lib/pond-status"
+import {
+  keepsCase,
+  unconfirmedLabel,
+  type UnconfirmedSpike,
+} from "@/lib/pond-status"
 import { formatReading } from "@/lib/reading-format"
 import { STATUS_LABELS, STATUS_STYLES } from "@/lib/status-styles"
 import { SignalPathStrip } from "./signal-path-strip"
@@ -66,7 +70,12 @@ export function ParameterTile({
             aria-hidden="true"
           />
           <Icon className="size-4" />
-          <span className="font-sans text-xs font-medium tracking-[0.08em] uppercase">
+          <span
+            className={cn(
+              "font-sans text-xs font-medium tracking-[0.08em]",
+              keepsCase(parameter.label) ? null : "uppercase"
+            )}
+          >
             {parameter.label}
           </span>
         </div>
@@ -95,9 +104,11 @@ export function ParameterTile({
         >
           {shown.number}
         </span>
-        <span className="font-heading text-sm text-board-muted">
-          {parameter.unit}
-        </span>
+        {parameter.unit ? (
+          <span className="font-heading text-sm text-board-muted">
+            {parameter.unit}
+          </span>
+        ) : null}
       </div>
 
       {spike && unconfirmed ? (
@@ -190,7 +201,12 @@ export function SilentParameterTile({
             aria-hidden="true"
           />
           <Icon className="size-4" />
-          <span className="font-sans text-xs font-medium tracking-[0.08em] uppercase">
+          <span
+            className={cn(
+              "font-sans text-xs font-medium tracking-[0.08em]",
+              keepsCase(parameter.label) ? null : "uppercase"
+            )}
+          >
             {parameter.label}
           </span>
         </div>
