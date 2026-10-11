@@ -41,8 +41,9 @@ export function TrendChart({
 
   const { safeMin, safeMax } = threshold
   const values = points.map((p) => p.v)
-  // While the critical line is pending the history charts fit the axis to the data (with Safe max
-  // in view); the sparkline uses the same rule so a 4 NTU pond isn't squashed against the full sensor scale.
+  // While the critical line is pending the history charts fit the axis to the data, and the sparkline
+  // shares that rule: a one-sided band keeps Safe max in view (so a 4 NTU pond isn't squashed against the
+  // full sensor scale), and a two-sided band keeps both safe lines in view plus a margin.
   // Without the pending marker this falls back to the original safe-range-plus-15% domain.
   const fitted = pendingScaleDomain(
     threshold,

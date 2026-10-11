@@ -15,6 +15,7 @@ import {
   type ReadingState,
 } from "@/lib/parameters"
 import { hasLowSide, pendingScaleDomain, valueTicks } from "@/lib/chart-scale"
+import { keepsCase } from "@/lib/pond-status"
 import { formatStatValue } from "@/lib/reading-format"
 import { STATUS_COLOR, STATUS_LABELS, STATUS_STYLES } from "@/lib/status-styles"
 
@@ -141,7 +142,14 @@ export function ParameterHistoryChart({
   const toY = (v: number) => innerHeight - ((v - lo) / (hi - lo)) * innerHeight
   const clampY = (y: number) => Math.min(innerHeight, Math.max(0, y))
 
-  const { ticks: yTicks, decimals } = valueTicks(lo, hi, compact ? 2 : 4)
+  // A two-sided pending band hands back the step its axis was padded to, so ticks land on every step in
+  // the detail chart and every other step in the compact one. Without a step the tick count is unchanged.
+  const tickTarget = fitted?.step
+    ? Math.round((hi - lo) / (compact ? fitted.step * 2 : fitted.step))
+    : compact
+      ? 2
+      : 4
+  const { ticks: yTicks, decimals } = valueTicks(lo, hi, tickTarget)
   const tickDecimals = Math.min(decimals, parameter.precision)
   const { ticks: xTicks, step: xStep } = timeTicks(
     domainStart,
@@ -155,9 +163,10 @@ export function ParameterHistoryChart({
   const yCritMin = toY(threshold.criticalMin)
 
   // Zone bands in plot space. The clip versions overshoot the plot so a round line cap at the very top or
-  // bottom isn't shaved off. While the critical line is pending (D-02) nothing above the safe max is
-  // called critical: the warning band runs open-ended to the plot top, and a parameter with no low side
-  // (safe floor equals critical floor) gets no low-side bands at all.
+  // bottom isn't shaved off. While the critical line is pending (D-02) nothing outside the safe band is
+  // called critical: the warning band runs open-ended to the plot top, and below the safe min it runs
+  // open-ended to the plot bottom. A parameter with no low side (safe floor equals critical floor) gets
+  // no low-side bands at all.
   // With no low side and nothing below the floor, the axis bottom is the safe floor itself (0 NTU, the
   // clear-water reading the firmware clamps to), so the nominal band overshoots the plot bottom like
   // every other edge band; ending it exactly there would clip half the stroke of a line lying on it.
@@ -171,15 +180,18 @@ export function ParameterHistoryChart({
         ],
         warning: [
           { y1: -10, y2: ySafeMax },
-          ...(lowSide ? [{ y1: ySafeMin, y2: yCritMin }] : []),
+          ...(lowSide ? [{ y1: ySafeMin, y2: innerHeight + 10 }] : []),
         ],
         // The backend still judges a value above the placeholder critical (severityFor is unchanged
-        // while pending, D-03), so the line turns red there to match the header, markers and alert. It
-        // is clip-only, so no critical band is drawn (D-02), and it sits off the plot unless the data
-        // actually goes past the placeholder. Painted after warning, so it wins where they overlap.
+        // while pending, D-03), so the line turns red past either placeholder to match the header,
+        // markers and alert. Both sides are clip-only, so no critical band is drawn (D-02), and each sits
+        // off the plot unless the data actually goes past its placeholder. Painted after warning, so it
+        // wins where they overlap.
         critical: [
           { y1: -10, y2: yCritMax, clipOnly: true },
-          ...(lowSide ? [{ y1: yCritMin, y2: innerHeight + 10 }] : []),
+          ...(lowSide
+            ? [{ y1: yCritMin, y2: innerHeight + 10, clipOnly: true }]
+            : []),
         ],
       }
     : {
@@ -200,8 +212,9 @@ export function ParameterHistoryChart({
   } as const
 
   // Labeled edges, nudged apart where two sit close together so their labels don't print over each other.
-  // A pending critical max has no line or label (its value is a placeholder), and a parameter with no low
-  // side draws no Safe min / Crit min.
+  // A pending critical line on either side has no line or label (its value is a placeholder, and keeping it
+  // out also stops the overflow nudge dragging labels toward it), and a parameter with no low side draws no
+  // Safe min / Crit min.
   const edges = [
     {
       key: "critMax",
@@ -230,7 +243,8 @@ export function ParameterHistoryChart({
   ]
     .filter((edge) => {
       if (edge.key === "critMax") return !pending
-      if (edge.key === "safeMin" || edge.key === "critMin") return lowSide
+      if (edge.key === "critMin") return lowSide && !pending
+      if (edge.key === "safeMin") return lowSide
       return true
     })
     .map((edge) => ({ ...edge, y: toY(edge.value), labelY: toY(edge.value) }))
@@ -308,19 +322,28 @@ export function ParameterHistoryChart({
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <div className="flex items-center gap-2">
           <Icon className="size-3.5 shrink-0 self-center text-board-muted" />
-          <h3 className="font-sans text-xs font-medium tracking-[0.08em] text-board-fg uppercase">
+          <h3
+            className={cn(
+              "font-sans text-xs font-medium tracking-[0.08em] text-board-fg",
+              keepsCase(parameter.label) ? null : "uppercase"
+            )}
+          >
             {parameter.label}
           </h3>
-          <span className="inline-flex items-baseline gap-1">
-            <span className="font-heading text-xs text-board-muted">
-              {parameter.unit}
+          {parameter.unit || parameter.approximate ? (
+            <span className="inline-flex items-baseline gap-1">
+              {parameter.unit ? (
+                <span className="font-heading text-xs text-board-muted">
+                  {parameter.unit}
+                </span>
+              ) : null}
+              {parameter.approximate ? (
+                <span className="font-sans text-xs text-board-muted">
+                  approx.
+                </span>
+              ) : null}
             </span>
-            {parameter.approximate ? (
-              <span className="font-sans text-xs text-board-muted">
-                approx.
-              </span>
-            ) : null}
-          </span>
+          ) : null}
           <span
             className={cn(
               "flex items-center gap-1.5 font-sans text-xs",
@@ -370,7 +393,8 @@ export function ParameterHistoryChart({
                   />
                   <span className="capitalize">{analysis.trend.direction}</span>
                   <span className="font-heading tabular-nums">
-                    {signed(analysis.trend.rate)} {parameter.unit}/
+                    {signed(analysis.trend.rate)}
+                    {parameter.unit ? ` ${parameter.unit}` : ""}/
                     {analysis.trend.rateUnit}
                   </span>
                 </dd>

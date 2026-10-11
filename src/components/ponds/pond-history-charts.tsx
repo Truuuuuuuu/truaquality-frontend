@@ -35,7 +35,11 @@ import {
   type ReadingState,
 } from "@/lib/parameters"
 import { formatReading } from "@/lib/reading-format"
-import { pondReadingStates, type PondReadingEntry } from "@/lib/pond-status"
+import {
+  keepsCase,
+  pondReadingStates,
+  type PondReadingEntry,
+} from "@/lib/pond-status"
 import { STATUS_COLOR, STATUS_LABELS, STATUS_STYLES } from "@/lib/status-styles"
 
 type PondHistoryChartsProps = {
@@ -363,7 +367,12 @@ function EmptyRow({
     >
       <span className="flex items-center gap-2 text-board-stale">
         <Icon className="size-3.5 shrink-0" />
-        <span className="font-sans text-xs font-medium tracking-[0.08em] uppercase">
+        <span
+          className={cn(
+            "font-sans text-xs font-medium tracking-[0.08em]",
+            keepsCase(parameter.label) ? null : "uppercase"
+          )}
+        >
           {parameter.label}
         </span>
       </span>
