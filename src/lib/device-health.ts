@@ -281,14 +281,20 @@ export type SensorDisplay = {
   icon: ComponentType<{ className?: string }>
 }
 
+// The parameter comes from the unit (a status-map key or an event's sensor), so both lookups are own-key
+// only: "constructor" would otherwise resolve to Object and render it as the icon, crashing the page.
 export function sensorDisplay(parameter: string): SensorDisplay {
-  const known = PARAMETER_BY_ID[parameter]
+  const known = Object.hasOwn(PARAMETER_BY_ID, parameter)
+    ? PARAMETER_BY_ID[parameter]
+    : undefined
   if (known)
     return {
       label: known.label,
       unit: known.unit,
       precision: known.precision,
-      icon: PARAMETER_ICONS[parameter] ?? Gauge,
+      icon: Object.hasOwn(PARAMETER_ICONS, parameter)
+        ? PARAMETER_ICONS[parameter]
+        : Gauge,
     }
   return {
     label: parameter.charAt(0).toUpperCase() + parameter.slice(1),
