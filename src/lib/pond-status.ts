@@ -52,6 +52,8 @@ export function judgedStatus(
 export type UnconfirmedSpike = {
   severity: "warning" | "critical"
   direction: "above" | "below"
+  // The parameter's plain-language word for that side ("acidic"), from its display metadata (D-14).
+  directionWord: string | null
 }
 
 export function unconfirmedSpike(
@@ -67,18 +69,21 @@ export function unconfirmedSpike(
   if (!held || !Object.hasOwn(held, parameterId)) return null
   const raw = severityFor(threshold, value)
   if (raw === "nominal" || held[parameterId]) return null
+  const side = value > threshold.safeMax ? "high" : "low"
   return {
     severity: raw,
-    direction: value > threshold.safeMax ? "above" : "below",
+    direction: side === "high" ? "above" : "below",
+    directionWord: PARAMETER_BY_ID[parameterId]?.directionWords?.[side] ?? null,
   }
 }
 
 // Shared wording so the tile and the dashboard summary say exactly the same thing.
 export function unconfirmedLabel(spike: UnconfirmedSpike) {
   const above = spike.direction === "above"
+  const word = spike.directionWord
   return {
-    text: `${above ? "Above" : "Below"} range · unconfirmed`,
-    spoken: `${spike.direction} range, unconfirmed`,
+    text: `${above ? "Above" : "Below"} range${word ? ` (${word})` : ""} · unconfirmed`,
+    spoken: `${spike.direction} range${word ? `, ${word}` : ""}, unconfirmed`,
   }
 }
 
@@ -103,7 +108,7 @@ function currentUnitLatest(pond: Pond, parameterId: string) {
 }
 
 // Dotted numeric compare ("0.10.0" > "0.9.2"); anything after a "-" or "+" is ignored.
-function firmwareAtLeast(version: string, minimum: string) {
+export function firmwareAtLeast(version: string, minimum: string) {
   const parse = (v: string) =>
     v
       .split(/[-+]/)[0]
@@ -121,15 +126,33 @@ function firmwareAtLeast(version: string, minimum: string) {
 // Whether this unit is known not to send the parameter at all: a unit that reports a sensors map
 // (firmware 0.6.0+) and leaves the parameter out of it, or a unit whose firmware predates the
 // parameter. Without either fact the unit can't be said to lack it, so a missing value is a fault.
-function unitLacksParameter(pond: Pond, parameter: ParameterConfig) {
-  const statuses = pond.sensorStatus ?? {}
+// One rule for the pond tiles and the device page drawing, so an older unit is never shown with
+// hardware it lacks (D-03, D-17).
+export function unitLacksSensor(
+  unit: {
+    statuses: Record<string, string>
+    firmwareVersion: string | null | undefined
+  },
+  parameter: ParameterConfig
+): boolean {
+  const { statuses } = unit
   if (Object.hasOwn(statuses, parameter.id)) return false
   if (Object.keys(statuses).length > 0) return true
-  const firmware = pond.device?.firmwareVersion
+  const firmware = unit.firmwareVersion
   return (
     parameter.sinceFirmware !== undefined &&
     firmware != null &&
     !firmwareAtLeast(firmware, parameter.sinceFirmware)
+  )
+}
+
+function unitLacksParameter(pond: Pond, parameter: ParameterConfig) {
+  return unitLacksSensor(
+    {
+      statuses: pond.sensorStatus ?? {},
+      firmwareVersion: pond.device?.firmwareVersion,
+    },
+    parameter
   )
 }
 
@@ -282,14 +305,20 @@ export function pondConnectionLabel(pond: Pond, now: number): string | null {
   if (!isDeviceOnline(pond.device.lastSeenAt, now)) return "Offline"
   if (pondStatus(pond, now) !== "stale") return null
   const silent = silentParameters(pond, now)
-  if (silent.length === 1) return `No ${silent[0].label.toLowerCase()} reading`
+  if (silent.length === 1) return `No ${inSentence(silent[0].label)} reading`
   if (silent.length > 1) return `No reading from ${silent.length} sensors`
   return null
 }
 
+// A mixed-case label such as "pH" keeps its casing mid-sentence and is never CSS-uppercased; screen
+// readers would otherwise hear "P H" (D-13).
+export function keepsCase(label: string): boolean {
+  return /[A-Z]/.test(label.slice(1))
+}
+
 // Lower-cases a parameter label for use mid-sentence, except a mixed-case one such as "pH".
-function inSentence(label: string) {
-  return /[A-Z]/.test(label.slice(1)) ? label : label.toLowerCase()
+export function inSentence(name: string) {
+  return keepsCase(name) ? name : name.toLowerCase()
 }
 
 export type OpenAlertSummary = {

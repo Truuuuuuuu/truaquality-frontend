@@ -36,9 +36,9 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
               Water quality monitoring for BFAR Sorsogon fishponds
             </h2>
             <p className="max-w-[46ch] text-base leading-relaxed text-pretty text-board-muted">
-              A sensor unit at each pond reports its water temperature and
-              turbidity. Once you sign in, the board shows every pond's latest
-              reading and flags any that leave their safe range.
+              A sensor unit at each pond reports its water temperature,
+              turbidity and pH. Once you sign in, the board shows every pond's
+              latest reading and flags any that leave their safe range.
             </p>
           </div>
           <div

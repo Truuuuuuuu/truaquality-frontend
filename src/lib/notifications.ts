@@ -19,8 +19,8 @@ export function notificationPond(notification: AppNotification) {
   return notification.alert?.pond ?? notification.device!.pond
 }
 
-// Human-readable pieces of a notification, e.g. "Temperature too high" + "33.4 °C", or
-// "Pond 2 unit went offline" + "Pond 2 unit".
+// Human-readable pieces of a notification, e.g. "Temperature too high" + "33.4 °C", "pH too low
+// (acidic)" + "6.2", or "Pond 2 unit went offline" + "Pond 2 unit".
 export function describeNotification(notification: AppNotification) {
   if (
     notification.kind === "DEVICE_OFFLINE" ||
@@ -41,15 +41,23 @@ export function describeNotification(notification: AppNotification) {
   // The server decides this: thresholds depend on the pond's type, and it holds them.
   const direction = notification.direction
 
+  // The parameter's own word for the side it left ("acidic"), from display metadata (D-14).
+  const word = direction ? parameter?.directionWords?.[direction] : undefined
+  const suffix = word ? ` (${word})` : ""
+
   const title =
     notification.kind === "ALERT_RESOLVED"
       ? `${label} back to normal`
       : notification.kind === "ALERT_ESCALATED"
-        ? `${label} critically ${direction}`
-        : `${label} too ${direction}`
+        ? `${label} critically ${direction}${suffix}`
+        : `${label} too ${direction}${suffix}`
 
+  // Only non-empty parts, so a unitless parameter (pH) reads "6.2" with no trailing space (D-13). Not
+  // formatReading: that would add "≈" to turbidity notifications.
   const reading = parameter
-    ? `${notification.value!.toFixed(parameter.precision)} ${parameter.unit}`
+    ? [notification.value!.toFixed(parameter.precision), parameter.unit]
+        .filter(Boolean)
+        .join(" ")
     : String(notification.value)
 
   return { title, reading, status: notificationStatus(notification) }
