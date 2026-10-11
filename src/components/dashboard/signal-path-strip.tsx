@@ -21,6 +21,8 @@ export function ProbeRing({ className }: ProbeRingProps) {
 }
 
 type SignalPathStripProps = {
+  // The parameter id, so the reason is worded for this sensor (D-08).
+  parameter: string
   parameterLabel: string
   reasonToken: string | null
   deviceId: string
@@ -32,11 +34,12 @@ type SignalPathStripProps = {
 // matches the unit diagnostics page word for word. Screen readers get one complete sentence; the
 // visual fragments are hidden so it isn't read twice.
 export function SignalPathStrip({
+  parameter,
   parameterLabel,
   reasonToken,
   deviceId,
 }: SignalPathStripProps) {
-  const { label, action } = silentReason(reasonToken)
+  const { label, action } = silentReason(parameter, reasonToken)
 
   return (
     <p className="font-sans text-xs">

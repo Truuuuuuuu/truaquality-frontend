@@ -61,13 +61,13 @@ export function ParameterSummary({ pond, now }: ParameterSummaryProps) {
           const duration = reading
             ? formatSilentDuration(now - reading.updatedAt)
             : null
-          const reasonLabel = silentReason(sensorStatus).label
+          const reasonLabel = silentReason(parameter.id, sensorStatus).label
           return (
             <div
               key={parameter.id}
               tabIndex={0}
               role="group"
-              aria-label={`${parameter.label}: ${duration ? `no reading for ${duration}` : "no reading received yet"}, unit online, probe ${reasonLabel.toLowerCase()}`}
+              aria-label={`${parameter.label}: ${duration ? `no reading for ${duration}` : "no reading received yet"}, unit online, probe status: ${reasonLabel.toLowerCase()}`}
               className="min-w-40 flex-1"
             >
               <div className="flex items-center justify-between gap-3">

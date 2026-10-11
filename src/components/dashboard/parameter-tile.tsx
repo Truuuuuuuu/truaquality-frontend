@@ -165,10 +165,13 @@ export function SilentParameterTile({
   const duration = reading
     ? formatSilentDuration(now - reading.updatedAt)
     : null
-  const reasonLabel = silentReason(reasonToken).label.toLowerCase()
+  const reasonLabel = silentReason(
+    parameter.id,
+    reasonToken
+  ).label.toLowerCase()
   const ariaLabel = duration
-    ? `${parameter.label}: no reading for ${duration}, unit online, probe ${reasonLabel}`
-    : `${parameter.label}: no reading received yet, unit online, probe ${reasonLabel}`
+    ? `${parameter.label}: no reading for ${duration}, unit online, probe status: ${reasonLabel}`
+    : `${parameter.label}: no reading received yet, unit online, probe status: ${reasonLabel}`
 
   return (
     <div
@@ -236,6 +239,7 @@ export function SilentParameterTile({
       </div>
 
       <SignalPathStrip
+        parameter={parameter.id}
         parameterLabel={parameter.label}
         reasonToken={reasonToken}
         deviceId={deviceId}

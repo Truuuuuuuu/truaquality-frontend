@@ -92,7 +92,41 @@ const STATUS_TEXT: Record<string, { label: string; action: string | null }> = {
   },
 }
 
-function statusText(token: string) {
+// Per-sensor wording that replaces a STATUS_TEXT row, keyed by the parameter that reported the token.
+// Wording only: it never decides a status. Keyed by the reporting sensor so the pH probe never shows the
+// turbidity probe's calibration or probe-window text (D-08..D-11). The 6.86 and 9.18 figures are the
+// buffer-solution labels printed on the kit's sachets, not thresholds. "On the setup portal" is left out
+// on purpose until Phase 11's calibration screen exists (deferred).
+const SENSOR_STATUS_OVERRIDES: Record<
+  string,
+  Record<string, { label: string; action: string | null }>
+> = {
+  ph: {
+    uncalibrated: {
+      label: "Needs calibration",
+      action: "Calibrate the pH probe with the 6.86 and 9.18 buffers",
+    },
+    over_range: {
+      label: "Reading outside what the probe can measure",
+      action: "Check the probe is in the water, rinse it, and recalibrate",
+    },
+    no_signal: {
+      label: "No signal",
+      action: "Check the pH board's 5 V supply and its signal wire",
+    },
+  },
+}
+
+// Override for the reporting sensor first, then the shared row, then a generic fallback. Both levels use
+// Object.hasOwn because the parameter and token come from the unit, so "constructor" or "__proto__" must
+// never resolve to a prototype member.
+function statusText(parameter: string | null, token: string) {
+  if (
+    parameter !== null &&
+    Object.hasOwn(SENSOR_STATUS_OVERRIDES, parameter) &&
+    Object.hasOwn(SENSOR_STATUS_OVERRIDES[parameter], token)
+  )
+    return SENSOR_STATUS_OVERRIDES[parameter][token]
   return Object.hasOwn(STATUS_TEXT, token)
     ? STATUS_TEXT[token]
     : { label: "Reported a fault", action: `Unit reported: ${token}` }
@@ -100,16 +134,20 @@ function statusText(token: string) {
 
 const SILENT_WIRING_HINT = "Check the probe's plug and wiring"
 
-// Why a parameter went quiet while its unit stays online, in the same words the device page uses:
-// reuses STATUS_TEXT so the board and the device page never describe a fault differently. "ok" or no
-// token means the unit didn't say why, so the reason is unknown rather than "Connected".
-export function silentReason(token: string | null | undefined): {
+// Why a parameter went quiet while its unit stays online, in the same words the device page uses: the
+// board, the Sensors list and the Event log all go through the same per-sensor lookup (D-08), so they
+// never describe a fault differently. "ok" or no token means the unit didn't say why, so the reason is
+// unknown rather than "Connected".
+export function silentReason(
+  parameter: string,
+  token: string | null | undefined
+): {
   label: string
   action: string
 } {
   if (!token || token === "ok")
     return { label: "No reason reported", action: SILENT_WIRING_HINT }
-  const text = statusText(token)
+  const text = statusText(parameter, token)
   return { label: text.label, action: text.action ?? SILENT_WIRING_HINT }
 }
 
@@ -166,7 +204,7 @@ export function sensorHealth({
     )
 
   if (sensor.reportedStatus !== null) {
-    const text = statusText(sensor.reportedStatus)
+    const text = statusText(sensor.parameter, sensor.reportedStatus)
     return sensor.reportedStatus === "ok"
       ? health("ok", text.label, null)
       : health("fault", text.label, text.action)
@@ -313,7 +351,7 @@ export function eventDescription(event: DeviceEvent): EventDescription {
       }
     case "SENSOR_FAULT":
       return {
-        title: `${sensor}: ${statusText(event.detail ?? "").label}`,
+        title: `${sensor}: ${statusText(event.parameter, event.detail ?? "").label}`,
         detail: null,
         tone: "fault",
       }
