@@ -43,17 +43,21 @@ export function pendingScaleDomain(
   // charts use twice it. When BFAR's critical figure arrives and the backend clears the marker, callers
   // fall back to their existing two-sided domain with no frontend edit.
   if (hasLowSide(threshold)) {
-    const m = (threshold.safeMax - threshold.safeMin) / 6
+    // The band is the server's, so a zero-width or inverted one must still give a finite axis: a sixth
+    // of a zero or negative width would make log10 return -Infinity or NaN and blank every path, zone
+    // and tick. Order the edges and fall back to a fixed margin, like the one-sided branch below does.
+    const bandLo = Math.min(threshold.safeMin, threshold.safeMax)
+    const bandHi = Math.max(threshold.safeMin, threshold.safeMax)
+    const width = bandHi - bandLo
+    const m = width > 0 ? width / 6 : Math.max(Math.abs(bandHi) * 0.1, 1)
     const magnitude = 10 ** Math.floor(Math.log10(m))
     const step = Number(
       ((NICE_STEPS.find((s) => s * magnitude >= m) ?? 10) * magnitude).toFixed(
         6
       )
     )
-    const low =
-      dataMin < threshold.safeMin - m ? dataMin - m : threshold.safeMin - m
-    const high =
-      dataMax > threshold.safeMax + m ? dataMax + m : threshold.safeMax + m
+    const low = dataMin < bandLo - m ? dataMin - m : bandLo - m
+    const high = dataMax > bandHi + m ? dataMax + m : bandHi + m
     const lo = Number((Math.floor(low / step) * step).toFixed(6))
     const hi = Number((Math.ceil(high / step) * step).toFixed(6))
     return { lo, hi, step }
