@@ -31,8 +31,33 @@ export function pendingScaleDomain(
   threshold: Threshold,
   dataMin: number,
   dataMax: number
-): { lo: number; hi: number } | null {
+): { lo: number; hi: number; step?: number } | null {
   if (!threshold.criticalPending) return null
+  // Two-sided band (D-05, D-06): the safe band itself is the minimum y-span (UI-09), padded by a
+  // margin of a sixth of its width on each side, so a normal daily swing fills a good part of the plot
+  // instead of hugging a line. Only safeMin/safeMax are read; the critical placeholders never are.
+  // Data inside the margin keeps the margin-wide axis and data beyond it stretches the axis by one more
+  // margin. This deliberately departs from the UI-SPEC's literal "min(safe floor minus margin, data
+  // minimum minus margin)" formula, which would widen the axis by a full extra margin whenever the data
+  // merely touched the margin. The returned step is the tick step the detail chart uses; the compact
+  // charts use twice it. When BFAR's critical figure arrives and the backend clears the marker, callers
+  // fall back to their existing two-sided domain with no frontend edit.
+  if (hasLowSide(threshold)) {
+    const m = (threshold.safeMax - threshold.safeMin) / 6
+    const magnitude = 10 ** Math.floor(Math.log10(m))
+    const step = Number(
+      ((NICE_STEPS.find((s) => s * magnitude >= m) ?? 10) * magnitude).toFixed(
+        6
+      )
+    )
+    const low =
+      dataMin < threshold.safeMin - m ? dataMin - m : threshold.safeMin - m
+    const high =
+      dataMax > threshold.safeMax + m ? dataMax + m : threshold.safeMax + m
+    const lo = Number((Math.floor(low / step) * step).toFixed(6))
+    const hi = Number((Math.ceil(high / step) * step).toFixed(6))
+    return { lo, hi, step }
+  }
   let lo: number
   if (!hasLowSide(threshold) && dataMin >= threshold.safeMin) {
     lo = threshold.safeMin

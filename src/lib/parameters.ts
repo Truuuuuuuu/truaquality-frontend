@@ -1,5 +1,5 @@
 import type { ComponentType } from "react"
-import { Thermometer, Waves } from "lucide-react"
+import { FlaskConical, Thermometer, Waves } from "lucide-react"
 
 export type ReadingStatus = "nominal" | "warning" | "critical" | "stale"
 
@@ -26,6 +26,10 @@ export type ParameterConfig = {
   // A unit on an older firmware is "not reported" for it rather than "silent" (D-09), so it never pins
   // the pond to stale. Set this on every parameter added after the first firmware release.
   sinceFirmware?: string
+  // Plain-language words for which side of the range a reading left, appended in parentheses to alert
+  // titles and the spike chip ("too low (acidic)"), so that copy comes from metadata rather than an id
+  // check (D-14).
+  directionWords?: { low: string; high: string }
 }
 
 // One parameter's safe/critical band for a particular pond, as `Pond.thresholds` carries it.
@@ -78,6 +82,19 @@ export const PARAMETERS: ParameterConfig[] = [
       "Beyond what the sensor can measure. The water is at least this cloudy.",
     sinceFirmware: "0.4.0",
   },
+  // No unit: pH is dimensionless, so every surface shows a bare number (D-13). No approximate or
+  // ceiling fields, because the probe is calibrated against real buffer solutions (D-12).
+  // sinceFirmware makes a unit on older firmware "not reported" for pH, never stale (D-03). The safe
+  // band and the pending critical marker arrive from the server in `pond.thresholds` (D-01).
+  {
+    id: "ph",
+    label: "pH",
+    shortLabel: "pH",
+    unit: "",
+    precision: 1,
+    sinceFirmware: "0.7.0",
+    directionWords: { low: "acidic", high: "alkaline" },
+  },
 ]
 
 export const PARAMETER_ICONS: Record<
@@ -86,6 +103,7 @@ export const PARAMETER_ICONS: Record<
 > = {
   temperature: Thermometer,
   turbidity: Waves,
+  ph: FlaskConical,
 }
 
 export const PARAMETER_BY_ID: Record<string, ParameterConfig> =

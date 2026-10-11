@@ -26,14 +26,16 @@ export function formatReading(
   value: number
 ): FormattedReading {
   const { unit } = parameter
+  // Join only the parts that exist, so a unitless parameter (pH) reads "7.4" with no trailing space (D-13).
+  const join = (...parts: (string | null)[]) => parts.filter(Boolean).join(" ")
   if (parameter.sensorCeiling !== undefined && isAtCeiling(parameter, value)) {
     const number = parameter.sensorCeiling.toFixed(0)
     return {
       prefix: "≥",
       number,
       unit,
-      text: `≥ ${number} ${unit}`,
-      spoken: `at least ${number} ${unit}, the sensor's limit`,
+      text: join("≥", number, unit),
+      spoken: `${join("at least", number, unit)}, the sensor's limit`,
       atCeiling: true,
     }
   }
@@ -43,16 +45,16 @@ export function formatReading(
       prefix: "≈",
       number,
       unit,
-      text: `≈ ${number} ${unit}`,
-      spoken: `approximately ${number} ${unit}`,
+      text: join("≈", number, unit),
+      spoken: join("approximately", number, unit),
       atCeiling: false,
     }
   return {
     prefix: null,
     number,
     unit,
-    text: `${number} ${unit}`,
-    spoken: `${number} ${unit}`,
+    text: join(number, unit),
+    spoken: join(number, unit),
     atCeiling: false,
   }
 }
