@@ -7,8 +7,16 @@ import { STATUS_COLOR } from "@/lib/status-styles"
 
 const WIDTH = 480
 const HEIGHT = 300
-const GLANDS = [210, 270]
 const PROBE_TOP = 196
+
+// One cable gland per probe, so no two cables share a hole. One or two probes keep the original layout;
+// more are spread evenly around the enclosure's centre (three probes: 195, 240, 285).
+function glandPositions(count: number): number[] {
+  if (count <= 2) return [210, 270]
+  const spacing = Math.min(45, 140 / (count - 1))
+  const start = 240 - (spacing * (count - 1)) / 2
+  return Array.from({ length: count }, (_, i) => start + i * spacing)
+}
 
 function probeX(index: number, count: number) {
   return ((index + 1) * WIDTH) / (count + 1)
@@ -24,6 +32,8 @@ export function DeviceSchematic({
 }: UnitViewProps) {
   const ledColor =
     deviceState === "ONLINE" ? "var(--board-accent)" : "var(--board-stale)"
+  const glands = glandPositions(probes.length)
+  const phIndex = probes.findIndex((probe) => probe.parameter === "ph")
   return (
     <svg
       viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
@@ -75,7 +85,9 @@ export function DeviceSchematic({
         stroke="var(--board-border-strong)"
       />
 
-      {GLANDS.map((x) => (
+      {phIndex !== -1 && <PhSignalBoard glandX={glands[phIndex]} />}
+
+      {glands.map((x) => (
         <rect
           key={x}
           x={x - 10}
@@ -93,12 +105,36 @@ export function DeviceSchematic({
           key={probe.parameter}
           probe={probe}
           x={probeX(index, probes.length)}
-          glandX={GLANDS[index % GLANDS.length]}
+          glandX={glands[index]}
           selected={probe.parameter === selected}
           onSelect={onSelect}
         />
       ))}
     </svg>
+  )
+}
+
+// The analog pH kit's signal board sits inside the enclosure, wired out through the pH probe's own gland.
+// Drawn in neutral parts colors only: it is hardware, not a status.
+function PhSignalBoard({ glandX }: { glandX: number }) {
+  return (
+    <g>
+      <path
+        d={`M 215 108 L 215 112 L ${glandX} 112 L ${glandX} 138`}
+        fill="none"
+        stroke="var(--board-muted)"
+        strokeWidth={1}
+      />
+      <rect
+        x={198}
+        y={86}
+        width={34}
+        height={22}
+        rx={2}
+        fill="var(--board-panel-raised)"
+        stroke="var(--board-border-strong)"
+      />
+    </g>
   )
 }
 
@@ -166,9 +202,40 @@ function SchematicProbe({
   )
 }
 
-// DS18B20: a slim stainless capsule. SEN0189: a wider body with a sensing window. Anything else: generic.
+// DS18B20: a slim stainless capsule. SEN0189: a wider body with a sensing window. Analog pH kit: a glass
+// electrode, a plastic cap over a slim glass stem ending in the sensing bulb. Anything else: generic.
 function ProbeGlyph({ parameter, x }: { parameter: string; x: number }) {
   const stroke = "var(--board-border-strong)"
+  if (parameter === "ph")
+    return (
+      <g>
+        <rect
+          x={x - 4}
+          y={PROBE_TOP + 10}
+          width={8}
+          height={40}
+          rx={4}
+          fill="var(--board-bg)"
+          stroke={stroke}
+        />
+        <circle
+          cx={x}
+          cy={PROBE_TOP + 50}
+          r={6}
+          fill="var(--board-bg)"
+          stroke={stroke}
+        />
+        <rect
+          x={x - 6}
+          y={PROBE_TOP}
+          width={12}
+          height={10}
+          rx={2}
+          fill="var(--board-panel-raised)"
+          stroke={stroke}
+        />
+      </g>
+    )
   if (parameter === "temperature")
     return (
       <rect

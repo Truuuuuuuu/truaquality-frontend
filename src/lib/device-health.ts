@@ -9,9 +9,11 @@ import type {
 import {
   PARAMETER_BY_ID,
   PARAMETER_ICONS,
+  PARAMETERS,
   STALE_AFTER_MS,
   type ReadingStatus,
 } from "@/lib/parameters"
+import { unitLacksSensor } from "@/lib/pond-status"
 
 // Plain-language maintenance meaning for what a unit reports about itself. Everything here is about the
 // hardware (is the probe plugged in, why did it restart); none of it judges a water-quality reading —
@@ -216,6 +218,39 @@ export function sensorHealth({
   if (now - Date.parse(sensor.lastReadingAt) <= STALE_AFTER_MS)
     return health("ok", "Connected", null, true)
   return health("stale", "Not reporting", wiringHint, true)
+}
+
+// The backend lists every known parameter for every unit, so the page has to apply the same not-reported
+// rule as the pond tiles (D-03, D-17) or a 0.6.x unit would be drawn with a pH probe it doesn't have. A row
+// with any reading from this unit is always kept: it sent that parameter. Probe order follows the wire key
+// order (temperature, turbidity, pH), not the server's list order; ids this build doesn't know go last so a
+// newer unit's extra probe is still shown, never silently hidden.
+export function unitSensors(
+  sensors: SensorDiagnostics[],
+  firmwareVersion: string | null
+): SensorDiagnostics[] {
+  const statuses: Record<string, string> = {}
+  for (const sensor of sensors)
+    if (sensor.reportedStatus !== null)
+      statuses[sensor.parameter] = sensor.reportedStatus
+  const rank = (parameter: string) => {
+    const index = PARAMETERS.findIndex((known) => known.id === parameter)
+    return index === -1 ? PARAMETERS.length : index
+  }
+  return sensors
+    .filter((sensor) => {
+      if (sensor.lastReadingAt !== null) return true
+      const known = Object.hasOwn(PARAMETER_BY_ID, sensor.parameter)
+        ? PARAMETER_BY_ID[sensor.parameter]
+        : undefined
+      return !(known && unitLacksSensor({ statuses, firmwareVersion }, known))
+    })
+    .map((sensor, index) => ({ sensor, index }))
+    .sort(
+      (a, b) =>
+        rank(a.sensor.parameter) - rank(b.sensor.parameter) || a.index - b.index
+    )
+    .map(({ sensor }) => sensor)
 }
 
 export type SensorDisplay = {
