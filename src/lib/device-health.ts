@@ -166,7 +166,9 @@ export type SensorHealth = {
   status: ReadingStatus
   label: string
   action: string | null
-  // True when the unit didn't say (firmware older than 0.6.0) and the state is guessed from reading times.
+  // True when the unit sends no status map at all (firmware older than 0.6.0), so the state is guessed
+  // from reading times. A unit that sends a map but leaves a sensor out is not guessed at: it has said
+  // what it reads, and that sensor isn't one of them.
   inferred: boolean
 }
 
@@ -184,10 +186,13 @@ function health(
 export function sensorHealth({
   sensor,
   deviceState,
+  unitReportsStatuses,
   now,
 }: {
   sensor: SensorDiagnostics
   deviceState: DeviceState
+  // Whether the unit sends a status map at all (any sensor has a reportedStatus).
+  unitReportsStatuses: boolean
   now: number
 }): SensorHealth {
   if (deviceState === "NEVER")
@@ -212,6 +217,13 @@ export function sensorHealth({
       : health("fault", text.label, text.action)
   }
 
+  // A 0.6.x unit that once sent this parameter (pH before its firmware dropped it) but leaves it out of
+  // the map it does send: it isn't reading that probe, so the "older firmware" estimate would give the
+  // wrong reason and the wiring hint would send staff to a probe nothing reads. Matches the pond tile's
+  // "Not reported by this unit".
+  if (unitReportsStatuses)
+    return health("stale", "Not reported by this unit's firmware", null)
+
   const wiringHint = "Check the probe's plug and wiring"
   if (sensor.lastReadingAt === null)
     return health("stale", "Never reported", wiringHint, true)
@@ -222,12 +234,16 @@ export function sensorHealth({
 
 // The backend lists every known parameter for every unit, so the page has to apply the same not-reported
 // rule as the pond tiles (D-03, D-17) or a 0.6.x unit would be drawn with a pH probe it doesn't have. A row
-// with any reading from this unit is always kept: it sent that parameter. Probe order follows the wire key
-// order (temperature, turbidity, pH), not the server's list order; ids this build doesn't know go last so a
-// newer unit's extra probe is still shown, never silently hidden.
+// with a reading from this unit since it was assigned to its current pond is always kept: it sent that
+// parameter. Readings from before the assignment don't count, the same cut-off the pond tile applies
+// (`currentUnitLatest`), so a unit moved to a new pond doesn't keep a probe row there that the new pond's
+// tile calls "Not reported by this unit". An unassigned unit keeps any reading. Probe order follows the
+// wire key order (temperature, turbidity, pH), not the server's list order; ids this build doesn't know go
+// last so a newer unit's extra probe is still shown, never silently hidden.
 export function unitSensors(
   sensors: SensorDiagnostics[],
-  firmwareVersion: string | null
+  firmwareVersion: string | null,
+  assignedAt: string | null
 ): SensorDiagnostics[] {
   const statuses: Record<string, string> = {}
   for (const sensor of sensors)
@@ -239,7 +255,12 @@ export function unitSensors(
   }
   return sensors
     .filter((sensor) => {
-      if (sensor.lastReadingAt !== null) return true
+      if (
+        sensor.lastReadingAt !== null &&
+        (assignedAt === null ||
+          Date.parse(sensor.lastReadingAt) >= Date.parse(assignedAt))
+      )
+        return true
       const known = Object.hasOwn(PARAMETER_BY_ID, sensor.parameter)
         ? PARAMETER_BY_ID[sensor.parameter]
         : undefined

@@ -355,10 +355,11 @@ export type DeviceHealth = {
   offlineSince: string | null
 }
 
-// `reportedStatus` is null for a unit on firmware older than 0.6.0 (it never says whether a probe is
-// plugged in), so the page has to infer that from reading times instead. `parameter` may be a sensor
-// the frontend has no display metadata for yet (one a newer firmware reports before it lands in
-// PARAMETERS).
+// `reportedStatus` is null for every sensor of a unit on firmware older than 0.6.0 (it never says whether
+// a probe is plugged in), so the page has to infer that from reading times instead. It is also null for
+// a sensor a newer unit leaves out of the status map it does send: that unit doesn't read that probe.
+// `parameter` may be a sensor the frontend has no display metadata for yet (one a newer firmware reports
+// before it lands in PARAMETERS).
 export type SensorDiagnostics = {
   parameter: string
   lastReadingAt: string | null

@@ -445,13 +445,23 @@ function DiagnosticsSections({
   now: number
 }) {
   const rowButtons = React.useRef(new Map<string, HTMLButtonElement>())
-  const sensors = unitSensors(diagnostics.sensors, device.firmwareVersion).map(
-    (sensor) => ({
-      sensor,
-      display: sensorDisplay(sensor.parameter),
-      health: sensorHealth({ sensor, deviceState: state, now }),
-    })
+  const unitReportsStatuses = diagnostics.sensors.some(
+    (sensor) => sensor.reportedStatus !== null
   )
+  const sensors = unitSensors(
+    diagnostics.sensors,
+    device.firmwareVersion,
+    device.assignedAt
+  ).map((sensor) => ({
+    sensor,
+    display: sensorDisplay(sensor.parameter),
+    health: sensorHealth({
+      sensor,
+      deviceState: state,
+      unitReportsStatuses,
+      now,
+    }),
+  }))
 
   // A click on a probe in the model moves keyboard focus to its row, so the list — the accessible
   // equivalent of the model — is where the user lands.
