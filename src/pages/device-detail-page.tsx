@@ -19,6 +19,7 @@ import {
 import { Link, useParams } from "react-router"
 import { cn } from "cn"
 import { BoardEmptyState } from "@/components/board-empty-state"
+import { BoardPager } from "@/components/board-pager"
 import { DeviceUnitView } from "@/components/devices/device-unit-view"
 import { ManageDeviceDialog } from "@/components/devices/manage-device-dialog"
 import { Button } from "@/components/ui/button"
@@ -783,6 +784,8 @@ const EVENT_ICONS: Record<
   FIRMWARE_CHANGED: Download,
 }
 
+const EVENT_LOG_PAGE_SIZE = 5
+
 const EVENT_TONE_CLASS: Record<EventDescription["tone"], string> = {
   fault: "text-board-critical",
   ok: "text-board-accent",
@@ -791,6 +794,16 @@ const EVENT_TONE_CLASS: Record<EventDescription["tone"], string> = {
 }
 
 function EventLog({ events, now }: { events: DeviceEvent[]; now: number }) {
+  const [page, setPage] = React.useState(1)
+  const pageCount = Math.max(1, Math.ceil(events.length / EVENT_LOG_PAGE_SIZE))
+  // Diagnostics poll every 30 s and the backend returns only the latest 50
+  // events, so the list can shrink under the stored page. Clamping during
+  // render (not in an effect) means the pager never paints an empty page.
+  const currentPage = Math.min(page, pageCount)
+  const visibleEvents = events.slice(
+    (currentPage - 1) * EVENT_LOG_PAGE_SIZE,
+    currentPage * EVENT_LOG_PAGE_SIZE
+  )
   return (
     <section
       aria-labelledby="event-log-heading"
@@ -805,47 +818,56 @@ function EventLog({ events, now }: { events: DeviceEvent[]; now: number }) {
           will appear here.
         </p>
       ) : (
-        <ol className="board-groove-rows flex flex-col">
-          {events.map((event) => {
-            const description = eventDescription(event)
-            const Icon = EVENT_ICONS[event.kind] ?? AlertTriangle
-            const at = Date.parse(event.createdAt)
-            return (
-              <li
-                key={event.id}
-                className="grid grid-cols-[1rem_1fr] gap-x-3 gap-y-0.5 py-2.5"
-              >
-                <Icon
-                  className={cn(
-                    "mt-0.5 size-4",
-                    EVENT_TONE_CLASS[description.tone]
-                  )}
-                  aria-hidden="true"
-                />
-                <div className="flex min-w-0 flex-col gap-0.5">
-                  <span className="font-sans text-sm text-board-fg">
-                    {description.title}
-                    {description.detail ? (
-                      <span className="text-board-muted">
-                        {" · "}
-                        {description.detail}
-                      </span>
-                    ) : null}
-                  </span>
-                  <time
-                    dateTime={event.createdAt}
-                    className="font-sans text-xs text-board-muted"
-                  >
-                    {formatRelative(at, now)} ·{" "}
-                    <span className="font-heading tabular-nums">
-                      {formatDateTime(at)}
+        <div className="flex flex-col gap-3">
+          <ol className="board-groove-rows flex flex-col">
+            {visibleEvents.map((event) => {
+              const description = eventDescription(event)
+              const Icon = EVENT_ICONS[event.kind] ?? AlertTriangle
+              const at = Date.parse(event.createdAt)
+              return (
+                <li
+                  key={event.id}
+                  className="grid grid-cols-[1rem_1fr] gap-x-3 gap-y-0.5 py-2.5"
+                >
+                  <Icon
+                    className={cn(
+                      "mt-0.5 size-4",
+                      EVENT_TONE_CLASS[description.tone]
+                    )}
+                    aria-hidden="true"
+                  />
+                  <div className="flex min-w-0 flex-col gap-0.5">
+                    <span className="font-sans text-sm text-board-fg">
+                      {description.title}
+                      {description.detail ? (
+                        <span className="text-board-muted">
+                          {" · "}
+                          {description.detail}
+                        </span>
+                      ) : null}
                     </span>
-                  </time>
-                </div>
-              </li>
-            )
-          })}
-        </ol>
+                    <time
+                      dateTime={event.createdAt}
+                      className="font-sans text-xs text-board-muted"
+                    >
+                      {formatRelative(at, now)} ·{" "}
+                      <span className="font-heading tabular-nums">
+                        {formatDateTime(at)}
+                      </span>
+                    </time>
+                  </div>
+                </li>
+              )
+            })}
+          </ol>
+          <BoardPager
+            page={currentPage}
+            pageSize={EVENT_LOG_PAGE_SIZE}
+            total={events.length}
+            onPageChange={setPage}
+            noun="events"
+          />
+        </div>
       )}
     </section>
   )
