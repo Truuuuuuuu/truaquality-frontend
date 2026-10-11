@@ -20,6 +20,8 @@ const TRACE_COLOR = "#c9a24b"
 const CABLE_COLOR = "#23262b"
 const PLASTIC_COLOR = "#2b2e34"
 const WINDOW_COLOR = "#a8cfe0"
+// The pH electrode's glass stem and bulb.
+const GLASS_COLOR = "#dfe9ee"
 // Light-grey ABS, the usual weatherproof junction box. It was the --board-panel-raised token, which is
 // near-black in the dark theme and made the enclosure vanish into the dark board.
 const SHELL_COLOR = "#d4d7db"
@@ -93,7 +95,14 @@ function toneColor(tone: UnitViewProbe["tone"], colors: TokenColors) {
 }
 
 const ENCLOSURE = { width: 0.36, height: 0.24, depth: 0.12, y: 0.2 }
-const GLAND_X = [-0.07, 0.07]
+// One cable gland per probe, mirroring the schematic: one or two probes keep the original layout, more are
+// spread evenly around the centre (three probes: -0.09, 0, 0.09), so no two cables share a gland.
+function glandPositions(count: number): number[] {
+  if (count <= 2) return [-0.07, 0.07]
+  const spacing = Math.min(0.09, 0.28 / (count - 1))
+  const start = (-spacing * (count - 1)) / 2
+  return Array.from({ length: count }, (_, i) => start + i * spacing)
+}
 const GLAND_Y = ENCLOSURE.y - ENCLOSURE.height / 2
 const PROBE_HEAD_Y = -0.2
 
@@ -226,24 +235,27 @@ function UnitScene({
   animate: boolean
   labelRefs: LabelRefs
 }) {
+  const glands = glandPositions(probes.length)
+  const phIndex = probes.findIndex((probe) => probe.parameter === "ph")
   return (
     <group>
       <Enclosure />
       <Board />
+      {phIndex !== -1 && <PhBoard glandX={glands[phIndex]} />}
       <StatusLed
         online={deviceState === "ONLINE"}
         colors={colors}
         animate={animate}
       />
-      {GLAND_X.map((x) => (
-        <Gland key={x} x={x} />
+      {glands.map((x, index) => (
+        <Gland key={index} x={x} />
       ))}
       {probes.map((probe, index) => (
         <Probe
           key={probe.parameter}
           probe={probe}
           x={probeX(index, probes.length)}
-          glandX={GLAND_X[index % GLAND_X.length]}
+          glandX={glands[index]}
           selected={probe.parameter === selected}
           onSelect={onSelect}
           colors={colors}
@@ -336,6 +348,36 @@ function Board() {
   )
 }
 
+// The analog pH kit's signal board: a small PCB in front of the main board, low in the enclosure and clear
+// of the module can, wired down to the pH probe's own gland. Physical colors only; the probe's status
+// stays on its ring and cable.
+function PhBoard({ glandX }: { glandX: number }) {
+  const z = -ENCLOSURE.depth / 2 + 0.022
+  const y = ENCLOSURE.y - 0.075
+  const x = Math.max(-0.1, Math.min(0.1, glandX))
+  const wire = React.useMemo(
+    () =>
+      new THREE.CatmullRomCurve3([
+        new THREE.Vector3(x, y - 0.015, z),
+        new THREE.Vector3(x, y - 0.025, z / 2),
+        new THREE.Vector3(glandX, GLAND_Y + 0.002, 0),
+      ]),
+    [x, y, z, glandX]
+  )
+  return (
+    <group>
+      <mesh position={[x, y, z]}>
+        <boxGeometry args={[0.05, 0.03, 0.004]} />
+        <meshStandardMaterial color={PCB_COLOR} roughness={0.6} />
+      </mesh>
+      <mesh>
+        <tubeGeometry args={[wire, 16, 0.002, 6, false]} />
+        <meshStandardMaterial color={CABLE_COLOR} roughness={0.7} />
+      </mesh>
+    </group>
+  )
+}
+
 // Matches the 2.4 s breathing of the live sparkline dot, so "this is live" reads the same across the app.
 const PULSE_PERIOD_S = 2.4
 
@@ -409,7 +451,13 @@ function Probe({
   const ringColor = toneColor(probe.tone, colors)
   const isTurbidity = probe.parameter === "turbidity"
   const ringRadius = isTurbidity ? 0.042 : 0.024
-  const bodyLength = probe.parameter === "temperature" ? 0.14 : 0.09
+  // pH's electrode is long enough that the label needs to clear its bulb.
+  const bodyLength =
+    probe.parameter === "temperature"
+      ? 0.14
+      : probe.parameter === "ph"
+        ? 0.13
+        : 0.09
 
   const curve = React.useMemo(
     () =>
@@ -482,7 +530,8 @@ function Probe({
   )
 }
 
-// Probe bodies hang down from the head (y = 0) along -y.
+// Probe bodies hang down from the head (y = 0) along -y. The pH probe is a glass electrode: a plastic cap,
+// then a translucent glass stem ending in the sensing bulb.
 function ProbeBody({
   parameter,
   length,
@@ -490,6 +539,36 @@ function ProbeBody({
   parameter: string
   length: number
 }) {
+  if (parameter === "ph") {
+    const capHeight = 0.02
+    const stemLength = length - capHeight
+    return (
+      <group>
+        <mesh position={[0, -capHeight / 2, 0]}>
+          <cylinderGeometry args={[0.012, 0.012, capHeight, 20]} />
+          <meshStandardMaterial color={PLASTIC_COLOR} roughness={0.6} />
+        </mesh>
+        <mesh position={[0, -capHeight - stemLength / 2, 0]}>
+          <cylinderGeometry args={[0.007, 0.007, stemLength, 20]} />
+          <meshStandardMaterial
+            color={GLASS_COLOR}
+            transparent
+            opacity={0.45}
+            roughness={0.1}
+          />
+        </mesh>
+        <mesh position={[0, -length, 0]}>
+          <sphereGeometry args={[0.011, 20, 12]} />
+          <meshStandardMaterial
+            color={GLASS_COLOR}
+            transparent
+            opacity={0.45}
+            roughness={0.1}
+          />
+        </mesh>
+      </group>
+    )
+  }
   if (parameter === "temperature")
     return (
       <group>
