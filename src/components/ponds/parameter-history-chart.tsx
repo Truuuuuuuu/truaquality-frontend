@@ -144,11 +144,17 @@ export function ParameterHistoryChart({
 
   // A two-sided pending band hands back the step its axis was padded to, so ticks land on every step in
   // the detail chart and every other step in the compact one. Without a step the tick count is unchanged.
-  const tickTarget = fitted?.step
+  // The fixed step only holds while it fits: a far out-of-range pH (probe out of the water, a dead buffer)
+  // stretches the axis to 0-14, and at a 0.5 step the labels would print over each other on exactly the
+  // chart meant to show the excursion. Past one margin's stretch beyond the normal safe-band count (9
+  // steps on the detail chart, 5 on the compact one, about 15 px a label), valueTicks picks its own
+  // coarser round step instead.
+  const maxTickSteps = compact ? 5 : 9
+  const stepped = fitted?.step
     ? Math.round((hi - lo) / (compact ? fitted.step * 2 : fitted.step))
-    : compact
-      ? 2
-      : 4
+    : null
+  const tickTarget =
+    stepped === null ? (compact ? 2 : 4) : Math.min(stepped, maxTickSteps)
   const { ticks: yTicks, decimals } = valueTicks(lo, hi, tickTarget)
   const tickDecimals = Math.min(decimals, parameter.precision)
   const { ticks: xTicks, step: xStep } = timeTicks(
