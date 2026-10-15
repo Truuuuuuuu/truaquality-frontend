@@ -3,7 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useAuth } from "@/context/auth-context"
 
 export function ProtectedRoute() {
-  const { session, isLoading } = useAuth()
+  const { session, isLoading, isExplicitSignOut } = useAuth()
   const location = useLocation()
 
   if (isLoading) {
@@ -11,7 +11,13 @@ export function ProtectedRoute() {
   }
 
   if (!session) {
-    return <Navigate to="/login" state={{ from: location.pathname }} replace />
+    return (
+      <Navigate
+        to="/login"
+        state={isExplicitSignOut ? null : { from: location.pathname }}
+        replace
+      />
+    )
   }
 
   return <Outlet />

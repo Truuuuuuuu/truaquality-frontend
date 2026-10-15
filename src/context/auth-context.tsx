@@ -20,6 +20,7 @@ type AuthState = {
   session: Session | null
   profile: Profile | null
   isLoading: boolean
+  isExplicitSignOut: boolean
   // `remember` keeps the session across browser restarts; otherwise it ends with the tab.
   login: (email: string, password: string, remember: boolean) => Promise<void>
   logout: () => void
@@ -42,6 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = React.useState<Session | null>(null)
   const [profile, setProfile] = React.useState<Profile | null>(null)
   const [isLoading, setIsLoading] = React.useState(() => loadSession() !== null)
+  const [isExplicitSignOut, setIsExplicitSignOut] = React.useState(false)
 
   // React 19's types dropped the zero-argument useRef overload, so the initial value is explicit
   // and `undefined` is part of the type rather than implied by the missing argument.
@@ -66,7 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  const logout = React.useCallback(() => {
+  const clearAuthentication = React.useCallback(() => {
     const token = session?.accessToken
     clearRefreshTimer()
     clearSession()
@@ -77,6 +79,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       void apiLogoutSession(token).catch(() => {})
     }
   }, [session, clearRefreshTimer])
+
+  const logout = React.useCallback(() => {
+    // The route guard must know the intent in the same render that loses the session.
+    setIsExplicitSignOut(true)
+    clearAuthentication()
+  }, [clearAuthentication])
 
   const scheduleRefresh = React.useCallback(
     (current: Session) => {
@@ -116,7 +124,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return nextSession.accessToken
         } catch (err) {
           // The refresh token is invalid or expired; there's no way back in without a fresh login.
-          logout()
+          clearAuthentication()
           throw err
         } finally {
           inFlightRefreshRef.current = null
@@ -126,7 +134,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       inFlightRefreshRef.current = attempt
       return attempt
     },
-    [logout, scheduleRefresh]
+    [clearAuthentication, scheduleRefresh]
   )
 
   const performRefresh = React.useCallback(
@@ -167,6 +175,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Supabase rotates the refresh token on every use, so adopt whatever the other tab just
       // wrote rather than letting this tab's timer later retry with a now-stale one.
+      setIsExplicitSignOut(false)
       setSession(stored)
       getMe(stored.accessToken)
         .then(({ profile }) => {
@@ -236,6 +245,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { profile: nextProfile } = await getMe(nextSession.accessToken)
 
       saveSession(nextSession, { remember })
+      setIsExplicitSignOut(false)
       setSession(nextSession)
       setProfile(nextProfile)
       scheduleRefresh(nextSession)
@@ -244,8 +254,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   )
 
   const value = React.useMemo(
-    () => ({ session, profile, isLoading, login, logout, authorizedRequest }),
-    [session, profile, isLoading, login, logout, authorizedRequest]
+    () => ({
+      session,
+      profile,
+      isLoading,
+      isExplicitSignOut,
+      login,
+      logout,
+      authorizedRequest,
+    }),
+    [
+      session,
+      profile,
+      isLoading,
+      isExplicitSignOut,
+      login,
+      logout,
+      authorizedRequest,
+    ]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

@@ -1,4 +1,3 @@
-import { useNavigate } from "react-router"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -21,7 +20,6 @@ type SignOutDialogProps = {
 
 export function SignOutDialog({ open, onOpenChange }: SignOutDialogProps) {
   const { logout } = useAuth()
-  const navigate = useNavigate()
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -41,15 +39,11 @@ export function SignOutDialog({ open, onOpenChange }: SignOutDialogProps) {
           >
             Cancel
           </Button>
-          {/* Explicit navigation clears the return destination for the next login. */}
           <Button
             type="button"
             variant="destructive"
             className={PROFILE_DIALOG_BUTTON}
-            onClick={() => {
-              logout()
-              navigate("/login", { replace: true, state: null })
-            }}
+            onClick={logout}
           >
             Sign out
           </Button>
