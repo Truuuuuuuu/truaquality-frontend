@@ -7,6 +7,7 @@ import { usePondHistory } from "@/hooks/use-ponds"
 import type { Pond } from "@/lib/api"
 import { PARAMETER_ICONS, type ParameterConfig } from "@/lib/parameters"
 import { inSentence, keepsCase, pondReadingStates } from "@/lib/pond-status"
+import { temporaryPhDisplayValue } from "@/lib/temporary-ph-display"
 import { cn } from "@/lib/utils"
 
 type PondLiveReadingsProps = {
@@ -31,6 +32,21 @@ export function PondLiveReadings({ pond, now }: PondLiveReadingsProps) {
         const icon = PARAMETER_ICONS[parameter.id] ?? Gauge
         if (signal === "not_reported")
           return <NotReportedTile key={parameter.id} parameter={parameter} />
+        const displayValue = temporaryPhDisplayValue({
+          parameterId: parameter.id,
+          signal,
+          hasActiveAssignedDevice:
+            pond.device?.status === "ACTIVE" && pond.device.pondId === pond.id,
+          hasThreshold: Boolean(pond.thresholds[parameter.id]),
+        })
+        if (displayValue !== null)
+          return (
+            <TemporaryPhTile
+              key={parameter.id}
+              parameter={parameter}
+              value={displayValue}
+            />
+          )
         if (signal === "silent" && pond.device)
           return (
             <SilentParameterTile
@@ -56,6 +72,38 @@ export function PondLiveReadings({ pond, now }: PondLiveReadingsProps) {
           <NoDataTile key={parameter.id} parameter={parameter} />
         )
       })}
+    </div>
+  )
+}
+
+// Deliberately separate from ParameterTile: a fixed display value has no measured
+// timestamp, history, range verdict, or healthy-sensor indicator to stamp onto it.
+function TemporaryPhTile({
+  parameter,
+  value,
+}: {
+  parameter: ParameterConfig
+  value: number
+}) {
+  const Icon = PARAMETER_ICONS[parameter.id] ?? Gauge
+  return (
+    <div
+      tabIndex={0}
+      role="group"
+      aria-label={`${parameter.label}: ${value.toFixed(1)}`}
+      className="board-groove flex min-h-44 flex-col gap-4 rounded-xl border border-board-border-strong bg-board-panel p-5"
+    >
+      <div className="flex items-center gap-2 text-board-muted">
+        <Icon className="size-4" aria-hidden="true" />
+        <span className="font-sans text-xs font-medium tracking-[0.08em]">
+          {parameter.label}
+        </span>
+      </div>
+      <div className="flex min-h-11 items-baseline">
+        <span className="font-heading text-4xl font-medium tracking-tight text-board-fg tabular-nums">
+          {value.toFixed(1)}
+        </span>
+      </div>
     </div>
   )
 }

@@ -1,3 +1,5 @@
+/// <reference types="node" />
+
 import assert from "node:assert/strict"
 import { test } from "node:test"
 import { temporaryPhDisplayValue } from "./temporary-ph-display.ts"
@@ -11,10 +13,7 @@ const eligible = Object.freeze({
 
 test("pH displays 7.5 for live and silent supported online devices", () => {
   assert.equal(temporaryPhDisplayValue(eligible), 7.5)
-  assert.equal(
-    temporaryPhDisplayValue({ ...eligible, signal: "silent" }),
-    7.5
-  )
+  assert.equal(temporaryPhDisplayValue({ ...eligible, signal: "silent" }), 7.5)
 })
 
 test("offline, unsupported, absent or disabled devices retain normal rendering", () => {
@@ -47,10 +46,16 @@ test("missing and faulty source readings need no mutation or synthetic record", 
   const source = Object.freeze({
     reading: null,
     sensorStatus: "over_range",
-    history: Object.freeze([Object.freeze({ value: 13, recordedAt: "original" })]),
+    history: Object.freeze([
+      Object.freeze({ value: 13, recordedAt: "original" }),
+    ]),
   })
   const before = structuredClone(source)
-  const input = Object.freeze({ ...eligible, signal: "silent" as const, source })
+  const input = Object.freeze({
+    ...eligible,
+    signal: "silent" as const,
+    source,
+  })
   assert.equal(temporaryPhDisplayValue(input), 7.5)
   assert.deepEqual(source, before)
   assert.equal(input.signal, "silent")
