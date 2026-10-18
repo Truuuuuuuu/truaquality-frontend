@@ -3,6 +3,7 @@ import { Bell, CheckCheck } from "lucide-react"
 import { Link } from "react-router"
 import { cn } from "cn"
 import { NotificationListItem } from "@/components/notifications/notification-list-item"
+import { NotificationRetentionNote } from "@/components/notifications/notification-retention-note"
 import { Button } from "@/components/ui/button"
 import {
   Popover,
@@ -144,6 +145,9 @@ export function NotificationBell({
           >
             View all notifications
           </Link>
+          <div className="px-3 pt-1 pb-2">
+            <NotificationRetentionNote />
+          </div>
         </div>
       </PopoverContent>
     </Popover>

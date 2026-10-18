@@ -3,6 +3,7 @@ import { AlertTriangle, BellOff, CheckCheck } from "lucide-react"
 import { cn } from "cn"
 import { BoardEmptyState } from "@/components/board-empty-state"
 import { NotificationListItem } from "@/components/notifications/notification-list-item"
+import { NotificationRetentionNote } from "@/components/notifications/notification-retention-note"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
@@ -121,6 +122,9 @@ export function NotificationsPage() {
           ) : null}
         </div>
       )}
+      <div className="border-t border-board-border pt-4">
+        <NotificationRetentionNote />
+      </div>
     </div>
   )
 }
