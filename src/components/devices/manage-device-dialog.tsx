@@ -49,9 +49,6 @@ function ManageDeviceForm({
   onDone: () => void
 }) {
   const [label, setLabel] = React.useState(device.label ?? "")
-  const [hardwareModel, setHardwareModel] = React.useState(
-    device.hardwareModel ?? ""
-  )
   const [pondId, setPondId] = React.useState(device.pondId)
   const [error, setError] = React.useState<string | null>(null)
   const [confirmingRotate, setConfirmingRotate] = React.useState(false)
@@ -78,7 +75,6 @@ function ManageDeviceForm({
       updateDevice.mutateAsync({
         id: device.id,
         label: label.trim() || null,
-        hardwareModel: hardwareModel.trim() || null,
         pondId,
       })
     )
@@ -144,14 +140,7 @@ function ManageDeviceForm({
           Readings already recorded stay with the pond they were measured in.
         </p>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <FloatingLabelInput
-          id="manage-device-model"
-          label="Hardware model"
-          maxLength={80}
-          value={hardwareModel}
-          onChange={(event) => setHardwareModel(event.target.value)}
-        />
+      <div className="flex flex-col gap-1.5">
         <FloatingLabelInput
           id="manage-device-label"
           label="Label"

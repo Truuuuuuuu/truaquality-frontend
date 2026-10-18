@@ -35,7 +35,6 @@ export function RegisterDeviceDialog({
 
 function RegisterDeviceForm({ onDone }: { onDone: () => void }) {
   const [serial, setSerial] = React.useState("")
-  const [hardwareModel, setHardwareModel] = React.useState("")
   const [label, setLabel] = React.useState("")
   const [pondId, setPondId] = React.useState<string | null>(null)
   const [error, setError] = React.useState<string | null>(null)
@@ -49,7 +48,6 @@ function RegisterDeviceForm({ onDone }: { onDone: () => void }) {
     try {
       const result = await createDevice.mutateAsync({
         serial: serial.trim(),
-        hardwareModel: hardwareModel.trim() || undefined,
         label: label.trim() || undefined,
         pondId: pondId ?? undefined,
       })
@@ -100,29 +98,15 @@ function RegisterDeviceForm({ onDone }: { onDone: () => void }) {
           MAC address or the ID printed on the unit
         </p>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="flex flex-col gap-1.5">
-          <FloatingLabelInput
-            id="device-model"
-            label="Hardware model"
-            maxLength={80}
-            value={hardwareModel}
-            onChange={(event) => setHardwareModel(event.target.value)}
-          />
-          <p className="px-0.5 text-xs text-muted-foreground">
-            e.g. ESP32 NodeMCU-32S
-          </p>
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <FloatingLabelInput
-            id="device-label"
-            label="Label"
-            maxLength={80}
-            value={label}
-            onChange={(event) => setLabel(event.target.value)}
-          />
-          <p className="px-0.5 text-xs text-muted-foreground">Optional</p>
-        </div>
+      <div className="flex flex-col gap-1.5">
+        <FloatingLabelInput
+          id="device-label"
+          label="Label"
+          maxLength={80}
+          value={label}
+          onChange={(event) => setLabel(event.target.value)}
+        />
+        <p className="px-0.5 text-xs text-muted-foreground">Optional</p>
       </div>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="device-pond">Pond</Label>
