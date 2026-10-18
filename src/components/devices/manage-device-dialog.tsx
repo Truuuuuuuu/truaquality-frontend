@@ -143,11 +143,14 @@ function ManageDeviceForm({
       <div className="flex flex-col gap-1.5">
         <FloatingLabelInput
           id="manage-device-label"
-          label="Label"
+          label="Device Name"
           maxLength={80}
           value={label}
           onChange={(event) => setLabel(event.target.value)}
         />
+        <p className="px-0.5 text-xs text-muted-foreground">
+          Optional, e.g. Pond 1 sensor
+        </p>
       </div>
 
       <div className="flex flex-col gap-2 rounded-lg border p-3">

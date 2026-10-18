@@ -101,12 +101,14 @@ function RegisterDeviceForm({ onDone }: { onDone: () => void }) {
       <div className="flex flex-col gap-1.5">
         <FloatingLabelInput
           id="device-label"
-          label="Label"
+          label="Device Name"
           maxLength={80}
           value={label}
           onChange={(event) => setLabel(event.target.value)}
         />
-        <p className="px-0.5 text-xs text-muted-foreground">Optional</p>
+        <p className="px-0.5 text-xs text-muted-foreground">
+          Optional, e.g. Pond 1 sensor
+        </p>
       </div>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="device-pond">Pond</Label>

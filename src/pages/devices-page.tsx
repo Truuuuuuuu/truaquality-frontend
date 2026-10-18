@@ -162,7 +162,7 @@ export function DevicesPage() {
           <RegistryToolbar
             search={search}
             onSearchChange={changeSearch}
-            searchLabel="Find by serial, label, or pond"
+            searchLabel="Find by serial, device name, or pond"
             chips={{
               label: "Filter by status",
               value: state,
