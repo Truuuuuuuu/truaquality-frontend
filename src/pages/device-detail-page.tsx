@@ -24,7 +24,6 @@ import { DeviceUnitView } from "@/components/devices/device-unit-view"
 import { ManageDeviceDialog } from "@/components/devices/manage-device-dialog"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useAuth } from "@/context/auth-context"
 import { useDeviceDiagnostics, useDevices } from "@/hooks/use-ponds"
 import { useNow } from "@/hooks/use-now"
 import type {
@@ -78,8 +77,6 @@ function formatDateTime(timestamp: number) {
 // useDevices, so the page reads its device out of that list instead of adding an endpoint for it.
 export function DeviceDetailPage() {
   const { deviceId = "" } = useParams()
-  const { profile } = useAuth()
-  const isAdmin = profile?.systemRole === "ADMIN"
   const { data: devices, error } = useDevices()
   const diagnostics = useDeviceDiagnostics(deviceId)
   const now = useNow()
@@ -146,18 +143,16 @@ export function DeviceDetailPage() {
                 <span>{device.hardwareModel}</span>
               ) : null}
             </p>
-            {isAdmin ? (
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-2 w-fit"
-                onClick={() => setManageOpen(true)}
-                aria-haspopup="dialog"
-              >
-                <Settings2 />
-                Manage device
-              </Button>
-            ) : null}
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-2 w-fit"
+              onClick={() => setManageOpen(true)}
+              aria-haspopup="dialog"
+            >
+              <Settings2 />
+              Manage device
+            </Button>
           </div>
 
           <DeviceStatusReadout
@@ -283,7 +278,7 @@ export function DeviceDetailPage() {
               {formatDateTime(Date.parse(device.createdAt))}
             </span>
           </SpecRow>
-          {/* Only the version is shown: the secret itself is displayed once, when an admin registers or
+          {/* Only the version is shown: the secret itself is displayed once, when a user registers or
               rotates it, and is never stored where this page could read it back. */}
           <SpecRow label="Device key version">
             <span className="font-heading tabular-nums">
@@ -298,13 +293,11 @@ export function DeviceDetailPage() {
         </SpecPanel>
       </div>
 
-      {isAdmin ? (
-        <ManageDeviceDialog
-          open={manageOpen}
-          onOpenChange={setManageOpen}
-          device={device}
-        />
-      ) : null}
+      <ManageDeviceDialog
+        open={manageOpen}
+        onOpenChange={setManageOpen}
+        device={device}
+      />
     </div>
   )
 }

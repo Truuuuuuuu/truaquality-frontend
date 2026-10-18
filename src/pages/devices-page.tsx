@@ -18,7 +18,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { useAuth } from "@/context/auth-context"
 import { useDevices } from "@/hooks/use-ponds"
 import { useNow } from "@/hooks/use-now"
 import type { Device } from "@/lib/api"
@@ -57,8 +56,6 @@ function matchesSearch(device: Device, query: string) {
 }
 
 export function DevicesPage() {
-  const { profile } = useAuth()
-  const isAdmin = profile?.systemRole === "ADMIN"
   const { data: devices, error } = useDevices()
   const now = useNow()
 
@@ -141,12 +138,10 @@ export function DevicesPage() {
             Monitoring device registry for BFAR Sorsogon
           </p>
         </div>
-        {isAdmin ? (
-          <Button onClick={() => setRegisterOpen(true)}>
-            <Plus />
-            Register device
-          </Button>
-        ) : null}
+        <Button onClick={() => setRegisterOpen(true)}>
+          <Plus />
+          Register device
+        </Button>
       </div>
 
       {!devices ? (
@@ -155,13 +150,12 @@ export function DevicesPage() {
             Couldn't load devices: {error.message}
           </BoardEmptyState>
         ) : (
-          <DevicesTableSkeleton isAdmin={isAdmin} />
+          <DevicesTableSkeleton />
         )
       ) : devices.length === 0 ? (
         <BoardEmptyState icon={Cpu}>
-          {isAdmin
-            ? "No devices registered yet. Register a sensor unit to get its device key."
-            : "No devices registered yet. An administrator needs to add them."}
+          No devices registered yet. Register a sensor unit to get its device
+          key.
         </BoardEmptyState>
       ) : (
         <>
@@ -210,11 +204,9 @@ export function DevicesPage() {
                       <TableHead>Firmware</TableHead>
                       <TableHead>WiFi</TableHead>
                       <TableHead>Status</TableHead>
-                      {isAdmin ? (
-                        <TableHead>
-                          <span className="sr-only">Actions</span>
-                        </TableHead>
-                      ) : null}
+                      <TableHead>
+                        <span className="sr-only">Actions</span>
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -333,20 +325,18 @@ export function DevicesPage() {
                               </StatusBadge>
                             )}
                           </TableCell>
-                          {isAdmin ? (
-                            <TableCell className="text-right">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setManagedDevice(device)
-                                  setManageOpen(true)
-                                }}
-                              >
-                                Manage
-                              </Button>
-                            </TableCell>
-                          ) : null}
+                          <TableCell className="text-right">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setManagedDevice(device)
+                                setManageOpen(true)
+                              }}
+                            >
+                              Manage
+                            </Button>
+                          </TableCell>
                         </TableRow>
                       )
                     })}
@@ -406,19 +396,17 @@ export function DevicesPage() {
                               .join(" · ") || "—"}
                           </span>
                         </div>
-                        {isAdmin ? (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="-mt-1 -mr-2 shrink-0"
-                            onClick={() => {
-                              setManagedDevice(device)
-                              setManageOpen(true)
-                            }}
-                          >
-                            Manage
-                          </Button>
-                        ) : null}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="-mt-1 -mr-2 shrink-0"
+                          onClick={() => {
+                            setManagedDevice(device)
+                            setManageOpen(true)
+                          }}
+                        >
+                          Manage
+                        </Button>
                       </div>
 
                       <div className="board-groove flex items-center justify-between gap-3 px-4 py-3">
@@ -545,25 +533,23 @@ export function DevicesPage() {
         </>
       )}
 
-      {isAdmin ? (
-        <>
-          <RegisterDeviceDialog
-            open={registerOpen}
-            onOpenChange={setRegisterOpen}
-          />
-          <ManageDeviceDialog
-            open={manageOpen}
-            onOpenChange={setManageOpen}
-            device={managedDevice}
-          />
-        </>
-      ) : null}
+      <>
+        <RegisterDeviceDialog
+          open={registerOpen}
+          onOpenChange={setRegisterOpen}
+        />
+        <ManageDeviceDialog
+          open={manageOpen}
+          onOpenChange={setManageOpen}
+          device={managedDevice}
+        />
+      </>
     </div>
   )
 }
 
 // Mirrors the loaded registry — toolbar, table (cards below sm), pager — so nothing shifts when the list lands.
-function DevicesTableSkeleton({ isAdmin }: { isAdmin: boolean }) {
+function DevicesTableSkeleton() {
   return (
     <div
       className="flex flex-col gap-6"
@@ -585,11 +571,9 @@ function DevicesTableSkeleton({ isAdmin }: { isAdmin: boolean }) {
               <TableHead>Firmware</TableHead>
               <TableHead>WiFi</TableHead>
               <TableHead>Status</TableHead>
-              {isAdmin ? (
-                <TableHead>
-                  <span className="sr-only">Actions</span>
-                </TableHead>
-              ) : null}
+              <TableHead>
+                <span className="sr-only">Actions</span>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -616,11 +600,9 @@ function DevicesTableSkeleton({ isAdmin }: { isAdmin: boolean }) {
                 <TableCell>
                   <Skeleton className="h-5 w-16 rounded-md" />
                 </TableCell>
-                {isAdmin ? (
-                  <TableCell className="text-right">
-                    <Skeleton className="ml-auto h-7 w-12 rounded-md" />
-                  </TableCell>
-                ) : null}
+                <TableCell className="text-right">
+                  <Skeleton className="ml-auto h-7 w-12 rounded-md" />
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>

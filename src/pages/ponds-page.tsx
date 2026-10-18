@@ -18,7 +18,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { useAuth } from "@/context/auth-context"
 import { usePonds } from "@/hooks/use-ponds"
 import { useNow } from "@/hooks/use-now"
 import type { Pond, PondType } from "@/lib/api"
@@ -68,8 +67,6 @@ function matchesSearch(pond: Pond, query: string) {
 }
 
 export function PondsPage() {
-  const { profile } = useAuth()
-  const isAdmin = profile?.systemRole === "ADMIN"
   const { data: ponds, error } = usePonds()
   const now = useNow()
 
@@ -174,12 +171,10 @@ export function PondsPage() {
             Pond registry for BFAR Sorsogon
           </p>
         </div>
-        {isAdmin ? (
-          <Button onClick={() => openDialog(null)}>
-            <Plus />
-            Add pond
-          </Button>
-        ) : null}
+        <Button onClick={() => openDialog(null)}>
+          <Plus />
+          Add pond
+        </Button>
       </div>
 
       {!ponds ? (
@@ -188,13 +183,11 @@ export function PondsPage() {
             Couldn't load ponds: {error.message}
           </BoardEmptyState>
         ) : (
-          <PondsTableSkeleton isAdmin={isAdmin} />
+          <PondsTableSkeleton />
         )
       ) : all.length === 0 ? (
         <BoardEmptyState icon={Waves}>
-          {isAdmin
-            ? "No ponds registered yet. Add the first pond to start monitoring it."
-            : "No ponds registered yet. An administrator needs to add them."}
+          No ponds registered yet. Add the first pond to start monitoring it.
         </BoardEmptyState>
       ) : (
         <>
@@ -246,11 +239,9 @@ export function PondsPage() {
                       <TableHead>Device</TableHead>
                       <TableHead>Last reading</TableHead>
                       <TableHead>Status</TableHead>
-                      {isAdmin ? (
-                        <TableHead>
-                          <span className="sr-only">Actions</span>
-                        </TableHead>
-                      ) : null}
+                      <TableHead>
+                        <span className="sr-only">Actions</span>
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -322,17 +313,15 @@ export function PondsPage() {
                               </span>
                             )}
                           </TableCell>
-                          {isAdmin ? (
-                            <TableCell className="text-right">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => openDialog(pond)}
-                              >
-                                Edit
-                              </Button>
-                            </TableCell>
-                          ) : null}
+                          <TableCell className="text-right">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openDialog(pond)}
+                            >
+                              Edit
+                            </Button>
+                          </TableCell>
                         </TableRow>
                       )
                     })}
@@ -384,16 +373,14 @@ export function PondsPage() {
                             </p>
                           ) : null}
                         </div>
-                        {isAdmin ? (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="-mt-1 -mr-2 shrink-0"
-                            onClick={() => openDialog(pond)}
-                          >
-                            Edit
-                          </Button>
-                        ) : null}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="-mt-1 -mr-2 shrink-0"
+                          onClick={() => openDialog(pond)}
+                        >
+                          Edit
+                        </Button>
                       </div>
 
                       <div className="board-groove flex items-center justify-between gap-3 px-4 py-3">
@@ -456,19 +443,17 @@ export function PondsPage() {
         </>
       )}
 
-      {isAdmin ? (
-        <PondFormDialog
-          open={dialogOpen}
-          onOpenChange={setDialogOpen}
-          pond={dialogPond}
-        />
-      ) : null}
+      <PondFormDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        pond={dialogPond}
+      />
     </div>
   )
 }
 
 // Mirrors the loaded registry — toolbar, table (cards below sm), pager — so nothing shifts when the list lands.
-function PondsTableSkeleton({ isAdmin }: { isAdmin: boolean }) {
+function PondsTableSkeleton() {
   return (
     <div
       className="flex flex-col gap-6"
@@ -489,11 +474,9 @@ function PondsTableSkeleton({ isAdmin }: { isAdmin: boolean }) {
               <TableHead>Device</TableHead>
               <TableHead>Last reading</TableHead>
               <TableHead>Status</TableHead>
-              {isAdmin ? (
-                <TableHead>
-                  <span className="sr-only">Actions</span>
-                </TableHead>
-              ) : null}
+              <TableHead>
+                <span className="sr-only">Actions</span>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -514,11 +497,9 @@ function PondsTableSkeleton({ isAdmin }: { isAdmin: boolean }) {
                 <TableCell>
                   <Skeleton className="h-5 w-16 rounded-md" />
                 </TableCell>
-                {isAdmin ? (
-                  <TableCell className="text-right">
-                    <Skeleton className="ml-auto h-7 w-12 rounded-md" />
-                  </TableCell>
-                ) : null}
+                <TableCell className="text-right">
+                  <Skeleton className="ml-auto h-7 w-12 rounded-md" />
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>

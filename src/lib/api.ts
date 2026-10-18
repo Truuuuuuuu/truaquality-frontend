@@ -405,7 +405,7 @@ export type UpdatePondInput = {
 export function createPond(token: string, body: CreatePondInput) {
   return request<{
     pond: Omit<Pond, "device" | "latest" | "thresholds" | "sensorStatus">
-  }>("/admin/ponds", {
+  }>("/ponds", {
     method: "POST",
     body,
     token,
@@ -415,7 +415,7 @@ export function createPond(token: string, body: CreatePondInput) {
 export function updatePond(token: string, id: string, body: UpdatePondInput) {
   return request<{
     pond: Omit<Pond, "device" | "latest" | "thresholds" | "sensorStatus">
-  }>(`/admin/ponds/${id}`, { method: "PATCH", body, token })
+  }>(`/ponds/${id}`, { method: "PATCH", body, token })
 }
 
 export type CreateDeviceInput = {
@@ -431,7 +431,7 @@ export type UpdateDeviceInput = {
   pondId?: string | null
 }
 
-// What an admin enters on the unit's setup portal (see DeviceCredentialsNotice). The backend only returns
+// What an active user enters on the unit's setup portal (see DeviceCredentialsNotice). The backend only returns
 // it here and from rotateDeviceSecret.
 export type DeviceCredentials = {
   deviceId: string
@@ -441,7 +441,7 @@ export type DeviceCredentials = {
 
 export function createDevice(token: string, body: CreateDeviceInput) {
   return request<{ device: Device; credentials: DeviceCredentials }>(
-    "/admin/devices",
+    "/devices",
     { method: "POST", body, token }
   )
 }
@@ -451,7 +451,7 @@ export function updateDevice(
   id: string,
   body: UpdateDeviceInput
 ) {
-  return request<{ device: Device }>(`/admin/devices/${id}`, {
+  return request<{ device: Device }>(`/devices/${id}`, {
     method: "PATCH",
     body,
     token,
@@ -460,7 +460,7 @@ export function updateDevice(
 
 export function rotateDeviceSecret(token: string, id: string) {
   return request<{ device: Device; credentials: DeviceCredentials }>(
-    `/admin/devices/${id}/rotate-secret`,
+    `/devices/${id}/rotate-secret`,
     {
       method: "POST",
       token,
@@ -505,7 +505,7 @@ export function resendInvite(token: string, id: string) {
   })
 }
 
-// One recorded admin action. `actor` is null when the profile that performed it is gone — the row
+// One recorded account or registry action. `actor` is null when the profile that performed it is gone — the row
 // deliberately outlives it, so the raw `actorId` is still there. `action` and `targetType` are open
 // strings because the log holds history, including actions the code no longer has (`office.create`).
 export type AuditEntry = {
