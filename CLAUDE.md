@@ -17,7 +17,7 @@ a static `@/pages/*` import in `App.tsx` pulls the page back into the main chunk
   with `redirectTo: <origin>/reset-password`. "Keep me signed in" stores the session in localStorage;
   unchecked, it lives in the tab's sessionStorage (`src/lib/session.ts`).
 - `/` — operations board: one `PondCard` per active pond, worst condition first.
-- `/ponds` — pond registry table; admins add, rename, and archive ponds.
+- `/ponds` — pond registry table; all active users add, rename, archive, and restore ponds.
 - `/ponds/:pondId` — one pond's device info, a `ParameterTile` (value + 2 h sparkline) per parameter, then a
   "Historical trends" section whose header holds Export, over stacked per-parameter history charts
   (`PondHistoryCharts`: real units, safe/warning/critical zones, severity-colored line, one shared crosshair; each
@@ -27,16 +27,16 @@ a static `@/pages/*` import in `App.tsx` pulls the page back into the main chunk
   shows the server-written `summary` sentences, one paragraph per parameter),
   then the read-only reading-history table with its own Filter. The dashboard's selected pond shows the same
   charts in compact form on the fixed 2 h window.
-- `/devices` — device registry; admins register units, assign them to ponds, disable them, and rotate their
-  secrets. Registering or rotating shows the unit's `DEVICE_ID`/`DEVICE_SECRET` once, for the admin to
+- `/devices` — device registry; all active users register units, assign them to ponds, enable/disable them, and rotate their
+  secrets. Registering or rotating shows the unit's `DEVICE_ID`/`DEVICE_SECRET` once, for the user to
   enter on the unit's field setup portal (see `firmware/CLAUDE.md`'s "Field provisioning" — there's no
   reflash). Units publish over MQTT to the broker, never to this app or its API.
 - `/devices/:deviceId` — one unit's detail page (linked from each serial on `/devices` and from "View details"
   in the pond header's device disclosure): a status readout, then a **Unit view** (3D model of the unit beside
   a **Sensors** list), **Health** and **Event log** sections, then Assignment, Connection, Hardware, and
-  Registration panels; admins get the same Manage dialog. There's no `GET /devices/:id`; the page reads the
+  Registration panels; all active users get the same Manage dialog. There's no `GET /devices/:id`; the page reads the
   device out of the cached `useDevices()` list. Diagnostics come from `GET /devices/:id/diagnostics` via
-  `useDeviceDiagnostics` (key `["devices", id, "diagnostics"]`, so admin device mutations refresh it; 30 s
+  `useDeviceDiagnostics` (key `["devices", id, "diagnostics"]`, so device mutations refresh it; 30 s
   poll).
   - The 3D model is lazy: `device-unit-view.tsx` `React.lazy`-imports `device-model-3d.tsx`, which is the only
     file that touches three.js / `@react-three/*`. **Never import `device-model-3d` statically** or three.js
@@ -54,7 +54,7 @@ a static `@/pages/*` import in `App.tsx` pulls the page back into the main chunk
     reading.
 - `/notifications` — the signed-in user's alert notifications (all / unread, "load more"). The same feed also
   drives the bell (sidebar header on desktop, top bar on mobile) and toasts.
-- `/audit` — admin-only (same in-page `<Navigate>` guard as `/users`): the `AuditLog` trail of every admin
+- `/audit` — admin-only (same in-page `<Navigate>` guard as `/users`): the `AuditLog` trail of account and registry
   change, cursor-paginated with "Load older activity" and filterable by area and action. Server-side
   filtering, and no polling — it's an append-only history someone reads deliberately.
 - `/profile` — the signed-in user's details, theme, **change password**, and **delete account**. Both
@@ -201,7 +201,9 @@ URLs. The same page, mounted at `/reset-password` with `mode="recovery"`, handle
   `NotificationToaster` (in `AppShell`), which toasts only notifications that appear *after* the first load, so
   sign-in shows backlog in the bell rather than a burst of toasts. Toasts use sonner
   (`src/components/ui/sonner.tsx`, adapted to read this app's `ThemeProvider` instead of `next-themes`).
-- Admin-only UI is hidden when `profile.systemRole !== "ADMIN"`; the backend enforces it regardless.
+- User administration and audit UI are hidden when `profile.systemRole !== "ADMIN"`; the backend enforces
+  this regardless. Pond/device registry controls are available to all active users, through authenticated
+  `/ponds` and `/devices` mutation endpoints.
 
 ### Conventions to follow when adding code
 
