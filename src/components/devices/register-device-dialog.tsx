@@ -95,7 +95,7 @@ function RegisterDeviceForm({ onDone }: { onDone: () => void }) {
           onChange={(event) => setSerial(event.target.value)}
         />
         <p className="px-0.5 text-xs text-muted-foreground">
-          MAC address or the ID printed on the unit
+          Enter a unique identifier
         </p>
       </div>
       <div className="flex flex-col gap-1.5">
@@ -107,7 +107,7 @@ function RegisterDeviceForm({ onDone }: { onDone: () => void }) {
           onChange={(event) => setLabel(event.target.value)}
         />
         <p className="px-0.5 text-xs text-muted-foreground">
-          Optional, e.g. Pond 1 sensor
+          Optional, e.g. BFAR-POND1
         </p>
       </div>
       <div className="flex flex-col gap-1.5">
