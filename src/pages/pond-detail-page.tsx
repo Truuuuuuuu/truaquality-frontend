@@ -17,7 +17,6 @@ import { Link, useParams } from "react-router"
 import { cn } from "cn"
 import { Badge } from "@/components/ui/badge"
 import { BoardEmptyState } from "@/components/board-empty-state"
-import { OpenAlertsChip } from "@/components/open-alerts-chip"
 import { ExportReadingsDialog } from "@/components/ponds/export-readings-dialog"
 import { HistoryRangePicker } from "@/components/ponds/history-range-picker"
 import { HistorySummary } from "@/components/ponds/history-summary"
@@ -60,7 +59,6 @@ import {
 import {
   isDeviceOnline,
   lastReadingAt,
-  openAlertSummary,
   pondConnectionLabel,
   pondStatus,
 } from "@/lib/pond-status"
@@ -504,7 +502,6 @@ function PondStatusReadout({ pond, now }: { pond: Pond; now: number }) {
     : (pondConnectionLabel(pond, now) ?? STATUS_LABELS[status])
   const styles = STATUS_STYLES[status]
   const lastReading = lastReadingAt(pond)
-  const openAlerts = openAlertSummary(pond)
 
   return (
     <div
@@ -512,7 +509,6 @@ function PondStatusReadout({ pond, now }: { pond: Pond; now: number }) {
       role="group"
       aria-label={[
         `Pond condition: ${label}`,
-        openAlerts?.spoken,
         pond.device
           ? pond.device.lastSeenAt
             ? `device last seen ${formatRelative(Date.parse(pond.device.lastSeenAt), now)}`
@@ -536,11 +532,6 @@ function PondStatusReadout({ pond, now }: { pond: Pond; now: number }) {
           {label}
         </span>
       </div>
-      {openAlerts ? (
-        <div className="pl-5">
-          <OpenAlertsChip pond={pond} />
-        </div>
-      ) : null}
       <div className="flex flex-col gap-0.5 pl-5 font-sans text-xs text-board-muted">
         {pond.device ? (
           <span className="inline-flex items-center gap-1">
