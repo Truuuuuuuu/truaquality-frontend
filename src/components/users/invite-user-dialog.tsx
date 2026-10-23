@@ -22,7 +22,7 @@ import { useInviteUser } from "@/hooks/use-users"
 import { errorMessage, type Profile } from "@/lib/api"
 
 const ROLE_ITEMS = [
-  { value: "USER", label: "Staff" },
+  { value: "STAFF", label: "Staff" },
   { value: "ADMIN", label: "Admin" },
 ] as const
 
@@ -51,7 +51,7 @@ function InviteUserForm({ onDone }: { onDone: () => void }) {
   const [fullName, setFullName] = React.useState("")
   const [email, setEmail] = React.useState("")
   const [systemRole, setSystemRole] =
-    React.useState<Profile["systemRole"]>("USER")
+    React.useState<Profile["systemRole"]>("STAFF")
   const [error, setError] = React.useState<string | null>(null)
   const [invited, setInvited] = React.useState<Profile | null>(null)
   const inviteUser = useInviteUser()

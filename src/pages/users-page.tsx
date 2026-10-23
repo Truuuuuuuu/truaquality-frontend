@@ -33,7 +33,7 @@ type RoleFilter = "ALL" | Profile["systemRole"]
 const ROLE_OPTIONS = [
   { value: "ALL", label: "All roles" },
   { value: "ADMIN", label: "Admins" },
-  { value: "USER", label: "Staff" },
+  { value: "STAFF", label: "Staff" },
 ] as const satisfies readonly { value: RoleFilter; label: string }[]
 
 function matchesSearch(user: Profile, query: string) {

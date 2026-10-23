@@ -60,7 +60,7 @@ export type Profile = {
   id: string
   email: string
   fullName: string
-  systemRole: "ADMIN" | "USER"
+  systemRole: "ADMIN" | "STAFF"
   status: "INVITED" | "ACTIVE" | "DISABLED"
   createdAt: string
 }
@@ -475,7 +475,7 @@ export function listUsers(token: string) {
 export type InviteUserInput = {
   email: string
   fullName: string
-  systemRole: "ADMIN" | "USER"
+  systemRole: "ADMIN" | "STAFF"
 }
 
 export function inviteUser(token: string, body: InviteUserInput) {
