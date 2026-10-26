@@ -10,6 +10,7 @@ const ACTION_LABELS: Record<string, string> = {
   "user.enable": "User enabled",
   "user.disable": "User disabled",
   "user.promote_admin": "Promoted to admin",
+  "user.demote_admin": "Demoted to staff",
   "user.delete_self": "Account deleted by its owner",
   "pond.create": "Pond created",
   "pond.update": "Pond updated",

@@ -53,6 +53,13 @@ export function UsersPage() {
   const [manageOpen, setManageOpen] = React.useState(false)
   // Kept after the dialog closes so its content doesn't blank out during the exit animation.
   const [manageUser, setManageUser] = React.useState<Profile | null>(null)
+  const currentManageUser = manageOpen
+    ? (users?.find((user) => user.id === manageUser?.id) ?? null)
+    : manageUser
+  const activeAdminCount =
+    users?.filter(
+      (user) => user.systemRole === "ADMIN" && user.status === "ACTIVE"
+    ).length ?? 0
 
   const [search, setSearch] = React.useState("")
   const [role, setRole] = React.useState<RoleFilter>("ALL")
@@ -376,9 +383,10 @@ export function UsersPage() {
       <ManageUserDialog
         open={manageOpen}
         onOpenChange={setManageOpen}
-        user={manageUser}
-        isSelf={manageUser?.id === profile?.id}
-        isTargetAdmin={manageUser?.systemRole === "ADMIN"}
+        user={currentManageUser}
+        isSelf={currentManageUser?.id === profile?.id}
+        isTargetAdmin={currentManageUser?.systemRole === "ADMIN"}
+        activeAdminCount={activeAdminCount}
       />
     </div>
   )

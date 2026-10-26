@@ -5,7 +5,9 @@ import {
   listUsers,
   resendInvite,
   updateUserStatus,
+  updateUserRole,
   type InviteUserInput,
+  type Profile,
 } from "@/lib/api"
 
 // Admins don't need second-by-second freshness here, but polling keeps another admin's invite or
@@ -59,5 +61,24 @@ export function useResendInvite() {
   return useMutation({
     mutationFn: (id: string) =>
       authorizedRequest((token) => resendInvite(token, id)),
+  })
+}
+
+export function useUpdateUserRole() {
+  const { authorizedRequest } = useAuth()
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      id,
+      systemRole,
+    }: {
+      id: string
+      systemRole: Profile["systemRole"]
+    }) => authorizedRequest((token) => updateUserRole(token, id, systemRole)),
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["users"] }),
+        queryClient.invalidateQueries({ queryKey: ["audit"] }),
+      ]),
   })
 }

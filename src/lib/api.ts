@@ -498,6 +498,18 @@ export function updateUserStatus(
   })
 }
 
+export function updateUserRole(
+  token: string,
+  id: string,
+  systemRole: Profile["systemRole"]
+) {
+  return request<{ profile: Profile }>(`/admin/users/${id}/role`, {
+    method: "PATCH",
+    body: { systemRole },
+    token,
+  })
+}
+
 export function resendInvite(token: string, id: string) {
   return request<{ ok: true }>(`/admin/users/${id}/resend-invite`, {
     method: "POST",

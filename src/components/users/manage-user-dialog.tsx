@@ -3,6 +3,7 @@ import {
   CheckCircle2,
   Lock,
   Mail,
+  Shield,
   TriangleAlert,
   UserCheck,
   UserX,
@@ -20,7 +21,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { useNow } from "@/hooks/use-now"
-import { useResendInvite, useUpdateUserStatus } from "@/hooks/use-users"
+import {
+  useResendInvite,
+  useUpdateUserStatus,
+  useUpdateUserRole,
+} from "@/hooks/use-users"
 import { errorMessage, type Profile } from "@/lib/api"
 import { formatDate, formatRelative } from "@/lib/format-time"
 
@@ -32,6 +37,7 @@ type ManageUserDialogProps = {
   isSelf: boolean
   // Admin accounts can't be disabled at all, by anyone (the backend rejects it too).
   isTargetAdmin: boolean
+  activeAdminCount: number
 }
 
 export function ManageUserDialog({
@@ -40,16 +46,18 @@ export function ManageUserDialog({
   user,
   isSelf,
   isTargetAdmin,
+  activeAdminCount,
 }: ManageUserDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="gap-6 sm:max-w-md">
         {user ? (
           <ManageUserForm
-            key={user.id}
+            key={`${user.id}-${user.systemRole}-${user.status}`}
             user={user}
             isSelf={isSelf}
             isTargetAdmin={isTargetAdmin}
+            activeAdminCount={activeAdminCount}
             onDone={() => onOpenChange(false)}
           />
         ) : null}
@@ -62,23 +70,39 @@ function ManageUserForm({
   user,
   isSelf,
   isTargetAdmin,
+  activeAdminCount,
   onDone,
 }: {
   user: Profile
   isSelf: boolean
   isTargetAdmin: boolean
+  activeAdminCount: number
   onDone: () => void
 }) {
   const now = useNow(60_000)
   const [error, setError] = React.useState<string | null>(null)
-  const [confirmingDisable, setConfirmingDisable] = React.useState(false)
+  const [confirmation, setConfirmation] = React.useState<
+    "disable" | "role" | null
+  >(null)
+  const confirmingDisable = confirmation === "disable"
   const [resent, setResent] = React.useState(false)
   const updateStatus = useUpdateUserStatus()
+  const updateRole = useUpdateUserRole()
   const resendInvite = useResendInvite()
-  const isPending = updateStatus.isPending || resendInvite.isPending
+  const isPending =
+    updateStatus.isPending || resendInvite.isPending || updateRole.isPending
   const firstName = user.fullName.split(" ")[0]
   const invitedAt = new Date(user.createdAt).getTime()
   const isDisabled = user.status === "DISABLED"
+  const nextRole = isTargetAdmin ? "STAFF" : "ADMIN"
+  const roleAction = isTargetAdmin ? "Demote to staff" : "Promote to admin"
+  const roleRestriction = isSelf
+    ? "You can't change your own role."
+    : user.status !== "ACTIVE"
+      ? "Role changes require an active account. Invited users must accept their invite; disabled users must be enabled first."
+      : isTargetAdmin && activeAdminCount <= 1
+        ? "At least one active admin must remain. Promote another active staff member first."
+        : null
 
   async function run(action: () => Promise<unknown>) {
     setError(null)
@@ -95,7 +119,15 @@ function ManageUserForm({
     const saved = await run(() =>
       updateStatus.mutateAsync({ id: user.id, status: "DISABLED" })
     )
-    setConfirmingDisable(false)
+    setConfirmation(null)
+    if (saved) onDone()
+  }
+
+  async function handleRoleChange() {
+    if (roleRestriction) return
+    const saved = await run(() =>
+      updateRole.mutateAsync({ id: user.id, systemRole: nextRole })
+    )
     if (saved) onDone()
   }
 
@@ -154,6 +186,49 @@ function ManageUserForm({
           Access
         </h3>
         <div className="board-groove-rows flex flex-col">
+          <ActionRow
+            icon={Shield}
+            title="Account role"
+            description={
+              roleRestriction ??
+              (isTargetAdmin
+                ? "Staff can manage ponds and devices, but cannot manage user accounts or view audit logs."
+                : "Admins can also manage user accounts and view audit logs.")
+            }
+            action={
+              !roleRestriction && confirmation !== "role" ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={isPending || confirmation !== null}
+                  onClick={() => {
+                    setError(null)
+                    setConfirmation("role")
+                  }}
+                >
+                  {roleAction}…
+                </Button>
+              ) : null
+            }
+          />
+          {confirmation === "role" ? (
+            <div
+              role="alert"
+              className="rounded-lg border border-board-border bg-board-bg px-3 py-3"
+            >
+              <p className="text-sm font-semibold text-board-fg">
+                {isTargetAdmin ? "Demote" : "Promote"} {user.fullName} to{" "}
+                {isTargetAdmin ? "Staff" : "Admin"}?
+              </p>
+              <p className="mt-1 text-sm text-board-muted">
+                {isTargetAdmin
+                  ? "They will lose access to user management and audit logs. Their account and pond/device access will stay available."
+                  : "They will gain access to user management and audit logs, including the ability to change other users' roles."}
+              </p>
+            </div>
+          ) : null}
+
           {user.status === "INVITED" ? (
             <ActionRow
               icon={Mail}
@@ -164,7 +239,7 @@ function ManageUserForm({
                   type="button"
                   variant="outline"
                   size="sm"
-                  disabled={isPending}
+                  disabled={isPending || confirmation === "role"}
                   onClick={() => void handleResendInvite()}
                 >
                   <Mail />
@@ -207,7 +282,7 @@ function ManageUserForm({
                   type="button"
                   variant="outline"
                   size="sm"
-                  disabled={isPending}
+                  disabled={isPending || confirmation === "role"}
                   onClick={() => void handleEnable()}
                 >
                   <UserCheck />
@@ -243,8 +318,8 @@ function ManageUserForm({
                   type="button"
                   variant="destructive"
                   size="sm"
-                  disabled={isPending}
-                  onClick={() => setConfirmingDisable(true)}
+                  disabled={isPending || confirmation === "role"}
+                  onClick={() => setConfirmation("disable")}
                 >
                   <UserX />
                   Disable…
@@ -264,14 +339,34 @@ function ManageUserForm({
       {/* The irreversible-feeling step lives in the footer, so the confirm and its way out sit
           where every other dialog's final decision does. */}
       <DialogFooter>
-        {confirmingDisable ? (
+        {confirmation === "role" ? (
           <>
             <Button
               type="button"
               variant="outline"
               className={PROFILE_DIALOG_BUTTON}
               disabled={isPending}
-              onClick={() => setConfirmingDisable(false)}
+              onClick={() => setConfirmation(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              className={PROFILE_DIALOG_BUTTON}
+              disabled={isPending || !!roleRestriction}
+              onClick={() => void handleRoleChange()}
+            >
+              {updateRole.isPending ? "Saving…" : roleAction}
+            </Button>
+          </>
+        ) : confirmingDisable ? (
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              className={PROFILE_DIALOG_BUTTON}
+              disabled={isPending}
+              onClick={() => setConfirmation(null)}
             >
               Keep access
             </Button>
