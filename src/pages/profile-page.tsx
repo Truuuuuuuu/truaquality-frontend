@@ -1,5 +1,6 @@
 import * as React from "react"
 import { Check, LogOut } from "lucide-react"
+import { SimpleModeToggle } from "@/components/simple-mode-toggle"
 import { ChangePasswordDialog } from "@/components/profile/change-password-dialog"
 import { DeleteAccountDialog } from "@/components/profile/delete-account-dialog"
 import { SignOutDialog } from "@/components/profile/sign-out-dialog"
@@ -99,6 +100,12 @@ export function ProfilePage() {
               </span>
             </div>
             <ThemeControl />
+            <SettingRow
+              label="Simple mode"
+              description="Keep key readings, status and alerts visible with fewer technical details on the dashboard, pond and device pages. Saved in this browser."
+            >
+              <SimpleModeToggle />
+            </SettingRow>
           </div>
         </Section>
 
