@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import * as React from "react"
+import { useDisplayPreferences } from "@/context/display-preferences-context"
 import { Gauge, MoveRight, TrendingDown, TrendingUp } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { ParameterAnalysis } from "@/lib/api"
@@ -94,6 +95,7 @@ export function ParameterHistoryChart({
   analysis,
   comparisonLabel,
 }: ParameterHistoryChartProps) {
+  const { simpleMode } = useDisplayPreferences()
   const { parameter, threshold, history } = reading
   const Icon = PARAMETER_ICONS[parameter.id] ?? Gauge
   const baseId = `phc-${React.useId().replace(/[^\w-]/g, "")}`
@@ -366,7 +368,7 @@ export function ParameterHistoryChart({
             {STATUS_LABELS[reading.status]}
           </span>
         </div>
-        {analysis ? (
+        {!simpleMode && analysis ? (
           <dl className="flex flex-wrap gap-x-3 gap-y-0.5 font-sans text-xs text-board-muted">
             {[
               { label: "Min", value: format(analysis.min) },
@@ -501,52 +503,56 @@ export function ParameterHistoryChart({
             ))}
 
             {/* Time gridlines — every chart, so the stack reads as one shared axis */}
-            {xTicks.map((tick) => (
-              <line
-                key={tick}
-                x1={toX(tick)}
-                x2={toX(tick)}
-                y1={0}
-                y2={innerHeight}
-                stroke="var(--board-border)"
-                strokeDasharray="2 4"
-              />
-            ))}
+            {!simpleMode &&
+              xTicks.map((tick) => (
+                <line
+                  key={tick}
+                  x1={toX(tick)}
+                  x2={toX(tick)}
+                  y1={0}
+                  y2={innerHeight}
+                  stroke="var(--board-border)"
+                  strokeDasharray="2 4"
+                />
+              ))}
 
             {/* Threshold edges */}
-            {edges.map((edge) => (
-              <g key={edge.key}>
-                <line
-                  x1={0}
-                  x2={plotWidth}
-                  y1={edge.y}
-                  y2={edge.y}
-                  stroke={
-                    edge.critical
-                      ? "var(--board-critical)"
-                      : "var(--board-accent)"
-                  }
-                  strokeOpacity={0.55}
-                  strokeDasharray={edge.critical ? "2 3" : "4 4"}
-                />
-                {!narrow ? (
-                  <text
-                    x={plotWidth + 8}
-                    y={edge.labelY}
-                    dy="0.32em"
-                    className={cn(
-                      "font-sans text-[0.625rem]",
-                      edge.critical ? "fill-board-critical" : "fill-board-muted"
-                    )}
-                  >
-                    {edge.label}
-                    <tspan dx={4} className="fill-board-fg font-heading">
-                      {format(edge.value)}
-                    </tspan>
-                  </text>
-                ) : null}
-              </g>
-            ))}
+            {!simpleMode &&
+              edges.map((edge) => (
+                <g key={edge.key}>
+                  <line
+                    x1={0}
+                    x2={plotWidth}
+                    y1={edge.y}
+                    y2={edge.y}
+                    stroke={
+                      edge.critical
+                        ? "var(--board-critical)"
+                        : "var(--board-accent)"
+                    }
+                    strokeOpacity={0.55}
+                    strokeDasharray={edge.critical ? "2 3" : "4 4"}
+                  />
+                  {!narrow ? (
+                    <text
+                      x={plotWidth + 8}
+                      y={edge.labelY}
+                      dy="0.32em"
+                      className={cn(
+                        "font-sans text-[0.625rem]",
+                        edge.critical
+                          ? "fill-board-critical"
+                          : "fill-board-muted"
+                      )}
+                    >
+                      {edge.label}
+                      <tspan dx={4} className="fill-board-fg font-heading">
+                        {format(edge.value)}
+                      </tspan>
+                    </text>
+                  ) : null}
+                </g>
+              ))}
 
             {/* Stretches with no readings */}
             {gaps.map((gap) => {

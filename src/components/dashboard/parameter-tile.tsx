@@ -1,4 +1,5 @@
 import * as React from "react"
+import { useDisplayPreferences } from "@/context/display-preferences-context"
 import type { ComponentType } from "react"
 import { cn } from "cn"
 import { silentReason } from "@/lib/device-health"
@@ -41,6 +42,7 @@ export function ParameterTile({
   valueStatus,
   unconfirmed,
 }: ParameterTileProps) {
+  const { simpleMode } = useDisplayPreferences()
   const { parameter, threshold, current, history, status, updatedAt } = reading
   const styles = STATUS_STYLES[status]
   const spike = unconfirmed ? unconfirmedLabel(unconfirmed) : null
@@ -122,14 +124,16 @@ export function ParameterTile({
         </p>
       ) : null}
 
-      <div className="h-16">
-        <TrendChart
-          points={history}
-          status={status}
-          threshold={threshold}
-          precision={parameter.precision}
-        />
-      </div>
+      {!simpleMode ? (
+        <div className="h-16">
+          <TrendChart
+            points={history}
+            status={status}
+            threshold={threshold}
+            precision={parameter.precision}
+          />
+        </div>
+      ) : null}
 
       {hint ? (
         <p
@@ -172,6 +176,7 @@ export function SilentParameterTile({
   now,
   icon: Icon,
 }: SilentParameterTileProps) {
+  const { simpleMode } = useDisplayPreferences()
   const styles = STATUS_STYLES.stale
   const duration = reading
     ? formatSilentDuration(now - reading.updatedAt)
@@ -245,14 +250,16 @@ export function SilentParameterTile({
         )}
       </div>
 
-      <div className="h-16">
-        <TrendChart
-          points={reading?.history ?? []}
-          status="stale"
-          threshold={reading?.threshold ?? NO_HISTORY_THRESHOLD}
-          precision={parameter.precision}
-        />
-      </div>
+      {!simpleMode ? (
+        <div className="h-16">
+          <TrendChart
+            points={reading?.history ?? []}
+            status="stale"
+            threshold={reading?.threshold ?? NO_HISTORY_THRESHOLD}
+            precision={parameter.precision}
+          />
+        </div>
+      ) : null}
 
       <SignalPathStrip
         parameter={parameter.id}

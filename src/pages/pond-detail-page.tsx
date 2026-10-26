@@ -1,4 +1,6 @@
 import * as React from "react"
+import { SimpleModeToggle } from "@/components/simple-mode-toggle"
+import { useDisplayPreferences } from "@/context/display-preferences-context"
 import {
   AlertTriangle,
   ArrowLeft,
@@ -68,6 +70,7 @@ import { STATUS_LABELS, STATUS_STYLES } from "@/lib/status-styles"
 type PivotRow = { recordedAt: string; values: Partial<Record<string, number>> }
 
 export function PondDetailPage() {
+  const { simpleMode } = useDisplayPreferences()
   const { pondId = "" } = useParams()
   const { data: pond, error } = usePond(pondId)
   const now = useNow()
@@ -250,10 +253,15 @@ export function PondDetailPage() {
               </p>
             ) : null}
 
-            {pond.device ? <DeviceDisclosure pond={pond} now={now} /> : null}
+            {!simpleMode && pond.device ? (
+              <DeviceDisclosure pond={pond} now={now} />
+            ) : null}
           </div>
 
-          <PondStatusReadout pond={pond} now={now} />
+          <div className="flex flex-wrap items-start justify-between gap-4 lg:flex-col lg:items-end">
+            <SimpleModeToggle />
+            <PondStatusReadout pond={pond} now={now} />
+          </div>
         </div>
       </header>
 
@@ -293,121 +301,123 @@ export function PondDetailPage() {
         <PondHistoryCharts pond={pond} now={now} range={historyRange} />
       </section>
 
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 className="font-sans text-xs font-medium tracking-[0.08em] text-board-muted uppercase">
-            Reading history
-          </h3>
-          <div className="flex items-center gap-2">
-            <Button
-              variant={hasActiveFilter ? "secondary" : "outline"}
-              size="sm"
-              onClick={() => setFilterDialogOpen(true)}
-              aria-haspopup="dialog"
-            >
-              <Filter />
-              Filter
-              {hasActiveFilter ? (
-                <span className="tabular-nums">• {activeFilters.length}</span>
-              ) : null}
-            </Button>
-          </div>
-        </div>
-
-        {hasActiveFilter ? (
-          <div className="flex flex-wrap items-center gap-1.5">
-            {activeFilters.map((filter) => (
-              <Badge
-                key={filter.key}
-                variant="outline"
-                className="gap-1 py-1 pr-1 pl-2"
+      {!simpleMode ? (
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="font-sans text-xs font-medium tracking-[0.08em] text-board-muted uppercase">
+              Reading history
+            </h3>
+            <div className="flex items-center gap-2">
+              <Button
+                variant={hasActiveFilter ? "secondary" : "outline"}
+                size="sm"
+                onClick={() => setFilterDialogOpen(true)}
+                aria-haspopup="dialog"
               >
-                {filter.label}
-                <button
-                  type="button"
-                  aria-label={`Remove filter: ${filter.label}`}
-                  className="rounded-full p-0.5 text-board-muted transition-colors hover:bg-board-panel-raised hover:text-board-fg"
-                  onClick={filter.onRemove}
-                >
-                  <X className="size-3" />
-                </button>
-              </Badge>
-            ))}
-          </div>
-        ) : null}
-
-        {readingsError ? (
-          <BoardEmptyState icon={AlertTriangle} tone="error">
-            {`Couldn't load readings: ${readingsError.message}`}
-          </BoardEmptyState>
-        ) : !readingsPage ? (
-          <ReadingsTableSkeleton parameters={visibleParameters} />
-        ) : pageReadings.length === 0 && pageIndex === 0 ? (
-          <BoardEmptyState icon={Gauge}>
-            {hasActiveFilter
-              ? "No readings match the current filters."
-              : "No readings yet."}
-          </BoardEmptyState>
-        ) : (
-          <div className="board-groove overflow-hidden rounded-xl border border-board-border bg-board-panel">
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead>Time</TableHead>
-                  {visibleParameters.map((parameter) => {
-                    const Icon = PARAMETER_ICONS[parameter.id] ?? Gauge
-                    return (
-                      <TableHead key={parameter.id} className="text-right">
-                        <span className="inline-flex items-center justify-end gap-1.5">
-                          <Icon className="size-3 text-board-muted" />
-                          {parameter.label}
-                        </span>
-                      </TableHead>
-                    )
-                  })}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {pivotedRows.map((row) => (
-                  <PivotedRow
-                    key={row.recordedAt}
-                    row={row}
-                    now={now}
-                    parameters={visibleParameters}
-                    thresholds={pond.thresholds}
-                  />
-                ))}
-              </TableBody>
-            </Table>
-
-            <div className="board-groove flex items-center justify-between gap-2 px-3 py-2">
-              <p className="font-heading text-xs text-board-muted tabular-nums">
-                Showing {rangeStart}–{rangeEnd}
-              </p>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="icon-sm"
-                  aria-label="Newer readings"
-                  disabled={pageIndex === 0}
-                  onClick={goNewer}
-                >
-                  <ChevronLeft />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon-sm"
-                  aria-label="Older readings"
-                  disabled={!readingsPage.nextCursor}
-                  onClick={goOlder}
-                >
-                  <ChevronRight />
-                </Button>
-              </div>
+                <Filter />
+                Filter
+                {hasActiveFilter ? (
+                  <span className="tabular-nums">• {activeFilters.length}</span>
+                ) : null}
+              </Button>
             </div>
           </div>
-        )}
-      </div>
+
+          {hasActiveFilter ? (
+            <div className="flex flex-wrap items-center gap-1.5">
+              {activeFilters.map((filter) => (
+                <Badge
+                  key={filter.key}
+                  variant="outline"
+                  className="gap-1 py-1 pr-1 pl-2"
+                >
+                  {filter.label}
+                  <button
+                    type="button"
+                    aria-label={`Remove filter: ${filter.label}`}
+                    className="rounded-full p-0.5 text-board-muted transition-colors hover:bg-board-panel-raised hover:text-board-fg"
+                    onClick={filter.onRemove}
+                  >
+                    <X className="size-3" />
+                  </button>
+                </Badge>
+              ))}
+            </div>
+          ) : null}
+
+          {readingsError ? (
+            <BoardEmptyState icon={AlertTriangle} tone="error">
+              {`Couldn't load readings: ${readingsError.message}`}
+            </BoardEmptyState>
+          ) : !readingsPage ? (
+            <ReadingsTableSkeleton parameters={visibleParameters} />
+          ) : pageReadings.length === 0 && pageIndex === 0 ? (
+            <BoardEmptyState icon={Gauge}>
+              {hasActiveFilter
+                ? "No readings match the current filters."
+                : "No readings yet."}
+            </BoardEmptyState>
+          ) : (
+            <div className="board-groove overflow-hidden rounded-xl border border-board-border bg-board-panel">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead>Time</TableHead>
+                    {visibleParameters.map((parameter) => {
+                      const Icon = PARAMETER_ICONS[parameter.id] ?? Gauge
+                      return (
+                        <TableHead key={parameter.id} className="text-right">
+                          <span className="inline-flex items-center justify-end gap-1.5">
+                            <Icon className="size-3 text-board-muted" />
+                            {parameter.label}
+                          </span>
+                        </TableHead>
+                      )
+                    })}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pivotedRows.map((row) => (
+                    <PivotedRow
+                      key={row.recordedAt}
+                      row={row}
+                      now={now}
+                      parameters={visibleParameters}
+                      thresholds={pond.thresholds}
+                    />
+                  ))}
+                </TableBody>
+              </Table>
+
+              <div className="board-groove flex items-center justify-between gap-2 px-3 py-2">
+                <p className="font-heading text-xs text-board-muted tabular-nums">
+                  Showing {rangeStart}–{rangeEnd}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon-sm"
+                    aria-label="Newer readings"
+                    disabled={pageIndex === 0}
+                    onClick={goNewer}
+                  >
+                    <ChevronLeft />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon-sm"
+                    aria-label="Older readings"
+                    disabled={!readingsPage.nextCursor}
+                    onClick={goOlder}
+                  >
+                    <ChevronRight />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : null}
 
       <ExportReadingsDialog
         pondId={pondId}

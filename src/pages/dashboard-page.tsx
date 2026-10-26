@@ -1,4 +1,5 @@
 import * as React from "react"
+import { useDisplayPreferences } from "@/context/display-preferences-context"
 import { AlertTriangle, Waves } from "lucide-react"
 import { Link } from "react-router"
 import { BoardEmptyState } from "@/components/board-empty-state"
@@ -28,6 +29,7 @@ import { STATUS_LABELS } from "@/lib/status-styles"
 const SUMMARY_ORDER: ReadingStatus[] = ["critical", "warning", "stale"]
 
 export function DashboardPage() {
+  const { simpleMode } = useDisplayPreferences()
   const { data: ponds, error, isRefetchError } = usePonds()
   const now = useNow()
 
@@ -148,18 +150,20 @@ export function DashboardPage() {
                     ) : null}
                   </p>
                 ) : null}
-                <p
-                  tabIndex={0}
-                  role="group"
-                  aria-label={
-                    selectedEntry.pond.device
-                      ? `Device ${selectedEntry.pond.device.serial}${selectedEntry.pond.device.hardwareModel ? `, ${selectedEntry.pond.device.hardwareModel}` : ""}, WiFi ${selectedEntry.pond.device.wifiSsid ?? "not reported yet"}`
-                      : "No monitoring device assigned"
-                  }
-                  className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 font-sans text-xs text-board-muted"
-                >
-                  <PondDeviceIdentity pond={selectedEntry.pond} now={now} />
-                </p>
+                {!simpleMode ? (
+                  <p
+                    tabIndex={0}
+                    role="group"
+                    aria-label={
+                      selectedEntry.pond.device
+                        ? `Device ${selectedEntry.pond.device.serial}${selectedEntry.pond.device.hardwareModel ? `, ${selectedEntry.pond.device.hardwareModel}` : ""}, WiFi ${selectedEntry.pond.device.wifiSsid ?? "not reported yet"}`
+                        : "No monitoring device assigned"
+                    }
+                    className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 font-sans text-xs text-board-muted"
+                  >
+                    <PondDeviceIdentity pond={selectedEntry.pond} now={now} />
+                  </p>
+                ) : null}
               </div>
               <div
                 tabIndex={0}
