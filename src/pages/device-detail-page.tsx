@@ -1,4 +1,5 @@
 import * as React from "react"
+import { useDisplayPreferences } from "@/context/display-preferences-context"
 import {
   AlertTriangle,
   ArrowLeft,
@@ -76,6 +77,7 @@ function formatDateTime(timestamp: number) {
 // GET /devices/:id — the registry list is small (one office's units) and already polled and cached by
 // useDevices, so the page reads its device out of that list instead of adding an endpoint for it.
 export function DeviceDetailPage() {
+  const { simpleMode } = useDisplayPreferences()
   const { deviceId = "" } = useParams()
   const { data: devices, error } = useDevices()
   const diagnostics = useDeviceDiagnostics(deviceId)
@@ -139,7 +141,7 @@ export function DeviceDetailPage() {
                   {device.serial}
                 </span>
               </span>
-              {device.hardwareModel ? (
+              {!simpleMode && device.hardwareModel ? (
                 <span>{device.hardwareModel}</span>
               ) : null}
             </p>
@@ -158,7 +160,7 @@ export function DeviceDetailPage() {
           <DeviceStatusReadout
             state={state}
             lastSeen={lastSeen}
-            firmwareVersion={device.firmwareVersion}
+            firmwareVersion={simpleMode ? null : device.firmwareVersion}
             now={now}
           />
         </div>
@@ -254,43 +256,47 @@ export function DeviceDetailPage() {
           </SpecRow>
         </SpecPanel>
 
-        <SpecPanel icon={Cpu} title="Hardware">
-          <SpecRow label="Serial">
-            <span className="font-heading">{device.serial}</span>
-          </SpecRow>
-          <SpecRow label="Model">
-            {device.hardwareModel ?? (
-              <span className="text-board-muted">Not recorded</span>
-            )}
-          </SpecRow>
-          <SpecRow label="Firmware">
-            {device.firmwareVersion ? (
-              <span className="font-heading">{device.firmwareVersion}</span>
-            ) : (
-              <span className="text-board-muted">Not reported yet</span>
-            )}
-          </SpecRow>
-        </SpecPanel>
+        {!simpleMode ? (
+          <>
+            <SpecPanel icon={Cpu} title="Hardware">
+              <SpecRow label="Serial">
+                <span className="font-heading">{device.serial}</span>
+              </SpecRow>
+              <SpecRow label="Model">
+                {device.hardwareModel ?? (
+                  <span className="text-board-muted">Not recorded</span>
+                )}
+              </SpecRow>
+              <SpecRow label="Firmware">
+                {device.firmwareVersion ? (
+                  <span className="font-heading">{device.firmwareVersion}</span>
+                ) : (
+                  <span className="text-board-muted">Not reported yet</span>
+                )}
+              </SpecRow>
+            </SpecPanel>
 
-        <SpecPanel icon={ShieldCheck} title="Registration">
-          <SpecRow label="Registered">
-            <span className="font-heading tabular-nums">
-              {formatDateTime(Date.parse(device.createdAt))}
-            </span>
-          </SpecRow>
-          {/* Only the version is shown: the secret itself is displayed once, when a user registers or
+            <SpecPanel icon={ShieldCheck} title="Registration">
+              <SpecRow label="Registered">
+                <span className="font-heading tabular-nums">
+                  {formatDateTime(Date.parse(device.createdAt))}
+                </span>
+              </SpecRow>
+              {/* Only the version is shown: the secret itself is displayed once, when a user registers or
               rotates it, and is never stored where this page could read it back. */}
-          <SpecRow label="Device key version">
-            <span className="font-heading tabular-nums">
-              v{device.secretVersion}
-            </span>
-          </SpecRow>
-          <SpecRow label="Last updated">
-            <span className="font-heading tabular-nums">
-              {formatDateTime(Date.parse(device.updatedAt))}
-            </span>
-          </SpecRow>
-        </SpecPanel>
+              <SpecRow label="Device key version">
+                <span className="font-heading tabular-nums">
+                  v{device.secretVersion}
+                </span>
+              </SpecRow>
+              <SpecRow label="Last updated">
+                <span className="font-heading tabular-nums">
+                  {formatDateTime(Date.parse(device.updatedAt))}
+                </span>
+              </SpecRow>
+            </SpecPanel>
+          </>
+        ) : null}
       </div>
 
       <ManageDeviceDialog
@@ -437,6 +443,7 @@ function DiagnosticsSections({
   onSelect: (parameter: string | null) => void
   now: number
 }) {
+  const { simpleMode } = useDisplayPreferences()
   const rowButtons = React.useRef(new Map<string, HTMLButtonElement>())
   const unitReportsStatuses = diagnostics.sensors.some(
     (sensor) => sensor.reportedStatus !== null
@@ -470,20 +477,27 @@ function DiagnosticsSections({
         className="flex flex-col gap-3"
       >
         <SectionHeading id="unit-view-heading" icon={Box}>
-          Unit view
+          {simpleMode ? "Sensor status" : "Unit view"}
         </SectionHeading>
-        <div className="grid grid-cols-1 gap-x-12 gap-y-6 lg:grid-cols-[3fr_2fr]">
-          <DeviceUnitView
-            deviceState={state}
-            probes={sensors.map(({ sensor, display, health }) => ({
-              parameter: sensor.parameter,
-              label: display.label,
-              stateLabel: health.label,
-              tone: health.tone,
-            }))}
-            selected={selected}
-            onSelect={selectFromModel}
-          />
+        <div
+          className={cn(
+            "grid grid-cols-1 gap-x-12 gap-y-6",
+            !simpleMode && "lg:grid-cols-[3fr_2fr]"
+          )}
+        >
+          {!simpleMode ? (
+            <DeviceUnitView
+              deviceState={state}
+              probes={sensors.map(({ sensor, display, health }) => ({
+                parameter: sensor.parameter,
+                label: display.label,
+                stateLabel: health.label,
+                tone: health.tone,
+              }))}
+              selected={selected}
+              onSelect={selectFromModel}
+            />
+          ) : null}
           <div className="flex flex-col gap-2">
             <h3 className="font-sans text-sm font-semibold text-board-fg">
               Sensors
@@ -509,26 +523,33 @@ function DiagnosticsSections({
                       key={sensor.parameter}
                       className={cn(
                         "flex flex-col gap-1.5 px-2 py-3 transition-colors",
-                        isSelected && "bg-board-panel-raised/40"
+                        !simpleMode && isSelected && "bg-board-panel-raised/40"
                       )}
                     >
                       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
-                        <button
-                          type="button"
-                          ref={(node) => {
-                            if (node)
-                              rowButtons.current.set(sensor.parameter, node)
-                            else rowButtons.current.delete(sensor.parameter)
-                          }}
-                          aria-pressed={isSelected}
-                          onClick={() =>
-                            onSelect(isSelected ? null : sensor.parameter)
-                          }
-                          className="inline-flex items-center gap-2 rounded-sm font-sans text-sm font-medium text-board-fg hover:underline hover:decoration-board-border-strong hover:underline-offset-2"
-                        >
-                          <Icon className="size-4 shrink-0 text-board-muted" />
-                          {display.label}
-                        </button>
+                        {simpleMode ? (
+                          <span className="inline-flex items-center gap-2 font-sans text-sm font-medium text-board-fg">
+                            <Icon className="size-4 shrink-0 text-board-muted" />
+                            {display.label}
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            ref={(node) => {
+                              if (node)
+                                rowButtons.current.set(sensor.parameter, node)
+                              else rowButtons.current.delete(sensor.parameter)
+                            }}
+                            aria-pressed={isSelected}
+                            onClick={() =>
+                              onSelect(isSelected ? null : sensor.parameter)
+                            }
+                            className="inline-flex items-center gap-2 rounded-sm font-sans text-sm font-medium text-board-fg hover:underline hover:decoration-board-border-strong hover:underline-offset-2"
+                          >
+                            <Icon className="size-4 shrink-0 text-board-muted" />
+                            {display.label}
+                          </button>
+                        )}
                         <span
                           className={cn(
                             "inline-flex items-center gap-1.5 font-sans text-xs",
@@ -570,41 +591,43 @@ function DiagnosticsSections({
                           "No reading yet"
                         )}
                       </p>
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pl-6 font-sans text-xs text-board-muted">
-                        {percent === null ? (
-                          <span>Not enough history</span>
-                        ) : (
-                          <span className="inline-flex items-center gap-2">
-                            <span
-                              role="meter"
-                              aria-valuenow={percent}
-                              aria-valuemin={0}
-                              aria-valuemax={100}
-                              aria-label={`${display.label} readings received in the last 24 hours`}
-                              className="h-1.5 w-20 overflow-hidden rounded-full bg-board-panel-raised"
-                            >
+                      {!simpleMode ? (
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pl-6 font-sans text-xs text-board-muted">
+                          {percent === null ? (
+                            <span>Not enough history</span>
+                          ) : (
+                            <span className="inline-flex items-center gap-2">
                               <span
-                                className={cn(
-                                  "block h-full rounded-full",
-                                  percent >= 90
-                                    ? "bg-board-accent"
-                                    : "bg-board-warn"
-                                )}
-                                style={{ width: `${percent}%` }}
-                              />
+                                role="meter"
+                                aria-valuenow={percent}
+                                aria-valuemin={0}
+                                aria-valuemax={100}
+                                aria-label={`${display.label} readings received in the last 24 hours`}
+                                className="h-1.5 w-20 overflow-hidden rounded-full bg-board-panel-raised"
+                              >
+                                <span
+                                  className={cn(
+                                    "block h-full rounded-full",
+                                    percent >= 90
+                                      ? "bg-board-accent"
+                                      : "bg-board-warn"
+                                  )}
+                                  style={{ width: `${percent}%` }}
+                                />
+                              </span>
+                              <span className="tabular-nums">
+                                {percent}% of expected (24 h)
+                              </span>
                             </span>
-                            <span className="tabular-nums">
-                              {percent}% of expected (24 h)
+                          )}
+                          <span>
+                            Longest gap{" "}
+                            <span className="font-heading text-board-fg tabular-nums">
+                              {formatDuration(sensor.longestGapMin24h * 60)}
                             </span>
                           </span>
-                        )}
-                        <span>
-                          Longest gap{" "}
-                          <span className="font-heading text-board-fg tabular-nums">
-                            {formatDuration(sensor.longestGapMin24h * 60)}
-                          </span>
-                        </span>
-                      </div>
+                        </div>
+                      ) : null}
                       {health.action ? (
                         <p
                           className={cn(
@@ -637,7 +660,9 @@ function DiagnosticsSections({
           events={diagnostics.events}
           now={now}
         />
-        <EventLog events={diagnostics.events} now={now} />
+        {!simpleMode ? (
+          <EventLog events={diagnostics.events} now={now} />
+        ) : null}
       </div>
     </>
   )
@@ -656,6 +681,7 @@ function HealthPanel({
   events: DeviceEvent[]
   now: number
 }) {
+  const { simpleMode } = useDisplayPreferences()
   const reported = health.diagnosticsAt !== null
   const signal = signalQuality(health.rssi)
   const restart = restartedAt(health)
@@ -670,8 +696,14 @@ function HealthPanel({
       <SpecRow label="Signal">
         {reported && health.rssi !== null && signal ? (
           <span>
-            <span className="font-heading tabular-nums">{health.rssi} dBm</span>
-            {" · "}
+            {!simpleMode ? (
+              <>
+                <span className="font-heading tabular-nums">
+                  {health.rssi} dBm
+                </span>
+                {" · "}
+              </>
+            ) : null}
             <span
               className={cn(signal.tone === "warning" && "text-board-warn")}
             >
@@ -682,49 +714,53 @@ function HealthPanel({
           missing
         )}
       </SpecRow>
-      <SpecRow label="Uptime">
-        {reported && health.uptimeS !== null ? (
-          <span className="font-heading tabular-nums">
-            {formatDuration(health.uptimeS)}
-          </span>
-        ) : (
-          missing
-        )}
-      </SpecRow>
-      <SpecRow label="Last restart">
-        {reported && restart !== null ? (
-          <span>
-            <span className="font-heading tabular-nums">
-              {formatDateTime(restart)}
-            </span>
-            {" · "}
-            {resetReasonLabel(health.resetReason)}
-          </span>
-        ) : (
-          missing
-        )}
-      </SpecRow>
-      <SpecRow label="Free memory">
-        {reported && health.freeHeap !== null ? (
-          <span className="font-heading tabular-nums">
-            {formatBytes(health.freeHeap)}
-          </span>
-        ) : (
-          missing
-        )}
-      </SpecRow>
-      <SpecRow label="Queued uploads">
-        {reported && health.queuedSamples !== null ? (
-          <span>
-            <span className="font-heading tabular-nums">
-              {health.queuedSamples}
-            </span>{" "}
-            readings waiting
-          </span>
-        ) : (
-          missing
-        )}
-      </SpecRow>
+      {!simpleMode ? (
+        <>
+          <SpecRow label="Uptime">
+            {reported && health.uptimeS !== null ? (
+              <span className="font-heading tabular-nums">
+                {formatDuration(health.uptimeS)}
+              </span>
+            ) : (
+              missing
+            )}
+          </SpecRow>
+          <SpecRow label="Last restart">
+            {reported && restart !== null ? (
+              <span>
+                <span className="font-heading tabular-nums">
+                  {formatDateTime(restart)}
+                </span>
+                {" · "}
+                {resetReasonLabel(health.resetReason)}
+              </span>
+            ) : (
+              missing
+            )}
+          </SpecRow>
+          <SpecRow label="Free memory">
+            {reported && health.freeHeap !== null ? (
+              <span className="font-heading tabular-nums">
+                {formatBytes(health.freeHeap)}
+              </span>
+            ) : (
+              missing
+            )}
+          </SpecRow>
+          <SpecRow label="Queued uploads">
+            {reported && health.queuedSamples !== null ? (
+              <span>
+                <span className="font-heading tabular-nums">
+                  {health.queuedSamples}
+                </span>{" "}
+                readings waiting
+              </span>
+            ) : (
+              missing
+            )}
+          </SpecRow>
+        </>
+      ) : null}
       {/* Worked out by the server from its own online/offline record, so it doesn't need new firmware. */}
       <SpecRow label="24 h availability">
         {uptime24h !== null ? (

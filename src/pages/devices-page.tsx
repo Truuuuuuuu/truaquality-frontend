@@ -1,4 +1,5 @@
 import * as React from "react"
+import { useDisplayPreferences } from "@/context/display-preferences-context"
 import { AlertTriangle, Cpu, Plus, SearchX } from "lucide-react"
 import { Link } from "react-router"
 import { cn } from "cn"
@@ -56,6 +57,7 @@ function matchesSearch(device: Device, query: string) {
 }
 
 export function DevicesPage() {
+  const { simpleMode } = useDisplayPreferences()
   const { data: devices, error } = useDevices()
   const now = useNow()
 
@@ -201,8 +203,12 @@ export function DevicesPage() {
                       <TableHead>Device</TableHead>
                       <TableHead>Pond</TableHead>
                       <TableHead>Last seen</TableHead>
-                      <TableHead>Firmware</TableHead>
-                      <TableHead>WiFi</TableHead>
+                      {!simpleMode ? (
+                        <>
+                          <TableHead>Firmware</TableHead>
+                          <TableHead>WiFi</TableHead>
+                        </>
+                      ) : null}
                       <TableHead>Status</TableHead>
                       <TableHead>
                         <span className="sr-only">Actions</span>
@@ -291,27 +297,31 @@ export function DevicesPage() {
                               </span>
                             </span>
                           </TableCell>
-                          <TableCell
-                            tabIndex={0}
-                            aria-label={firmwareLabel}
-                            className="font-heading text-xs text-board-muted"
-                          >
-                            {device.firmwareVersion ?? "—"}
-                          </TableCell>
-                          <TableCell
-                            tabIndex={0}
-                            aria-label={wifiLabel}
-                            className={cn(
-                              "text-xs",
-                              device.wifiSsid && online
-                                ? "text-board-fg"
-                                : "text-board-muted"
-                            )}
-                          >
-                            {device.wifiSsid
-                              ? `${online ? "" : "last known "}${device.wifiSsid}`
-                              : "Not reported yet"}
-                          </TableCell>
+                          {!simpleMode ? (
+                            <>
+                              <TableCell
+                                tabIndex={0}
+                                aria-label={firmwareLabel}
+                                className="font-heading text-xs text-board-muted"
+                              >
+                                {device.firmwareVersion ?? "—"}
+                              </TableCell>
+                              <TableCell
+                                tabIndex={0}
+                                aria-label={wifiLabel}
+                                className={cn(
+                                  "text-xs",
+                                  device.wifiSsid && online
+                                    ? "text-board-fg"
+                                    : "text-board-muted"
+                                )}
+                              >
+                                {device.wifiSsid
+                                  ? `${online ? "" : "last known "}${device.wifiSsid}`
+                                  : "Not reported yet"}
+                              </TableCell>
+                            </>
+                          ) : null}
                           <TableCell tabIndex={0} aria-label={statusLabel}>
                             {device.status === "DISABLED" ? (
                               <StatusBadge status="critical">
@@ -472,42 +482,46 @@ export function DevicesPage() {
                         </div>
                       </div>
 
-                      <div
-                        tabIndex={0}
-                        role="group"
-                        aria-label={firmwareLabel}
-                        className="board-groove flex items-center justify-between gap-3 px-4 py-2.5"
-                      >
-                        <span className="font-sans text-[0.65rem] tracking-[0.08em] text-board-muted uppercase">
-                          Firmware
-                        </span>
-                        <span className="font-heading text-xs text-board-muted">
-                          {device.firmwareVersion ?? "—"}
-                        </span>
-                      </div>
+                      {!simpleMode ? (
+                        <>
+                          <div
+                            tabIndex={0}
+                            role="group"
+                            aria-label={firmwareLabel}
+                            className="board-groove flex items-center justify-between gap-3 px-4 py-2.5"
+                          >
+                            <span className="font-sans text-[0.65rem] tracking-[0.08em] text-board-muted uppercase">
+                              Firmware
+                            </span>
+                            <span className="font-heading text-xs text-board-muted">
+                              {device.firmwareVersion ?? "—"}
+                            </span>
+                          </div>
 
-                      <div
-                        tabIndex={0}
-                        role="group"
-                        aria-label={wifiLabel}
-                        className="board-groove flex items-center justify-between gap-3 px-4 py-2.5"
-                      >
-                        <span className="font-sans text-[0.65rem] tracking-[0.08em] text-board-muted uppercase">
-                          WiFi
-                        </span>
-                        <span
-                          className={cn(
-                            "text-xs",
-                            device.wifiSsid && online
-                              ? "text-board-fg"
-                              : "text-board-muted"
-                          )}
-                        >
-                          {device.wifiSsid
-                            ? `${online ? "" : "last known "}${device.wifiSsid}`
-                            : "Not reported yet"}
-                        </span>
-                      </div>
+                          <div
+                            tabIndex={0}
+                            role="group"
+                            aria-label={wifiLabel}
+                            className="board-groove flex items-center justify-between gap-3 px-4 py-2.5"
+                          >
+                            <span className="font-sans text-[0.65rem] tracking-[0.08em] text-board-muted uppercase">
+                              WiFi
+                            </span>
+                            <span
+                              className={cn(
+                                "text-xs",
+                                device.wifiSsid && online
+                                  ? "text-board-fg"
+                                  : "text-board-muted"
+                              )}
+                            >
+                              {device.wifiSsid
+                                ? `${online ? "" : "last known "}${device.wifiSsid}`
+                                : "Not reported yet"}
+                            </span>
+                          </div>
+                        </>
+                      ) : null}
                     </div>
                   )
                 })}
