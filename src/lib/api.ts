@@ -110,6 +110,60 @@ export type DeviceStatus = "ACTIVE" | "DISABLED"
 
 export type LatestReading = { value: number; recordedAt: string }
 
+// Display comparison is independent from the operational low-oxygen policy.
+export type NormalReference = Readonly<{
+  kind: "lower"
+  boundary: number
+  operator: "gt"
+  unit: "mg/L"
+  label: string
+}>
+export type ReferenceComparison = "within_reference" | "outside_reference"
+export type IngestPolicy =
+  | Readonly<{ state: "pending"; evidenceRef: string }>
+  | Readonly<{
+      state: "active"
+      evidenceRef: string
+      bounds: Readonly<{ min: number; max: number }>
+    }>
+export type PolicyProvenance = Readonly<{
+  provider: string
+  suppliedAt: string
+  reference: string
+  applicability: string
+}>
+export type ConfiguredLowPolicy = Readonly<{
+  state: "configured"
+  kind: "low"
+  evidenceRef: string
+  provenance: PolicyProvenance
+  safeMin: number
+  criticalMin: number
+  safeInclusive: boolean
+  criticalInclusive: boolean
+  holdReadings: number
+  maxGapMs: number
+  recoveryMs: number
+  renotifyMs: number
+}>
+export type AssessmentPolicy =
+  | Readonly<{ state: "pending"; kind: "low"; evidenceRef: string }>
+  | Readonly<{
+      state: "not_applicable"
+      kind: "low"
+      evidenceRef: string
+      provenance: PolicyProvenance
+    }>
+  | ConfiguredLowPolicy
+export type DoParameterMetadata = Readonly<{
+  label: string
+  unit: "mg/L"
+  precision: number
+  normalReference?: NormalReference | null
+  ingest: IngestPolicy
+  assessment: AssessmentPolicy
+}>
+
 export type DeviceSummary = {
   id: string
   serial: string
@@ -148,6 +202,11 @@ export type Pond = {
   // The safe/critical band for each parameter, already resolved for this pond's type by the server —
   // the same numbers its alerts are raised from, so the board can't disagree with a notification.
   thresholds: Record<string, Threshold>
+  // Additive fields may be absent on older servers; never infer a reference.
+  parameterMetadata?: { dissolvedOxygen?: DoParameterMetadata }
+  referenceComparison?: {
+    dissolvedOxygen?: LatestReading & { result: ReferenceComparison }
+  }
   // The assigned unit's own last word on each sensor — status tokens such as ok, uncalibrated,
   // no_signal, over_range (a newer firmware may send tokens this build doesn't know, hence string).
   // A sensor absent from the map was never reported by this unit. Optional so an older backend
@@ -200,12 +259,31 @@ export type ParameterAnalysis = {
   // The same analysis worded as plain sentences by the server, shown verbatim in the History summary.
   summary: string
 }
+export type DoReferenceAnalysis = {
+  outsideShare: number | null
+  basis: "raw_samples" | "weighted_bucket_averages"
+  approximate: boolean
+  minimumResult: ReferenceComparison | null
+}
+export type DoParameterAnalysis = Omit<
+  ParameterAnalysis,
+  "outOfRangeShare" | "worst" | "trend"
+> & {
+  thresholdState: AssessmentPolicy["state"]
+  worst: ParameterAnalysis["worst"] | null
+  outOfRangeShare: number | null
+  trend: null
+  previousChange?: number | null
+  referenceComparison?: DoReferenceAnalysis | null
+}
+export type AnyParameterAnalysis = ParameterAnalysis | DoParameterAnalysis
 export type PondAnalysis = {
   from: string
   to: string
   previousFrom: string
   previousTo: string
-  parameters: Record<string, ParameterAnalysis>
+  resolution?: SeriesResolution
+  parameters: Record<string, AnyParameterAnalysis>
 }
 
 export function listPonds(token: string) {

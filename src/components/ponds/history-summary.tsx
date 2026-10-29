@@ -23,7 +23,7 @@ export function HistorySummary({
   range,
   rangeControl,
 }: HistorySummaryProps) {
-  const { data: analysis } = usePondAnalysisRange(pond.id, range)
+  const { data: analysis, error } = usePondAnalysisRange(pond.id, range)
   const entries = analysis
     ? PARAMETERS.flatMap((parameter) => {
         const result = analysis.parameters[parameter.id]
@@ -47,7 +47,11 @@ export function HistorySummary({
         </h2>
         {rangeControl}
       </div>
-      {entries === null ? (
+      {error ? (
+        <p role="alert" className="font-sans text-sm text-board-muted">
+          Couldn’t load trend summary: {error.message}
+        </p>
+      ) : entries === null ? (
         <SummarySkeleton />
       ) : entries.length === 0 ? (
         <p className="font-sans text-sm text-board-muted">

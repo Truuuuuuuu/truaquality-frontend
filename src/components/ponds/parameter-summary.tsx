@@ -1,6 +1,7 @@
 import { Gauge } from "lucide-react"
-import { cn } from "cn"
+import { cn } from "@/lib/utils"
 import { ProbeRing } from "@/components/dashboard/signal-path-strip"
+import { DoParameterTile } from "@/components/dashboard/parameter-tile"
 import { StatusStamp } from "@/components/dashboard/status-stamp"
 import { usePondHistory } from "@/hooks/use-ponds"
 import type { Pond } from "@/lib/api"
@@ -29,11 +30,22 @@ export function ParameterSummary({ pond, now }: ParameterSummaryProps) {
   const readings = pondReadingStates(pond, now, historyByParameter)
 
   return (
-    <div className="flex flex-col gap-x-8 gap-y-5 md:flex-row md:flex-wrap">
+    <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2 xl:grid-cols-4">
       {readings.map((entry) => {
         const { parameter, reading, signal, sensorStatus } = entry
         const { valueStatus, unconfirmed } = entry
         const Icon = PARAMETER_ICONS[parameter.id] ?? Gauge
+        if (parameter.id === "dissolvedOxygen")
+          return (
+            <DoParameterTile
+              key={parameter.id}
+              entry={entry}
+              deviceId={pond.device?.id ?? null}
+              now={now}
+              compact
+              icon={Icon}
+            />
+          )
 
         // The unit's firmware never sends this parameter (D-09): muted, no LED, not the stale look.
         if (signal === "not_reported") {

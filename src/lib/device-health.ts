@@ -13,7 +13,7 @@ import {
   STALE_AFTER_MS,
   type ReadingStatus,
 } from "@/lib/parameters"
-import { unitLacksSensor } from "@/lib/pond-status"
+import { hasReportedDo, unitLacksSensor } from "@/lib/pond-status"
 
 // Plain-language maintenance meaning for what a unit reports about itself. Everything here is about the
 // hardware (is the probe plugged in, why did it restart); none of it judges a water-quality reading —
@@ -103,6 +103,30 @@ const SENSOR_STATUS_OVERRIDES: Record<
   string,
   Record<string, { label: string; action: string | null }>
 > = {
+  dissolvedOxygen: {
+    uncalibrated: {
+      label: "Needs calibration",
+      action: "DO calibration is required; procedure pending verification",
+    },
+    not_found: {
+      label: "DO probe not detected",
+      action: "Unit reports no DO probe; check its connections",
+    },
+    disconnected: {
+      label: "DO probe disconnected",
+      action: "Unit reports a DO disconnection; check the probe cable and plug",
+    },
+    no_signal: {
+      label: "No DO signal",
+      action:
+        "Unit reports no DO signal; check the DO board's supply and signal wire",
+    },
+    over_range: {
+      label: "DO reading outside reported sensor range",
+      action:
+        "Check the DO probe and reported calibration; physical range verification is pending",
+    },
+  },
   ph: {
     uncalibrated: {
       label: "Needs calibration",
@@ -210,6 +234,23 @@ export function sensorHealth({
       "Check the unit's power and WiFi"
     )
 
+  if (
+    sensor.parameter === "dissolvedOxygen" &&
+    (sensor.reportedStatus === null || sensor.reportedStatus === "ok")
+  ) {
+    const time = sensor.lastReadingAt ? Date.parse(sensor.lastReadingAt) : NaN
+    return Number.isFinite(sensor.lastValue) &&
+      Number.isFinite(time) &&
+      now - time <= STALE_AFTER_MS
+      ? health("ok", "Connected", null, sensor.reportedStatus === null)
+      : health(
+          "stale",
+          "No current DO reading",
+          SILENT_WIRING_HINT,
+          sensor.reportedStatus === null
+        )
+  }
+
   if (sensor.reportedStatus !== null) {
     const text = statusText(sensor.parameter, sensor.reportedStatus)
     return sensor.reportedStatus === "ok"
@@ -245,7 +286,7 @@ export function unitSensors(
   firmwareVersion: string | null,
   assignedAt: string | null
 ): SensorDiagnostics[] {
-  const statuses: Record<string, string> = {}
+  const statuses: Record<string, string> = Object.create(null)
   for (const sensor of sensors)
     if (sensor.reportedStatus !== null)
       statuses[sensor.parameter] = sensor.reportedStatus
@@ -255,6 +296,13 @@ export function unitSensors(
   }
   return sensors
     .filter((sensor) => {
+      if (sensor.parameter === "dissolvedOxygen")
+        return hasReportedDo({
+          statuses,
+          value: sensor.lastValue,
+          recordedAt: sensor.lastReadingAt,
+          assignedAt,
+        })
       if (
         sensor.lastReadingAt !== null &&
         (assignedAt === null ||

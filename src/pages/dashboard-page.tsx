@@ -230,7 +230,7 @@ function DashboardSkeleton() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-x-8 gap-y-5 md:flex-row md:flex-wrap">
+      <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2 xl:grid-cols-4">
         {PARAMETERS.map((parameter) => (
           <div
             key={parameter.id}

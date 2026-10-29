@@ -568,7 +568,9 @@ function DiagnosticsSections({
                           {health.label}
                           {health.inferred ? (
                             <span className="text-board-muted">
-                              (estimated — older firmware)
+                              {sensor.parameter === "dissolvedOxygen"
+                                ? "(estimated from latest reading)"
+                                : "(estimated — older firmware)"}
                             </span>
                           ) : null}
                         </span>

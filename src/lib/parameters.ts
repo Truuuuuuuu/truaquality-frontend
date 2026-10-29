@@ -1,5 +1,5 @@
 import type { ComponentType } from "react"
-import { FlaskConical, Thermometer, Waves } from "lucide-react"
+import { Bubbles, FlaskConical, Thermometer, Waves } from "lucide-react"
 
 export type ReadingStatus = "nominal" | "warning" | "critical" | "stale"
 
@@ -26,6 +26,8 @@ export type ParameterConfig = {
   // A unit on an older firmware is "not reported" for it rather than "silent" (D-09), so it never pins
   // the pond to stale. Set this on every parameter added after the first firmware release.
   sinceFirmware?: string
+  // A version string alone cannot establish that a DO probe has been reported.
+  capabilityEvidence?: "reported"
   // Plain-language words for which side of the range a reading left, appended in parentheses to alert
   // titles and the spike chip ("too low (acidic)"), so that copy comes from metadata rather than an id
   // check (D-14).
@@ -95,6 +97,14 @@ export const PARAMETERS: ParameterConfig[] = [
     sinceFirmware: "0.7.0",
     directionWords: { low: "acidic", high: "alkaline" },
   },
+  {
+    id: "dissolvedOxygen",
+    label: "Dissolved oxygen",
+    shortLabel: "DO",
+    unit: "mg/L",
+    precision: 2,
+    capabilityEvidence: "reported",
+  },
 ]
 
 export const PARAMETER_ICONS: Record<
@@ -104,6 +114,7 @@ export const PARAMETER_ICONS: Record<
   temperature: Thermometer,
   turbidity: Waves,
   ph: FlaskConical,
+  dissolvedOxygen: Bubbles,
 }
 
 export const PARAMETER_BY_ID: Record<string, ParameterConfig> =

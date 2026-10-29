@@ -3,7 +3,8 @@ import * as React from "react"
 import { useDisplayPreferences } from "@/context/display-preferences-context"
 import { Gauge, MoveRight, TrendingDown, TrendingUp } from "lucide-react"
 import { cn } from "@/lib/utils"
-import type { ParameterAnalysis } from "@/lib/api"
+import type { AnyParameterAnalysis, SeriesResolution } from "@/lib/api"
+import { referenceResult, type DoReadingState } from "@/lib/do-display"
 import {
   formatTick,
   nearestPoint,
@@ -15,13 +16,18 @@ import {
   severityFor,
   type ReadingState,
 } from "@/lib/parameters"
-import { hasLowSide, pendingScaleDomain, valueTicks } from "@/lib/chart-scale"
+import {
+  hasLowSide,
+  pendingScaleDomain,
+  referenceScaleDomain,
+  valueTicks,
+} from "@/lib/chart-scale"
 import { keepsCase } from "@/lib/pond-status"
 import { formatStatValue } from "@/lib/reading-format"
 import { STATUS_COLOR, STATUS_LABELS, STATUS_STYLES } from "@/lib/status-styles"
 
 type ParameterHistoryChartProps = {
-  reading: ReadingState
+  reading: ReadingState | DoReadingState
   domainStart: number
   domainEnd: number
   // The stack's measured width — every chart in it draws at the same width so their time axes line up.
@@ -35,8 +41,20 @@ type ParameterHistoryChartProps = {
   // Shared across the stack, so a stretch reads as "no data" on every chart or on none.
   toleranceMs: number
   // Server-computed analysis of this range; null until it loads (or when the server has none).
-  analysis: ParameterAnalysis | null
+  analysis: AnyParameterAnalysis | null
   comparisonLabel: string
+  referenceResolution?: SeriesResolution
+}
+
+export function ParameterHistoryChart(props: ParameterHistoryChartProps) {
+  return "kind" in props.reading && props.reading.kind === "reference" ? (
+    <ReferenceHistoryChart {...props} reading={props.reading} />
+  ) : (
+    <LegacyParameterHistoryChart
+      {...props}
+      reading={props.reading as ReadingState}
+    />
+  )
 }
 
 // Exported so the container positions its tooltip against the same plot origin every chart draws from.
@@ -74,13 +92,7 @@ export function formatShare(share: number) {
   return `${Math.round(share * 100)}%`
 }
 
-// `clipOnly` bands color the line but paint no zone tint.
-type Band = { y1: number; y2: number; clipOnly?: boolean }
-
-// One parameter's history in its own units, drawn against its own safe and critical edges. The line is
-// painted three times through zone clip paths, so each stretch takes the color of the zone it passes
-// through — a past excursion stays amber or red on the chart even after the reading has recovered.
-export function ParameterHistoryChart({
+function ReferenceHistoryChart({
   reading,
   domainStart,
   domainEnd,
@@ -94,7 +106,431 @@ export function ParameterHistoryChart({
   toleranceMs,
   analysis,
   comparisonLabel,
-}: ParameterHistoryChartProps) {
+  referenceResolution,
+}: Omit<ParameterHistoryChartProps, "reading"> & { reading: DoReadingState }) {
+  const id = `do-${React.useId().replace(/[^\w-]/g, "")}`
+  const history = reading.history.filter(
+    (point) => Number.isFinite(point.v) && Number.isFinite(point.t)
+  )
+  const reference =
+    referenceResult(0, reading.normalReference) === null
+      ? null
+      : reading.normalReference
+  const domain = referenceScaleDomain(
+    reference,
+    Math.min(...history.map((point) => point.v)),
+    Math.max(...history.map((point) => point.v))
+  )
+  const plotWidth = plotWidthFor(width)
+  const innerHeight = compact ? PLOT_HEIGHT_COMPACT : PLOT_HEIGHT
+  const height = chartHeightFor(compact, showXAxis)
+  const scale = Math.max(Math.abs(domain.lo), Math.abs(domain.hi), 1)
+  const toY = (value: number) =>
+    innerHeight *
+    (1 -
+      (value / scale - domain.lo / scale) /
+        (domain.hi / scale - domain.lo / scale))
+  const toX = (time: number) =>
+    Math.min(
+      plotWidth,
+      Math.max(
+        0,
+        ((time - domainStart) / Math.max(domainEnd - domainStart, 1)) *
+          plotWidth
+      )
+    )
+  const edgeY = reference ? toY(reference.boundary) : null
+  const color = (value: number) =>
+    referenceResult(value, reference) === "within_reference"
+      ? "var(--board-accent)"
+      : reference
+        ? "var(--board-warn)"
+        : "var(--board-muted)"
+  const runs = splitRuns(history, toleranceMs)
+  const paths = runs
+    .filter((run) => run.length > 1)
+    .map((run) => ({
+      key: run[0].t,
+      d: run
+        .map(
+          (point, index) =>
+            `${index ? "L" : "M"} ${toX(point.t)} ${toY(point.v)}`
+        )
+        .join(" "),
+    }))
+  const singles = runs.filter((run) => run.length === 1).map((run) => run[0])
+  const last = history.at(-1)
+  const gaps: { from: number; to: number }[] = []
+  if (!history.length) gaps.push({ from: domainStart, to: domainEnd })
+  else {
+    if (history[0].t - domainStart > toleranceMs)
+      gaps.push({ from: domainStart, to: history[0].t })
+    for (let index = 1; index < runs.length; index++)
+      gaps.push({ from: runs[index - 1].at(-1)!.t, to: runs[index][0].t })
+    if (last && domainEnd - last.t > toleranceMs)
+      gaps.push({ from: last.t, to: domainEnd })
+  }
+  const { ticks: xTicks, step: xStep } = timeTicks(
+    domainStart,
+    domainEnd,
+    Math.max(2, Math.floor(plotWidth / 96))
+  )
+  const activePoint =
+    activeTime === null ? null : nearestPoint(history, activeTime)
+  const showActive =
+    activePoint &&
+    activeTime !== null &&
+    Math.abs(activePoint.t - activeTime) <= toleranceMs / 2
+  const doAnalysis = analysis && "thresholdState" in analysis ? analysis : null
+  const comparison = doAnalysis?.referenceComparison
+  const format = (value: number) => formatStatValue(reading.parameter, value)
+  const change = doAnalysis?.previousChange
+  const signed = (value: number) =>
+    `${value > 0 ? "+" : value < 0 ? "−" : ""}${format(Math.abs(value))}`
+  const shareBasis = comparison?.approximate
+    ? `Approximate; count-weighted ${referenceResolution === "day" ? "daily" : referenceResolution === "hour" ? "hourly" : "hourly/daily"} bucket averages, not individual samples`
+    : "Raw samples"
+  return (
+    <div className="flex min-w-0 flex-col gap-2">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+          <h3 className="font-sans text-xs font-medium text-board-fg">
+            {reading.parameter.label}
+          </h3>
+          <span className="font-heading text-xs text-board-muted">
+            {reading.parameter.unit}
+          </span>
+          <span className="font-sans text-xs text-board-muted">
+            Alert assessment pending
+          </span>
+          <span className="font-sans text-xs text-board-muted">
+            {reference?.label ?? "Reference unavailable"}
+          </span>
+          {!reading.currentReading && isLive ? (
+            <span className="font-sans text-xs text-board-muted">
+              No current DO reading
+            </span>
+          ) : null}
+        </div>
+        {analysis ? (
+          <dl className="flex flex-wrap gap-x-3 gap-y-1 font-sans text-xs text-board-muted">
+            {[
+              {
+                label: "Lowest DO",
+                value: analysis.min,
+                tint:
+                  comparison?.minimumResult === "within_reference"
+                    ? "text-board-accent"
+                    : comparison?.minimumResult === "outside_reference"
+                      ? "text-board-warn"
+                      : "text-board-muted",
+              },
+              { label: "Max", value: analysis.max, tint: "text-board-fg" },
+              { label: "Avg", value: analysis.avg, tint: "text-board-fg" },
+            ].map((stat) => (
+              <div key={stat.label} className="flex items-baseline gap-1">
+                <dt>{stat.label}</dt>
+                <dd className={cn("font-heading tabular-nums", stat.tint)}>
+                  {format(stat.value)}
+                </dd>
+              </div>
+            ))}
+            <div className="flex items-baseline gap-1">
+              <dt>Change vs {comparisonLabel}</dt>
+              <dd className="font-heading text-board-fg tabular-nums">
+                {typeof change === "number" && Number.isFinite(change)
+                  ? `${signed(change)} ${reading.parameter.unit}`
+                  : "Unavailable"}
+              </dd>
+            </div>
+            <div className="flex flex-wrap items-baseline gap-x-1">
+              <dt>Outside normal range</dt>
+              <dd className="font-heading text-board-fg tabular-nums">
+                {typeof comparison?.outsideShare === "number" &&
+                Number.isFinite(comparison.outsideShare)
+                  ? formatShare(comparison.outsideShare)
+                  : "Unavailable"}
+              </dd>
+              <dd className="w-full basis-full text-board-muted">
+                {comparison ? shareBasis : "Reference comparison unavailable"}
+              </dd>
+            </div>
+          </dl>
+        ) : null}
+      </div>
+      {width === 0 ? (
+        <div style={{ height }} />
+      ) : (
+        <svg
+          width={width}
+          height={height}
+          role="img"
+          aria-label={`Dissolved oxygen historical reference comparison. ${reference?.label ?? "Reference unavailable"}. Alert assessment pending.`}
+          className="block overflow-visible"
+        >
+          <defs>
+            {edgeY !== null ? (
+              <>
+                <clipPath id={`${id}-above`}>
+                  <rect
+                    x={-6}
+                    y={-6}
+                    width={plotWidth + 12}
+                    height={edgeY + 6}
+                  />
+                </clipPath>
+                <clipPath id={`${id}-below`}>
+                  <rect
+                    x={-6}
+                    y={edgeY}
+                    width={plotWidth + 12}
+                    height={innerHeight - edgeY + 6}
+                  />
+                </clipPath>
+              </>
+            ) : null}
+            <pattern
+              id={`${id}-gap`}
+              width={6}
+              height={6}
+              patternUnits="userSpaceOnUse"
+              patternTransform="rotate(45)"
+            >
+              <line
+                y2={6}
+                stroke="var(--board-border-strong)"
+                strokeWidth={1.5}
+              />
+            </pattern>
+          </defs>
+          <g transform={`translate(${MARGIN_LEFT} ${MARGIN_TOP})`}>
+            {edgeY !== null ? (
+              <>
+                <rect
+                  width={plotWidth}
+                  height={edgeY}
+                  fill="var(--board-accent)"
+                  fillOpacity={0.08}
+                />
+                <rect
+                  y={edgeY}
+                  width={plotWidth}
+                  height={innerHeight - edgeY}
+                  fill="var(--board-warn)"
+                  fillOpacity={0.07}
+                />
+                <line
+                  x2={plotWidth}
+                  y1={edgeY}
+                  y2={edgeY}
+                  stroke="var(--board-muted)"
+                  strokeDasharray="4 4"
+                />
+              </>
+            ) : null}
+            {domain.ticks.map((tick) => (
+              <text
+                key={tick}
+                x={-8}
+                y={toY(tick)}
+                dy="0.32em"
+                textAnchor="end"
+                className="fill-board-muted font-heading text-[0.625rem] tabular-nums"
+              >
+                {tick.toFixed(
+                  Math.min(domain.decimals, reading.parameter.precision)
+                )}
+              </text>
+            ))}
+            {xTicks.map((tick) => (
+              <line
+                key={tick}
+                x1={toX(tick)}
+                x2={toX(tick)}
+                y2={innerHeight}
+                stroke="var(--board-border)"
+                strokeDasharray="2 4"
+              />
+            ))}
+            {gaps.map((gap) => (
+              <g key={`${gap.from}-${gap.to}`}>
+                <rect
+                  x={toX(gap.from)}
+                  width={Math.max(0, toX(gap.to) - toX(gap.from))}
+                  height={innerHeight}
+                  fill={`url(#${id}-gap)`}
+                />
+                {toX(gap.to) - toX(gap.from) >= 56 ? (
+                  <text
+                    x={(toX(gap.from) + toX(gap.to)) / 2}
+                    y={innerHeight - 6}
+                    textAnchor="middle"
+                    className="fill-board-muted font-sans text-[0.625rem]"
+                  >
+                    No data
+                  </text>
+                ) : null}
+              </g>
+            ))}
+            {reference
+              ? ["above", "below"].map((zone) => (
+                  <g key={zone} clipPath={`url(#${id}-${zone})`}>
+                    {paths.map((path) => (
+                      <path
+                        key={path.key}
+                        d={path.d}
+                        fill="none"
+                        stroke={
+                          zone === "above"
+                            ? "var(--board-accent)"
+                            : "var(--board-warn)"
+                        }
+                        strokeWidth={2}
+                        strokeLinejoin="round"
+                      />
+                    ))}
+                  </g>
+                ))
+              : paths.map((path) => (
+                  <path
+                    key={path.key}
+                    d={path.d}
+                    fill="none"
+                    stroke="var(--board-muted)"
+                    strokeWidth={2}
+                  />
+                ))}
+            {reference
+              ? runs.flatMap((run) =>
+                  run
+                    .slice(1)
+                    .map((point, index) =>
+                      point.v === reference.boundary &&
+                      run[index].v === reference.boundary ? (
+                        <path
+                          key={`${run[index].t}-${point.t}`}
+                          d={`M ${toX(run[index].t)} ${edgeY} L ${toX(point.t)} ${edgeY}`}
+                          fill="none"
+                          stroke="var(--board-warn)"
+                          strokeWidth={2}
+                        />
+                      ) : null
+                    )
+                )
+              : null}
+            {singles.map((point) => (
+              <circle
+                key={point.t}
+                cx={toX(point.t)}
+                cy={toY(point.v)}
+                r={2}
+                fill={color(point.v)}
+              />
+            ))}
+            {last ? (
+              <circle
+                cx={toX(last.t)}
+                cy={toY(last.v)}
+                r={3.5}
+                fill={
+                  isLive && !reading.currentReading
+                    ? "var(--board-muted)"
+                    : color(last.v)
+                }
+                stroke="var(--board-bg)"
+                strokeWidth={1.5}
+              >
+                {isLive && reading.currentReading && !reducedMotion ? (
+                  <animate
+                    attributeName="r"
+                    values="3.5;5;3.5"
+                    dur="2.4s"
+                    repeatCount="indefinite"
+                  />
+                ) : null}
+              </circle>
+            ) : null}
+            <line
+              x2={plotWidth}
+              y1={innerHeight}
+              y2={innerHeight}
+              stroke="var(--board-border-strong)"
+            />
+            {showXAxis
+              ? xTicks.map((tick) => (
+                  <text
+                    key={tick}
+                    x={toX(tick)}
+                    y={innerHeight + 16}
+                    textAnchor="middle"
+                    className="fill-board-muted font-heading text-[0.625rem] tabular-nums"
+                  >
+                    {formatTick(tick, xStep)}
+                  </text>
+                ))
+              : null}
+            {activeTime !== null ? (
+              <g pointerEvents="none">
+                <line
+                  x1={toX(activeTime)}
+                  x2={toX(activeTime)}
+                  y2={innerHeight}
+                  stroke="var(--board-muted)"
+                />
+                {showActive ? (
+                  <circle
+                    cx={toX(activePoint.t)}
+                    cy={toY(activePoint.v)}
+                    r={4.5}
+                    fill={color(activePoint.v)}
+                    stroke="var(--board-bg)"
+                    strokeWidth={2}
+                  />
+                ) : null}
+              </g>
+            ) : null}
+            <rect
+              width={plotWidth}
+              height={innerHeight}
+              fill="transparent"
+              onPointerMove={(event) => {
+                const box = event.currentTarget.getBoundingClientRect()
+                onActiveTime(
+                  domainStart +
+                    ((event.clientX - box.left) / Math.max(box.width, 1)) *
+                      (domainEnd - domainStart)
+                )
+              }}
+              onPointerLeave={() => onActiveTime(null)}
+            />
+          </g>
+        </svg>
+      )}
+    </div>
+  )
+}
+
+// `clipOnly` bands color the line but paint no zone tint.
+type Band = { y1: number; y2: number; clipOnly?: boolean }
+
+// One parameter's history in its own units, drawn against its own safe and critical edges. The line is
+// painted three times through zone clip paths, so each stretch takes the color of the zone it passes
+// through — a past excursion stays amber or red on the chart even after the reading has recovered.
+function LegacyParameterHistoryChart({
+  reading,
+  domainStart,
+  domainEnd,
+  width,
+  activeTime,
+  onActiveTime,
+  showXAxis,
+  isLive,
+  reducedMotion,
+  compact = false,
+  toleranceMs,
+  analysis,
+  comparisonLabel,
+}: Omit<ParameterHistoryChartProps, "reading"> & { reading: ReadingState }) {
   const { simpleMode } = useDisplayPreferences()
   const { parameter, threshold, history } = reading
   const Icon = PARAMETER_ICONS[parameter.id] ?? Gauge
@@ -416,10 +852,14 @@ export function ParameterHistoryChart({
               <dd
                 className={cn(
                   "font-heading tabular-nums",
-                  STATUS_STYLES[analysis.worst].value
+                  analysis.worst === null
+                    ? "text-board-muted"
+                    : STATUS_STYLES[analysis.worst].value
                 )}
               >
-                {formatShare(analysis.outOfRangeShare)}
+                {analysis.outOfRangeShare === null
+                  ? "Not assessed"
+                  : formatShare(analysis.outOfRangeShare)}
               </dd>
             </div>
           </dl>

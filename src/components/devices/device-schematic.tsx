@@ -34,9 +34,10 @@ export function DeviceSchematic({
     deviceState === "ONLINE" ? "var(--board-accent)" : "var(--board-stale)"
   const glands = glandPositions(probes.length)
   const phIndex = probes.findIndex((probe) => probe.parameter === "ph")
+  const crowded = probes.length >= 4
   return (
     <svg
-      viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+      viewBox={`0 0 ${WIDTH} ${crowded ? 350 : HEIGHT}`}
       width="100%"
       height="100%"
       preserveAspectRatio="xMidYMid meet"
@@ -107,6 +108,7 @@ export function DeviceSchematic({
           x={probeX(index, probes.length)}
           glandX={glands[index]}
           selected={probe.parameter === selected}
+          crowded={crowded}
           onSelect={onSelect}
         />
       ))}
@@ -143,12 +145,14 @@ function SchematicProbe({
   x,
   glandX,
   selected,
+  crowded,
   onSelect,
 }: {
   probe: UnitViewProbe
   x: number
   glandX: number
   selected: boolean
+  crowded: boolean
   onSelect: (parameter: string) => void
 }) {
   const color = STATUS_COLOR[SENSOR_TONE_STATUS[probe.tone]]
@@ -183,11 +187,20 @@ function SchematicProbe({
         fontWeight={selected ? 600 : 400}
         fill="var(--board-fg)"
       >
-        {probe.label}
+        {crowded && probe.parameter === "dissolvedOxygen" ? (
+          <>
+            <tspan x={x}>Dissolved</tspan>
+            <tspan x={x} dy={14}>
+              oxygen
+            </tspan>
+          </>
+        ) : (
+          probe.label
+        )}
       </text>
       <text
         x={x}
-        y={288}
+        y={crowded ? 306 : 288}
         textAnchor="middle"
         fontSize={11}
         fill={
@@ -196,7 +209,22 @@ function SchematicProbe({
             : "var(--board-muted)"
         }
       >
-        {probe.stateLabel}
+        {crowded
+          ? probe.stateLabel
+              .split(" ")
+              .reduce<string[]>((lines, word) => {
+                const last = lines.length - 1
+                if (last >= 0 && `${lines[last]} ${word}`.length <= 15)
+                  lines[last] += ` ${word}`
+                else lines.push(word)
+                return lines
+              }, [])
+              .map((line, index) => (
+                <tspan key={index} x={x} dy={index === 0 ? 0 : 13}>
+                  {line}
+                </tspan>
+              ))
+          : probe.stateLabel}
       </text>
     </g>
   )
@@ -206,6 +234,26 @@ function SchematicProbe({
 // electrode, a plastic cap over a slim glass stem ending in the sensing bulb. Anything else: generic.
 function ProbeGlyph({ parameter, x }: { parameter: string; x: number }) {
   const stroke = "var(--board-border-strong)"
+  // A generic closed probe with a flat sensing end; no kit dimensions or electrode construction implied.
+  if (parameter === "dissolvedOxygen")
+    return (
+      <g data-probe="dissolvedOxygen">
+        <rect
+          x={x - 9}
+          y={PROBE_TOP}
+          width={18}
+          height={46}
+          rx={5}
+          fill="var(--board-panel-raised)"
+          stroke={stroke}
+        />
+        <path
+          d={`M ${x - 9} ${PROBE_TOP + 37} H ${x + 9}`}
+          fill="none"
+          stroke={stroke}
+        />
+      </g>
+    )
   if (parameter === "ph")
     return (
       <g>

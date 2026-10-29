@@ -16,7 +16,7 @@ import {
   X,
 } from "lucide-react"
 import { Link, useParams } from "react-router"
-import { cn } from "cn"
+import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { BoardEmptyState } from "@/components/board-empty-state"
 import { ExportReadingsDialog } from "@/components/ponds/export-readings-dialog"
@@ -42,8 +42,9 @@ import {
   usePondReadingsPage,
 } from "@/hooks/use-ponds"
 import { useNow } from "@/hooks/use-now"
-import { ApiError, type Pond } from "@/lib/api"
+import { ApiError, type Pond, type NormalReference } from "@/lib/api"
 import { formatClock, formatRelative } from "@/lib/format-time"
+import { historicalValuePresentation } from "@/lib/history-reading"
 import { formatReading } from "@/lib/reading-format"
 import {
   DEFAULT_HISTORY_RANGE,
@@ -54,7 +55,6 @@ import {
   PARAMETER_FILTER_ITEMS,
   PARAMETER_ICONS,
   PARAMETERS,
-  severityFor,
   type ParameterConfig,
   type Threshold,
 } from "@/lib/parameters"
@@ -384,6 +384,9 @@ export function PondDetailPage() {
                       now={now}
                       parameters={visibleParameters}
                       thresholds={pond.thresholds}
+                      normalReference={
+                        pond.parameterMetadata?.dissolvedOxygen?.normalReference
+                      }
                     />
                   ))}
                 </TableBody>
@@ -439,12 +442,14 @@ function PivotedRow({
   now,
   parameters,
   thresholds,
+  normalReference,
 }: {
   row: PivotRow
   now: number
   parameters: ParameterConfig[]
   // Resolved for this pond's type by the server, so a historical row is colored by the same band
   // that would have alerted on it.
+  normalReference?: NormalReference | null
   thresholds: Record<string, Threshold>
 }) {
   const t = Date.parse(row.recordedAt)
@@ -460,24 +465,38 @@ function PivotedRow({
       {parameters.map((parameter) => {
         const value = row.values[parameter.id]
         const threshold = thresholds[parameter.id]
-        if (value === undefined || !threshold) {
+        if (value === undefined || !Number.isFinite(value)) {
           return (
             <TableCell
               key={parameter.id}
               className="text-right font-heading text-xs text-board-muted/50 tabular-nums"
             >
-              —
+              <span aria-hidden="true">—</span>
+              <span className="sr-only">{parameter.label}: no reading</span>
             </TableCell>
           )
         }
-        const severity = severityFor(threshold, value)
+        const presentation = historicalValuePresentation(
+          parameter.id,
+          value,
+          threshold,
+          normalReference
+        )
+        const valueStyle =
+          presentation.tone === "green"
+            ? "text-board-accent"
+            : presentation.tone === "amber"
+              ? STATUS_STYLES.warning.value
+              : presentation.tone === "muted"
+                ? "text-board-muted"
+                : STATUS_STYLES[presentation.tone].value
         const shown = formatReading(parameter, value)
         return (
           <TableCell
             key={parameter.id}
             className={cn(
               "text-right font-heading text-xs tabular-nums",
-              STATUS_STYLES[severity].value
+              valueStyle
             )}
           >
             {shown.prefix ? (
@@ -485,13 +504,19 @@ function PivotedRow({
               <>
                 <span aria-hidden="true">{shown.text}</span>
                 <span className="sr-only">
-                  {shown.spoken}, {STATUS_LABELS[severity]}
+                  {shown.spoken}, {presentation.label}
                 </span>
               </>
             ) : (
               <>
                 {shown.text}
-                <span className="sr-only"> — {STATUS_LABELS[severity]}</span>
+                <span className="sr-only">
+                  {" "}
+                  — {presentation.label}
+                  {presentation.assessment
+                    ? `, ${presentation.assessment}`
+                    : ""}
+                </span>
               </>
             )}
           </TableCell>
@@ -695,7 +720,7 @@ function PondDetailSkeleton() {
           <Skeleton className="h-3 w-28" />
         </div>
       </div>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {PARAMETERS.map((parameter) => (
           <Skeleton key={parameter.id} className="min-h-44 rounded-xl" />
         ))}

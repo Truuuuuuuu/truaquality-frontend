@@ -30,17 +30,20 @@ import {
 import {
   PARAMETER_ICONS,
   PARAMETERS,
-  severityFor,
   type ParameterConfig,
-  type ReadingState,
 } from "@/lib/parameters"
+import {
+  historicalDisplayReading,
+  historicalValuePresentation,
+} from "@/lib/history-reading"
+import type { ParameterDisplayState } from "@/lib/do-display"
 import { formatReading } from "@/lib/reading-format"
 import {
   keepsCase,
   pondReadingStates,
   type PondReadingEntry,
 } from "@/lib/pond-status"
-import { STATUS_COLOR, STATUS_LABELS, STATUS_STYLES } from "@/lib/status-styles"
+import { STATUS_COLOR, STATUS_STYLES } from "@/lib/status-styles"
 
 type PondHistoryChartsProps = {
   pond: Pond
@@ -56,7 +59,10 @@ type PondHistoryChartsProps = {
 const TOOLTIP_WIDTH = 300
 const TOOLTIP_OFFSET = 12
 
-type Plottable = PondReadingEntry & { reading: ReadingState }
+type HistoryEntry = PondReadingEntry & {
+  historicalReading: ParameterDisplayState | null
+}
+type Plottable = HistoryEntry & { historicalReading: ParameterDisplayState }
 
 // A pond's history as one chart per parameter, stacked on a single time axis. The stack shares one
 // crosshair, one tooltip, and one keyboard focus stop, so reading across parameters at a moment in time
@@ -72,17 +78,32 @@ export function PondHistoryCharts({
   // first series request is in flight the history map is empty, and pondReadingStates' latest-reading
   // fallback would otherwise claim "Not enough history in this range" for every parameter. isPending
   // (not isFetching) so a background refetch keeps the charts on screen.
-  const { isPending: seriesPending } = usePondSeriesRange(pond.id, range)
+  const { isPending: seriesPending, error: seriesError } = usePondSeriesRange(
+    pond.id,
+    range
+  )
   const { data: analysis } = usePondAnalysisRange(pond.id, range)
   // "Last 24h" compares against "prev. 24h"; a custom range just against the period before it.
   const comparisonLabel =
     range.kind === "rolling"
       ? `prev. ${range.label.replace(/^Last\s+/, "")}`
       : "prev. period"
-  const readings = pondReadingStates(pond, now, historyByParameter)
+  const readings: HistoryEntry[] = pondReadingStates(
+    pond,
+    now,
+    historyByParameter
+  ).map((entry) => ({
+    ...entry,
+    historicalReading: historicalDisplayReading(
+      entry,
+      pond,
+      historyByParameter.get(entry.parameter.id) ?? []
+    ),
+  }))
   const plottable = readings.filter(
     (entry): entry is Plottable =>
-      entry.reading !== null && entry.reading.history.length >= 2
+      entry.historicalReading !== null &&
+      entry.historicalReading.history.length >= 2
   )
   const lastPlottedId = plottable.at(-1)?.parameter.id
 
@@ -108,10 +129,14 @@ export function PondHistoryCharts({
     return Math.min(plotWidth, Math.max(0, x))
   }
 
-  const toleranceMs = gapToleranceMs(plottable.map((e) => e.reading.history))
+  const toleranceMs = gapToleranceMs(
+    plottable.map((e) => e.historicalReading.history)
+  )
   const allTimes = [
     ...new Set(
-      plottable.flatMap(({ reading }) => reading.history.map((p) => p.t))
+      plottable.flatMap(({ historicalReading }) =>
+        historicalReading.history.map((p) => p.t)
+      )
     ),
   ].sort((a, b) => a - b)
 
@@ -157,13 +182,18 @@ export function PondHistoryCharts({
   const hovered =
     activeTime === null
       ? []
-      : plottable.map(({ parameter, reading }) => {
+      : plottable.map(({ parameter, historicalReading: reading }) => {
           const point = nearestPoint(reading.history, activeTime)
           const near = Math.abs(point.t - activeTime) <= toleranceMs / 2
           return {
             parameter,
             value: near ? point.v : null,
-            severity: near ? severityFor(reading.threshold, point.v) : null,
+            presentation: historicalValuePresentation(
+              parameter.id,
+              near ? point.v : null,
+              reading.kind === "assessed" ? reading.threshold : undefined,
+              reading.kind === "reference" ? reading.normalReference : null
+            ),
           }
         })
 
@@ -171,10 +201,10 @@ export function PondHistoryCharts({
     activeTime === null
       ? ""
       : `${formatTooltipTime(activeTime)}: ${hovered
-          .map(({ parameter, value, severity }) =>
-            value === null || severity === null
+          .map(({ parameter, value, presentation }) =>
+            value === null
               ? `${parameter.label}, no reading`
-              : `${parameter.label} ${formatReading(parameter, value).spoken}, ${STATUS_LABELS[severity]}`
+              : `${parameter.label} ${formatReading(parameter, value).spoken}, ${presentation.label}${presentation.assessment ? `, ${presentation.assessment}` : ""}`
           )
           .join("; ")}`
 
@@ -223,7 +253,11 @@ export function PondHistoryCharts({
       ) : null}
 
       <div ref={containerRef} className="relative w-full min-w-0">
-        {seriesPending ? (
+        {seriesError ? (
+          <p role="alert" className="font-sans text-sm text-board-muted">
+            Couldn’t load history: {seriesError.message}
+          </p>
+        ) : seriesPending ? (
           <HistoryChartsSkeleton compact={compact} />
         ) : (
           <div
@@ -245,43 +279,45 @@ export function PondHistoryCharts({
                 "rounded-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-board-muted"
             )}
           >
-            {readings.map(({ parameter, reading, signal }) =>
-              reading === null && signal === "not_reported" ? (
-                <EmptyRow
-                  key={parameter.id}
-                  parameter={parameter}
-                  message="Not reported by this unit"
-                />
-              ) : reading === null ? (
-                <EmptyRow
-                  key={parameter.id}
-                  parameter={parameter}
-                  message="No readings yet"
-                />
-              ) : reading.history.length < 2 ? (
-                <EmptyRow
-                  key={parameter.id}
-                  parameter={parameter}
-                  message="Not enough history in this range"
-                />
-              ) : (
-                <ParameterHistoryChart
-                  key={parameter.id}
-                  reading={reading}
-                  domainStart={domainStart}
-                  domainEnd={domainEnd}
-                  width={width}
-                  activeTime={activeTime}
-                  onActiveTime={handleActiveTime}
-                  showXAxis={parameter.id === lastPlottedId}
-                  isLive={isLive}
-                  reducedMotion={reducedMotion}
-                  compact={compact}
-                  toleranceMs={toleranceMs}
-                  analysis={analysis?.parameters[parameter.id] ?? null}
-                  comparisonLabel={comparisonLabel}
-                />
-              )
+            {readings.map(
+              ({ parameter, historicalReading: reading, signal }) =>
+                reading === null && signal === "not_reported" ? (
+                  <EmptyRow
+                    key={parameter.id}
+                    parameter={parameter}
+                    message="Not reported by this unit"
+                  />
+                ) : reading === null ? (
+                  <EmptyRow
+                    key={parameter.id}
+                    parameter={parameter}
+                    message="No readings yet"
+                  />
+                ) : reading.history.length < 2 ? (
+                  <EmptyRow
+                    key={parameter.id}
+                    parameter={parameter}
+                    message="Not enough history in this range"
+                  />
+                ) : (
+                  <ParameterHistoryChart
+                    key={parameter.id}
+                    reading={reading}
+                    domainStart={domainStart}
+                    domainEnd={domainEnd}
+                    width={width}
+                    activeTime={activeTime}
+                    onActiveTime={handleActiveTime}
+                    showXAxis={parameter.id === lastPlottedId}
+                    isLive={isLive}
+                    reducedMotion={reducedMotion}
+                    compact={compact}
+                    toleranceMs={toleranceMs}
+                    analysis={analysis?.parameters[parameter.id] ?? null}
+                    comparisonLabel={comparisonLabel}
+                    referenceResolution={analysis?.resolution}
+                  />
+                )
             )}
           </div>
         )}
@@ -295,35 +331,59 @@ export function PondHistoryCharts({
             <span className="font-heading text-[0.65rem] text-board-muted tabular-nums">
               {formatTooltipTime(activeTime)}
             </span>
-            {hovered.map(({ parameter, value, severity }) => (
+            {hovered.map(({ parameter, value, presentation }) => (
               <div
                 key={parameter.id}
-                className="flex items-center gap-2 font-sans text-xs"
+                className="flex flex-wrap items-center gap-x-2 gap-y-0.5 font-sans text-xs"
               >
                 <span
                   className="size-1.5 shrink-0 rounded-full"
                   style={{
                     background:
-                      severity === null
-                        ? STATUS_COLOR.stale
-                        : STATUS_COLOR[severity],
+                      presentation.tone === "green"
+                        ? STATUS_COLOR.nominal
+                        : presentation.tone === "amber"
+                          ? STATUS_COLOR.warning
+                          : presentation.tone === "muted"
+                            ? STATUS_COLOR.stale
+                            : STATUS_COLOR[presentation.tone],
                   }}
                 />
                 <span className="shrink-0 whitespace-nowrap text-board-muted">
                   {parameter.label}
                 </span>
-                <span className="ml-auto shrink-0 font-heading whitespace-nowrap text-board-fg tabular-nums">
+                <span
+                  className={cn(
+                    "ml-auto shrink-0 font-heading whitespace-nowrap tabular-nums",
+                    parameter.id === "dissolvedOxygen"
+                      ? presentation.tone === "green"
+                        ? "text-board-accent"
+                        : presentation.tone === "amber"
+                          ? "text-board-warn"
+                          : "text-board-muted"
+                      : "text-board-fg"
+                  )}
+                >
                   {value === null ? "—" : formatReading(parameter, value).text}
                 </span>
                 <span
                   className={cn(
-                    "w-14 shrink-0 text-right text-[0.65rem]",
-                    severity === null
-                      ? "text-board-muted"
-                      : STATUS_STYLES[severity].label
+                    "w-full text-right text-[0.65rem]",
+                    presentation.tone === "green"
+                      ? "text-board-accent"
+                      : presentation.tone === "amber"
+                        ? STATUS_STYLES.warning.label
+                        : presentation.tone === "muted"
+                          ? "text-board-muted"
+                          : STATUS_STYLES[presentation.tone].label
                   )}
                 >
-                  {severity === null ? "No data" : STATUS_LABELS[severity]}
+                  {presentation.label}
+                  {presentation.assessment ? (
+                    <span className="block text-board-muted">
+                      {presentation.assessment}
+                    </span>
+                  ) : null}
                 </span>
               </div>
             ))}

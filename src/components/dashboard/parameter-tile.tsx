@@ -1,8 +1,9 @@
 import * as React from "react"
 import { useDisplayPreferences } from "@/context/display-preferences-context"
 import type { ComponentType } from "react"
-import { cn } from "cn"
+import { cn } from "@/lib/utils"
 import { silentReason } from "@/lib/device-health"
+import { referenceTone } from "@/lib/do-display"
 import {
   formatClock,
   formatRelative,
@@ -17,12 +18,164 @@ import {
   keepsCase,
   unconfirmedLabel,
   type UnconfirmedSpike,
+  type PondReadingEntry,
 } from "@/lib/pond-status"
 import { formatReading } from "@/lib/reading-format"
 import { STATUS_LABELS, STATUS_STYLES } from "@/lib/status-styles"
 import { SignalPathStrip } from "./signal-path-strip"
 import { StatusStamp } from "./status-stamp"
 import { TrendChart } from "./trend-chart"
+
+type DoParameterTileProps = {
+  entry: PondReadingEntry
+  deviceId: string | null
+  now: number
+  compact?: boolean
+  icon: ComponentType<{ className?: string }>
+}
+
+// Reference color describes only the current DO number. It never becomes a pond
+// severity or a StatusStamp alert; faults and whole-unit offline state take priority.
+export function DoParameterTile({
+  entry,
+  deviceId,
+  now,
+  compact = false,
+  icon: Icon,
+}: DoParameterTileProps) {
+  const { simpleMode } = useDisplayPreferences()
+  const { parameter, referenceReading: reading, signal, sensorStatus } = entry
+  const current = signal === "live" && reading?.currentReading === true
+  const tone = referenceTone(reading?.referenceComparison ?? null, current)
+  const color = {
+    green: "text-board-accent",
+    amber: "text-board-warn",
+    muted: "text-board-stale",
+  }[tone]
+  const unreported = signal === "not_reported"
+  const offline = signal === "unit_offline"
+  const silent = signal === "silent"
+  const reason = silentReason(parameter.id, sensorStatus)
+  const message = unreported
+    ? "DO not reported by this unit"
+    : offline
+      ? "Unit offline"
+      : silent && sensorStatus === "uncalibrated"
+        ? "Needs calibration"
+        : !current
+          ? "No current DO reading"
+          : null
+  const shown = reading ? formatReading(parameter, reading.current) : null
+  const age = reading ? formatRelative(reading.updatedAt, now) : null
+  const comparison =
+    current && reading?.referenceComparison
+      ? reading.referenceComparison === "within_reference"
+        ? "Within normal range"
+        : "Outside normal range"
+      : null
+
+  return (
+    <div
+      tabIndex={0}
+      role="group"
+      aria-label={`${parameter.label}: ${message ?? comparison ?? "Reference unavailable"}${shown ? `, ${current ? "" : "last "}${shown.spoken}, updated ${age}` : ""}. Alert assessment pending`}
+      className={cn(
+        "min-w-0",
+        compact
+          ? "flex flex-col gap-1.5"
+          : "board-groove flex flex-col gap-4 rounded-xl border p-5",
+        !compact &&
+          (current
+            ? "border-board-border bg-board-panel"
+            : "border-dashed border-board-border-strong bg-board-panel/60")
+      )}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className={cn("flex min-w-0 items-center gap-2", color)}>
+          <Icon className="size-4 shrink-0" aria-hidden="true" />
+          <span className="font-sans text-xs font-medium">
+            {compact ? parameter.shortLabel : parameter.label}
+          </span>
+        </div>
+        {reading && offline ? (
+          <StatusStamp
+            status="stale"
+            updatedAt={reading.updatedAt}
+            now={now}
+            className={STATUS_STYLES.stale.stamp}
+          />
+        ) : reading && silent ? (
+          <StatusStamp
+            status="stale"
+            silent
+            updatedAt={reading.updatedAt}
+            now={now}
+            className={STATUS_STYLES.stale.stamp}
+          />
+        ) : reading ? (
+          <span className="font-heading text-xs text-board-muted">
+            {formatClock(reading.updatedAt)}
+          </span>
+        ) : null}
+      </div>
+      {message ? (
+        <p className="font-sans text-sm font-medium text-board-muted">
+          {message}
+        </p>
+      ) : null}
+      {shown ? (
+        <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-1">
+          {!current ? (
+            <span className="font-sans text-xs text-board-muted">Last</span>
+          ) : null}
+          <span
+            className={cn(
+              "font-heading font-medium tracking-tight tabular-nums",
+              compact ? "text-3xl" : "text-4xl",
+              color
+            )}
+          >
+            {shown.number}
+          </span>
+          <span className="font-heading text-sm text-board-muted">
+            {parameter.unit}
+          </span>
+          {!current ? (
+            <span className="font-sans text-xs text-board-muted">{age}</span>
+          ) : null}
+        </div>
+      ) : null}
+      {comparison ? (
+        <p className={cn("font-sans text-xs", color)}>{comparison}</p>
+      ) : null}
+      {reading?.normalReference ? (
+        <p className="font-sans text-xs text-board-muted">
+          {reading.normalReference.label}
+        </p>
+      ) : null}
+      <p className="font-sans text-xs text-board-muted">
+        Alert assessment pending
+      </p>
+      {!compact && reading && !simpleMode ? (
+        <div className="h-16">
+          <TrendChart reading={reading} />
+        </div>
+      ) : null}
+      {silent && deviceId ? (
+        compact ? (
+          <p className="font-sans text-xs text-board-muted">{reason.label}</p>
+        ) : (
+          <SignalPathStrip
+            parameter={parameter.id}
+            parameterLabel={parameter.label}
+            reasonToken={sensorStatus}
+            deviceId={deviceId}
+          />
+        )
+      ) : null}
+    </div>
+  )
+}
 
 type ParameterTileProps = {
   reading: ReadingState

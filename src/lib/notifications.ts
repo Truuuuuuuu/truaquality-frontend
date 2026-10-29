@@ -36,10 +36,15 @@ export function describeNotification(notification: AppNotification) {
   }
 
   const alert = notification.alert!
-  const parameter = PARAMETER_BY_ID[alert.parameter]
+  const parameter = Object.hasOwn(PARAMETER_BY_ID, alert.parameter)
+    ? PARAMETER_BY_ID[alert.parameter]
+    : undefined
   const label = parameter?.label ?? alert.parameter
   // The server decides this: thresholds depend on the pond's type, and it holds them.
-  const direction = notification.direction
+  const direction =
+    notification.direction === "low" || notification.direction === "high"
+      ? notification.direction
+      : null
 
   // The parameter's own word for the side it left ("acidic"), from display metadata (D-14).
   const word = direction ? parameter?.directionWords?.[direction] : undefined
@@ -48,17 +53,23 @@ export function describeNotification(notification: AppNotification) {
   const title =
     notification.kind === "ALERT_RESOLVED"
       ? `${label} back to normal`
-      : notification.kind === "ALERT_ESCALATED"
-        ? `${label} critically ${direction}${suffix}`
-        : `${label} too ${direction}${suffix}`
+      : direction === null
+        ? notification.kind === "ALERT_ESCALATED"
+          ? `${label} alert escalated`
+          : `${label} alert`
+        : notification.kind === "ALERT_ESCALATED"
+          ? `${label} critically ${direction}${suffix}`
+          : `${label} too ${direction}${suffix}`
 
   // Only non-empty parts, so a unitless parameter (pH) reads "6.2" with no trailing space (D-13). Not
   // formatReading: that would add "≈" to turbidity notifications.
-  const reading = parameter
-    ? [notification.value!.toFixed(parameter.precision), parameter.unit]
-        .filter(Boolean)
-        .join(" ")
-    : String(notification.value)
+  const reading = !Number.isFinite(notification.value)
+    ? "No value recorded"
+    : parameter
+      ? [notification.value!.toFixed(parameter.precision), parameter.unit]
+          .filter(Boolean)
+          .join(" ")
+      : String(notification.value)
 
   return { title, reading, status: notificationStatus(notification) }
 }

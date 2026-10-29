@@ -78,11 +78,12 @@ export function DeviceUnitView(props: UnitViewProps) {
           schematic
         )}
       </div>
-      {webgl ? (
-        <p className="font-sans text-xs text-board-muted">
-          Drag to turn the unit. Select a probe to see its sensor.
-        </p>
-      ) : null}
+      <p className="font-sans text-xs text-board-muted">
+        Illustrative view of reported sensors.
+        {webgl
+          ? " Drag to turn the unit. Select a probe to see its sensor."
+          : ""}
+      </p>
     </div>
   )
 }

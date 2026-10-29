@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
+// Canonical parameter IDs and full labels are generated from the display registry.
 import { PARAMETER_FILTER_ITEMS } from "@/lib/parameters"
 
 export type ReadingsFilters = {

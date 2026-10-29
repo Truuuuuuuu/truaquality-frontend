@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "resolveJsonModule": true,
+    "types": ["vite/client", "node"],
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.do-review.tsbuildinfo",
+    "paths": {
+      "@/context/auth-context": ["./review/do/auth-context.tsx"],
+      "@/lib/api": ["./review/do/api.ts"],
+      "@/lib/supabase": ["./review/do/supabase.ts"],
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["review/do/**/*.ts", "review/do/**/*.tsx", "vite.do-review.config.ts"]
+}

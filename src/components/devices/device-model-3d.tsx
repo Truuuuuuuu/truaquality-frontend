@@ -135,6 +135,9 @@ export function DeviceModel3D(props: UnitViewProps) {
   return (
     <div className="relative isolate h-full w-full">
       <Canvas
+        style={
+          props.probes.length >= 4 ? { height: "calc(100% - 80px)" } : undefined
+        }
         dpr={[1, 2]}
         // Framed so the lowest label (under the long temperature probe) stays inside the canvas through a
         // full auto-rotation rather than spilling over the caption below it.
@@ -163,16 +166,27 @@ export function DeviceModel3D(props: UnitViewProps) {
           enableDamping={!reducedMotion}
         />
       </Canvas>
-      <div className="pointer-events-none absolute inset-0">
+      <div
+        className={cn(
+          "pointer-events-none absolute",
+          props.probes.length >= 4
+            ? "inset-x-0 bottom-0 grid grid-cols-2 gap-1 sm:grid-cols-4"
+            : "inset-0"
+        )}
+      >
         {props.probes.map((probe) => (
           <div
             key={probe.parameter}
             ref={(element) => {
-              if (element) labelRefs.current.set(probe.parameter, element)
+              if (element && props.probes.length < 4)
+                labelRefs.current.set(probe.parameter, element)
               else labelRefs.current.delete(probe.parameter)
             }}
             className={cn(
-              "invisible absolute top-0 left-0 rounded bg-board-panel/80 px-1.5 py-0.5 text-center font-sans text-xs whitespace-nowrap text-board-fg",
+              "rounded bg-board-panel/80 px-1.5 py-0.5 text-center font-sans text-xs text-board-fg",
+              props.probes.length >= 4
+                ? "whitespace-normal"
+                : "invisible absolute top-0 left-0 whitespace-nowrap",
               probe.parameter === props.selected && "font-semibold"
             )}
           >
@@ -260,6 +274,7 @@ function UnitScene({
           onSelect={onSelect}
           colors={colors}
           labelRefs={labelRefs}
+          labelOffset={probes.length >= 4 && index % 2 === 1 ? 0.07 : 0}
         />
       ))}
     </group>
@@ -439,6 +454,7 @@ function Probe({
   onSelect,
   colors,
   labelRefs,
+  labelOffset,
 }: {
   probe: UnitViewProbe
   x: number
@@ -447,6 +463,7 @@ function Probe({
   onSelect: (parameter: string) => void
   colors: TokenColors
   labelRefs: LabelRefs
+  labelOffset: number
 }) {
   const ringColor = toneColor(probe.tone, colors)
   const isTurbidity = probe.parameter === "turbidity"
@@ -457,7 +474,9 @@ function Probe({
       ? 0.14
       : probe.parameter === "ph"
         ? 0.13
-        : 0.09
+        : probe.parameter === "dissolvedOxygen"
+          ? 0.12
+          : 0.09
 
   const curve = React.useMemo(
     () =>
@@ -522,7 +541,7 @@ function Probe({
         </mesh>
         <LabelAnchor
           parameter={probe.parameter}
-          y={-bodyLength - 0.04}
+          y={-bodyLength - 0.04 - labelOffset}
           labelRefs={labelRefs}
         />
       </group>
@@ -539,6 +558,20 @@ function ProbeBody({
   parameter: string
   length: number
 }) {
+  // Deliberately generic: the reported channel does not verify an installed kit's construction.
+  if (parameter === "dissolvedOxygen")
+    return (
+      <group>
+        <mesh position={[0, -length / 2, 0]}>
+          <cylinderGeometry args={[0.018, 0.018, length, 24]} />
+          <meshStandardMaterial color={PLASTIC_COLOR} roughness={0.6} />
+        </mesh>
+        <mesh position={[0, -length + 0.01, 0]}>
+          <cylinderGeometry args={[0.019, 0.019, 0.02, 24]} />
+          <meshStandardMaterial color={METAL_COLOR} roughness={0.7} />
+        </mesh>
+      </group>
+    )
   if (parameter === "ph") {
     const capHeight = 0.02
     const stemLength = length - capHeight

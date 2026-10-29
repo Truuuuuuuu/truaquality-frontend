@@ -2,6 +2,7 @@ import { Gauge } from "lucide-react"
 import {
   ParameterTile,
   SilentParameterTile,
+  DoParameterTile,
 } from "@/components/dashboard/parameter-tile"
 import { usePondHistory } from "@/hooks/use-ponds"
 import type { Pond } from "@/lib/api"
@@ -24,11 +25,21 @@ export function PondLiveReadings({ pond, now }: PondLiveReadingsProps) {
   const readings = pondReadingStates(pond, now, historyByParameter)
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {readings.map((entry) => {
         const { parameter, reading, signal, sensorStatus } = entry
         const { valueStatus, unconfirmed } = entry
         const icon = PARAMETER_ICONS[parameter.id] ?? Gauge
+        if (parameter.id === "dissolvedOxygen")
+          return (
+            <DoParameterTile
+              key={parameter.id}
+              entry={entry}
+              deviceId={pond.device?.id ?? null}
+              now={now}
+              icon={icon}
+            />
+          )
         if (signal === "not_reported")
           return <NotReportedTile key={parameter.id} parameter={parameter} />
         if (signal === "silent" && pond.device)

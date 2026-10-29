@@ -1,5 +1,5 @@
 import { Link } from "react-router"
-import { cn } from "cn"
+import { cn } from "@/lib/utils"
 import { silentReason } from "@/lib/device-health"
 
 type ProbeRingProps = {
@@ -59,6 +59,7 @@ export function SignalPathStrip({
         </span>
         <Link
           to={`/devices/${deviceId}`}
+          aria-label={`View unit details for ${parameterLabel}`}
           className="font-medium text-board-muted underline-offset-2 hover:text-board-fg hover:underline focus-visible:text-board-fg focus-visible:underline"
         >
           View unit details

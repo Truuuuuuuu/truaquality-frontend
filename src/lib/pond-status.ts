@@ -1,5 +1,10 @@
 import type { Pond } from "@/lib/api"
 import {
+  referenceResult,
+  type DoReadingState,
+  type ParameterDisplayState,
+} from "@/lib/do-display"
+import {
   PARAMETER_BY_ID,
   PARAMETERS,
   STALE_AFTER_MS,
@@ -99,12 +104,41 @@ export function pondPanelId(pondId: string) {
 // pond-scoped (any unit that was ever assigned here), while the unit's status map and firmware are
 // device-scoped, so a previous unit's reading must not stand in for the current one's.
 function currentUnitLatest(pond: Pond, parameterId: string) {
+  if (!Object.hasOwn(pond.latest, parameterId)) return undefined
   const latest = pond.latest[parameterId]
-  if (!latest) return undefined
+  if (
+    !latest ||
+    !Number.isFinite(latest.value) ||
+    !Number.isFinite(Date.parse(latest.recordedAt))
+  )
+    return undefined
   const assignedAt = pond.device?.assignedAt
   if (assignedAt && Date.parse(latest.recordedAt) < Date.parse(assignedAt))
     return undefined
   return latest
+}
+
+// Only an actual finite value since assignment or an explicit own status key proves DO reporting.
+// A diagnostics row and a fixture/firmware version do not prove a fitted probe.
+export function hasReportedDo({
+  statuses,
+  value,
+  recordedAt,
+  assignedAt,
+}: {
+  statuses: Record<string, string>
+  value?: number | null
+  recordedAt?: string | null
+  assignedAt?: string | null
+}): boolean {
+  if (Object.hasOwn(statuses, "dissolvedOxygen")) return true
+  const time = recordedAt ? Date.parse(recordedAt) : NaN
+  return (
+    typeof value === "number" &&
+    Number.isFinite(value) &&
+    Number.isFinite(time) &&
+    (!assignedAt || time >= Date.parse(assignedAt))
+  )
 }
 
 // Dotted numeric compare ("0.10.0" > "0.9.2"); anything after a "-" or "+" is ignored.
@@ -136,6 +170,8 @@ export function unitLacksSensor(
   parameter: ParameterConfig
 ): boolean {
   const { statuses } = unit
+  if (parameter.capabilityEvidence === "reported")
+    return !hasReportedDo({ statuses })
   if (Object.hasOwn(statuses, parameter.id)) return false
   if (Object.keys(statuses).length > 0) return true
   const firmware = unit.firmwareVersion
@@ -177,7 +213,22 @@ export function parameterSignal(
   if (!pond.device || !isDeviceOnline(pond.device.lastSeenAt, now))
     return "unit_offline"
   const latest = currentUnitLatest(pond, parameterId)
-  const parameter = PARAMETER_BY_ID[parameterId]
+  const parameter = Object.hasOwn(PARAMETER_BY_ID, parameterId)
+    ? PARAMETER_BY_ID[parameterId]
+    : undefined
+  if (parameter?.capabilityEvidence === "reported") {
+    const statuses = pond.sensorStatus ?? {}
+    if (
+      !hasReportedDo({
+        statuses,
+        value: latest?.value,
+        recordedAt: latest?.recordedAt,
+      })
+    )
+      return "not_reported"
+    if (Object.hasOwn(statuses, parameterId) && statuses[parameterId] !== "ok")
+      return "silent"
+  }
   if (!latest && parameter && unitLacksParameter(pond, parameter))
     return "not_reported"
   if (!latest || now - Date.parse(latest.recordedAt) > STALE_AFTER_MS)
@@ -187,13 +238,16 @@ export function parameterSignal(
 
 export function silentParameters(pond: Pond, now: number): ParameterConfig[] {
   return PARAMETERS.filter(
-    (parameter) => parameterSignal(pond, parameter.id, now) === "silent"
+    (parameter) =>
+      parameter.id !== "dissolvedOxygen" &&
+      parameterSignal(pond, parameter.id, now) === "silent"
   )
 }
 
 export function pondStatus(pond: Pond, now: number): ReadingStatus {
   const statuses: ReadingStatus[] = []
   for (const parameter of PARAMETERS) {
+    if (parameter.id === "dissolvedOxygen") continue
     const signal = parameterSignal(pond, parameter.id, now)
     // A parameter the current unit doesn't send contributes nothing, so old firmware doesn't pin the
     // pond to the top of the board (D-09).
@@ -227,6 +281,9 @@ export function pondStatus(pond: Pond, now: number): ReadingStatus {
 export type PondReadingEntry = {
   parameter: ParameterConfig
   reading: ReadingState | null
+  // New consumers dispatch this union; legacy consumers keep their assessed-only reading.
+  displayReading: ParameterDisplayState | null
+  referenceReading: DoReadingState | null
   signal: ParameterSignal
   // The unit's own last status token for this sensor, or null when it never sent one.
   sensorStatus: string | null
@@ -247,6 +304,68 @@ export function pondReadingStates(
   historyByParameter: Map<string, ReadingPoint[]>
 ): PondReadingEntry[] {
   return PARAMETERS.map((parameter) => {
+    if (parameter.id === "dissolvedOxygen") {
+      const signal = parameterSignal(pond, parameter.id, now)
+      const latest = currentUnitLatest(pond, parameter.id)
+      const assignedAt = pond.device?.assignedAt
+        ? Date.parse(pond.device.assignedAt)
+        : -Infinity
+      // History is pond-scoped: previous units cannot establish this unit's capability or current value.
+      const history = (historyByParameter.get(parameter.id) ?? [])
+        .filter(
+          (point) =>
+            Number.isFinite(point.t) &&
+            Number.isFinite(point.v) &&
+            point.t >= assignedAt
+        )
+        .sort((a, b) => a.t - b.t)
+      const last = history.at(-1)
+      if (latest && (!last || Date.parse(latest.recordedAt) > last.t))
+        history.push({ t: Date.parse(latest.recordedAt), v: latest.value })
+      const chosen = history.at(-1)
+      const metadata = pond.parameterMetadata?.dissolvedOxygen
+      const normalReference = metadata?.normalReference ?? null
+      const currentReading =
+        signal === "live" && !!chosen && now - chosen.t <= STALE_AFTER_MS
+      const server = pond.referenceComparison?.dissolvedOxygen
+      const calculated = chosen
+        ? referenceResult(chosen.v, normalReference)
+        : null
+      const comparison =
+        chosen &&
+        server?.value === chosen.v &&
+        Date.parse(server.recordedAt) === chosen.t &&
+        server.result === calculated
+          ? server.result
+          : calculated
+      const referenceReading: DoReadingState | null =
+        chosen && signal !== "not_reported"
+          ? {
+              kind: "reference",
+              parameter,
+              current: chosen.v,
+              history,
+              updatedAt: chosen.t,
+              normalReference,
+              referenceComparison: comparison,
+              assessment: metadata?.assessment ?? null,
+              currentReading,
+            }
+          : null
+      return {
+        parameter,
+        reading: null,
+        displayReading: referenceReading,
+        referenceReading,
+        signal,
+        sensorStatus:
+          pond.sensorStatus && Object.hasOwn(pond.sensorStatus, parameter.id)
+            ? pond.sensorStatus[parameter.id]
+            : null,
+        valueStatus: undefined,
+        unconfirmed: null,
+      }
+    }
     let history = historyByParameter.get(parameter.id) ?? []
     const latest = pond.latest[parameter.id]
     const threshold = pond.thresholds[parameter.id]
@@ -271,11 +390,14 @@ export function pondReadingStates(
         ? unconfirmedSpike(pond, parameter.id, threshold, last.v, last.t, now)
         : null
     // No threshold means the server doesn't know this parameter, so there's nothing to judge it by.
+    const reading = threshold
+      ? toReadingState(parameter, threshold, history, now, status)
+      : null
     return {
       parameter,
-      reading: threshold
-        ? toReadingState(parameter, threshold, history, now, status)
-        : null,
+      reading,
+      displayReading: reading ? { ...reading, kind: "assessed" } : null,
+      referenceReading: null,
       signal: parameterSignal(pond, parameter.id, now),
       sensorStatus: pond.sensorStatus?.[parameter.id] ?? null,
       valueStatus,

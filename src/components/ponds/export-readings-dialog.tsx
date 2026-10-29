@@ -19,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/auth-context"
 import { errorMessage, exportPondReadings } from "@/lib/api"
+import { PARAMETER_FILTER_ITEMS } from "@/lib/parameters"
 
 const READING_TYPES = [
   { value: "hour", label: "Hourly summary" },
@@ -70,6 +71,7 @@ function ExportReadingsForm({
   const [from, setFrom] = React.useState(() => todayInputValue(7))
   const [to, setTo] = React.useState(() => todayInputValue(0))
   const [readingType, setReadingType] = React.useState<"raw" | "hour">("hour")
+  const [parameter, setParameter] = React.useState("all")
   const [isExporting, setIsExporting] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
 
@@ -82,6 +84,7 @@ function ExportReadingsForm({
           from: new Date(`${from}T00:00:00`).toISOString(),
           to: new Date(`${to}T23:59:59`).toISOString(),
           resolution: readingType,
+          parameter: parameter === "all" ? undefined : parameter,
         })
       )
       const url = URL.createObjectURL(blob)
@@ -103,8 +106,8 @@ function ExportReadingsForm({
       <DialogHeader>
         <DialogTitle>Export readings</DialogTitle>
         <DialogDescription>
-          Choose a date range and reading type, then download an Excel workbook
-          of this pond&apos;s readings.
+          Choose a date range, parameter and reading type, then download an
+          Excel workbook of this pond&apos;s readings.
         </DialogDescription>
       </DialogHeader>
 
@@ -129,6 +132,26 @@ function ExportReadingsForm({
             onChange={(event) => setTo(event.target.value)}
           />
         </div>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="export-parameter">Parameter</Label>
+        <Select
+          items={PARAMETER_FILTER_ITEMS}
+          value={parameter}
+          onValueChange={(value) => setParameter(value ?? "all")}
+        >
+          <SelectTrigger id="export-parameter" className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {PARAMETER_FILTER_ITEMS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="flex flex-col gap-1.5">

@@ -1,6 +1,33 @@
 import type { Threshold } from "@/lib/parameters"
+import type { NormalReference } from "@/lib/api"
+import { referenceResult } from "@/lib/do-display"
 
 const NICE_STEPS = [1, 2, 2.5, 5, 10]
+
+// Layout padding is not a safe/critical limit. Scaling first also keeps the axis finite for
+// very large values; missing reference metadata fits only the data, without a substitute edge.
+export function referenceScaleDomain(
+  reference: NormalReference | null | undefined,
+  dataMin: number,
+  dataMax: number
+) {
+  const values = [dataMin, dataMax].filter(Number.isFinite)
+  if (referenceResult(0, reference) !== null && reference)
+    values.push(reference.boundary)
+  const scale = Math.max(...values.map(Math.abs), 1)
+  const low = values.length ? Math.min(...values) / scale : -1
+  const high = values.length ? Math.max(...values) / scale : 1
+  const padding = Math.max((high - low) * 0.12, 0.05)
+  const finite = (value: number) =>
+    Math.max(-Number.MAX_VALUE, Math.min(Number.MAX_VALUE, value * scale))
+  const lo = finite(low - padding)
+  const hi = finite(high + padding)
+  const normalized = valueTicks(lo / scale, hi / scale, 4)
+  const ticks = normalized.ticks.map(finite).filter(Number.isFinite)
+  const step = ticks.length > 1 ? Math.abs(ticks[1] - ticks[0]) : scale
+  const decimals = Math.min(6, Math.max(0, -Math.floor(Math.log10(step))))
+  return { lo, hi, ticks, decimals }
+}
 
 // Round-number value ticks (24, 26, 28 … rather than 23.7, 25.9 …) so the axis reads like a gauge.
 export function valueTicks(min: number, max: number, target: number) {
